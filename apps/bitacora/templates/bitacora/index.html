@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Bitácora" %} · {{ request.client.name }}{% endblock %}
+{% block content %}
+  <p><a href="{% url 'client_home' request.client.slug %}">← {{ request.client.name }}</a></p>
+  <div class="row">
+    <h1>{% translate "Bitácora" %}</h1>
+    <div class="row">
+      {% if sees_ti %}<a href="{% url 'bitacora:ti' request.client.slug %}">{% translate "Vista TI en vivo" %}</a>{% endif %}
+      {% if sees_all %}
+        <a href="{% url 'bitacora:metricas' request.client.slug %}">{% translate "Métricas" %}</a>
+        <a href="{% url 'bitacora:exportar' request.client.slug %}{% if querystring %}?{{ querystring }}{% endif %}">{% translate "Exportar a Excel" %}</a>
+      {% endif %}
+      {% if can_register %}<a class="btn" href="{% url 'bitacora:crear' request.client.slug %}">{% translate "Registrar ticket" %}</a>{% endif %}
+    </div>
+  </div>
+  {% if not sees_all %}<p class="muted">{% translate "Ves los tickets que registraste." %}</p>{% endif %}
+
+  {% if resumen %}
+  <ul class="stats">
+    <li class="{% if resumen.nuevos %}warn{% endif %}"><a href="?estado=nuevo"><strong>{{ resumen.nuevos }}</strong> {% translate "nuevos por clasificar" %}</a></li>
+    <li><a href="?estado=derivado_ti"><strong>{{ resumen.en_ti }}</strong> {% translate "en TI" %}</a></li>
+    <li class="{% if resumen.sin_validar %}warn{% endif %}"><a href="?sin_validar=on"><strong>{{ resumen.sin_validar }}</strong> {% translate "derivados sin validar" %}</a></li>
+  </ul>
+  <form method="get" class="filters">
+    {% for field in filtro %}<label>{{ field.label }}{{ field }}</label>{% endfor %}
+    <button type="submit" class="btn">{% translate "Filtrar" %}</button>
+    {% if querystring %}<a href="{% url 'bitacora:index' request.client.slug %}">{% translate "Limpiar" %}</a>{% endif %}
+  </form>
+  {% endif %}
+
+  {% if tickets %}
+  <div class="table-wrap panel"><table>
+    <thead><tr><th>{% translate "ID" %}</th><th>{% translate "Asunto" %}</th><th>{% translate "Categoría" %}</th>
+      <th>{% translate "Grupo" %}</th><th>{% translate "Estado" %}</th><th>{% translate "Registrado" %}</th></tr></thead>
+    <tbody>
+    {% for t in tickets %}
+      <tr>
+        <td class="nowrap"><a href="{% url 'bitacora:detalle' request.client.slug t.numero %}">{{ t.codigo }}</a></td>
+        <td><a href="{% url 'bitacora:detalle' request.client.slug t.numero %}">{{ t.titulo }}</a>{% if t.caso_cliente %}<br><span class="muted small">{% translate "Caso" %} {{ t.caso_cliente }}</span>{% endif %}</td>
+        <td>{{ t.categoria }}</td>
+        <td>{{ t.grupo|default:"" }}</td>
+        <td>{% include "bitacora/_estado.html" %}</td>
+        <td class="nowrap">{{ t.created_at|date:"SHORT_DATETIME_FORMAT" }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+    <p class="muted">{% if querystring %}{% translate "Ningún ticket coincide con el filtro." %}{% else %}{% translate "Todavía no hay tickets." %}{% endif %}</p>
+  {% endif %}
+{% endblock %}

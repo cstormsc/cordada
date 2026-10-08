@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     "apps.catalogs",
     "apps.matriz",
     "apps.ruta",
+    "apps.bitacora",
     "apps.plataforma",
 ]
 

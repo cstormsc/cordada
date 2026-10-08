@@ -1,0 +1,26 @@
+{% load i18n %}
+<ul class="stats">
+  <li><strong>{{ tickets|length }}</strong> {% translate "en TI" %}</li>
+  <li><strong>{{ resueltos_hoy }}</strong> {% translate "resueltos hoy" %}</li>
+  <li class="muted small">{% translate "Actualizado" %} {{ now|time:"H:i:s" }}</li>
+</ul>
+{% if tickets %}
+<div class="table-wrap panel"><table>
+  <thead><tr><th>{% translate "ID" %}</th><th>{% translate "Asunto" %}</th><th>{% translate "Grupo" %}</th>
+    <th>{% translate "Caso cliente" %}</th><th>{% translate "Esperando" %}</th><th>{% translate "Registró" %}</th></tr></thead>
+  <tbody>
+  {% for t in tickets %}
+    <tr{% if t.urgencia == "grave" %} class="row-grave"{% endif %}>
+      <td class="nowrap"><a href="{% url 'bitacora:detalle' request.client.slug t.numero %}">{{ t.codigo }}</a></td>
+      <td>{{ t.titulo }}{% if t.urgencia == "grave" %} <span class="badge alert">{% translate "Grave" %}</span>{% endif %}{% if not t.validado %} <span class="flag warn small">{% translate "Sin validar" %}</span>{% endif %}</td>
+      <td>{{ t.grupo|default:"—" }}</td>
+      <td>{{ t.caso_cliente|default:"—" }}</td>
+      <td class="nowrap">{{ t.created_at|timesince:now }}</td>
+      <td>{{ t.registrado_por.display_name }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% else %}
+  <p class="muted">{% translate "No hay tickets pendientes en TI." %}</p>
+{% endif %}

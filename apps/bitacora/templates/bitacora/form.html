@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+<div class="narrow-wide">
+  <p>{% if ticket %}<a href="{% url 'bitacora:detalle' request.client.slug ticket.numero %}">← {{ ticket.codigo }}</a>{% else %}<a href="{% url 'bitacora:index' request.client.slug %}">← {% translate "Bitácora" %}</a>{% endif %}</p>
+  <h1>{% if ticket %}{% translate "Editar" %} {{ ticket.codigo }}{% else %}{% translate "Registrar ticket" %}{% endif %}</h1>
+  <form method="post" class="form panel">
+    {% csrf_token %}
+    {{ form }}
+    <button type="submit" class="btn">{% translate "Guardar" %}</button>
+  </form>
+</div>
+{% endblock %}

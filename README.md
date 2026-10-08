@@ -73,3 +73,15 @@ Dependencias con `uv`: editar `pyproject.toml`, luego `make lock && make build`.
   ciclo de vida. Un impacto está **bloqueado** si depende de uno abierto (Propuesto, Evaluado,
   En atención, Reabierto). Solo el rol Equipo de cambio crea o quita dependencias; no se
   permiten ciclos.
+
+## Bitácora
+
+- `/c/<cliente>/bitacora/`: tickets con flujo nuevo → en clasificación → validado → derivado a
+  TI → resuelto → cerrado (`apps/bitacora/workflow.py`; cada paso indica el permiso que exige).
+- Fallo grave técnico: se deriva a TI desde Nuevo y se valida en paralelo. Solo los técnicos van
+  a TI; TI puede devolverlos con motivo.
+- Primera respuesta y resolución se registran solas con los cambios de estado.
+- Vista TI en vivo (`/bitacora/ti/`, refresco cada 15 s), métricas (por tipo, por grupo cada 100
+  personas, tiempos, recurrencia) y exportación a Excel.
+- Un ticket de impacto no anticipado propone un impacto en la matriz. Si existe un origen con
+  código `bitacora` en el catálogo de origen, se asigna automáticamente.

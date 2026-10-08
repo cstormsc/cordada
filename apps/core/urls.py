@@ -12,5 +12,6 @@ urlpatterns = [
     path("c/<slug:client_slug>/configuracion/", include("apps.catalogs.urls")),
     path("c/<slug:client_slug>/matriz/", include("apps.matriz.urls")),
     path("c/<slug:client_slug>/ruta/", include("apps.ruta.urls")),
+    path("c/<slug:client_slug>/bitacora/", include("apps.bitacora.urls")),
     path("health/", views.health, name="health"),
 ]

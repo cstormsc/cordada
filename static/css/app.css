@@ -163,3 +163,11 @@ table.report td:first-child, table.report th:first-child { text-align: left; }
 .reason-dialog textarea { width: 100%; margin: 0.5rem 0 0.75rem; padding: 0.45rem 0.6rem; border: 1px solid var(--line); border-radius: 6px; font: inherit; }
 .dep-add { margin-top: 0.6rem; flex-wrap: nowrap; }
 .dep-add select { flex: 1; min-width: 0; }
+
+/* Bitácora */
+.narrow-wide { max-width: 40rem; }
+.form ul#id_urgencia, .form div#id_urgencia { display: flex; gap: 1rem; }
+.tag.tk-nuevo { background: #fff4e5; color: #7a4a00; }
+.tag.tk-derivado_ti { background: #e0eaff; color: #1d3a8a; }
+.tag.tk-resuelto, .tag.tk-cerrado { background: #e3f4ea; color: #1e6b3a; }
+tr.row-grave td { background: #fdf3f2; }

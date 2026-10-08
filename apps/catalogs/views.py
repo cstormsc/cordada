@@ -19,7 +19,8 @@ BASE_FIELDS = ["name", "description", "order"]
 # URL segment -> (model, form, help shown on the list page)
 CLIENT_CATALOGS = {
     "grupos": (
-        GrupoImpactado, client_catalog_form(GrupoImpactado, BASE_FIELDS),
+        GrupoImpactado,
+        client_catalog_form(GrupoImpactado, ["name", "description", "personas", "order"]),
         gettext_lazy("Grupos de personas a los que afecta el cambio. Agrupan impactos, "
                      "actividades, tickets y resultados."),
     ),

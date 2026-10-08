@@ -1,0 +1,1 @@
+{% load i18n %}<span class="tag tk-{{ t.estado }}">{{ t.get_estado_display }}</span>{% if t.urgencia == "grave" %} <span class="badge alert">{% translate "Grave" %}</span>{% endif %}{% if not t.validado and t.estado == "derivado_ti" or not t.validado and t.estado == "resuelto" %} <span class="flag warn small">{% translate "Sin validar" %}</span>{% endif %}

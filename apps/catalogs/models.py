@@ -156,6 +156,11 @@ class ClientCatalogItem(TenantScopedModel):
 
 
 class GrupoImpactado(ClientCatalogItem):
+    personas = models.PositiveIntegerField(
+        _("número de personas"), null=True, blank=True,
+        help_text=_("Opcional. Permite calcular indicadores por cada 100 personas."),
+    )
+
     class Meta(ClientCatalogItem.Meta):
         verbose_name = _("grupo impactado")
         verbose_name_plural = _("grupos impactados")
