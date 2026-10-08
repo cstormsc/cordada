@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+<div class="narrow-wide">
+  <p>{% if c %}<a href="{% url 'formularios:cuestionario' request.client.slug c.numero %}">← {{ c.codigo }}</a>{% else %}<a href="{% url 'formularios:index' request.client.slug %}">← {% translate "Formularios" %}</a>{% endif %}</p>
+  <h1>{% if c %}{% translate "Configurar" %} {{ c.codigo }}{% else %}{% translate "Nuevo cuestionario" %}{% endif %}</h1>
+  {% if c and not c.is_draft %}<p class="msg msg-warning">{% translate "Publicado: solo puede cambiar la fecha de vencimiento." %}</p>{% endif %}
+  <form method="post" class="form panel">{% csrf_token %}{{ form }}
+    <button class="btn">{% translate "Guardar" %}</button></form>
+</div>
+{% endblock %}

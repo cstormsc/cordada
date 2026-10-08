@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ c.codigo }} · {{ request.client.name }}{% endblock %}
+{% block content %}
+  <p><a href="{% url 'formularios:index' request.client.slug %}">← {% translate "Formularios" %}</a></p>
+  <div class="row">
+    <h1><span class="muted">{{ c.codigo }}</span> {{ c.titulo }}</h1>
+    <div class="row">
+      {% if can_design %}<a href="{% url 'formularios:editar' request.client.slug c.numero %}">{% translate "Configurar" %}</a>{% endif %}
+      {% if not c.is_draft %}<a href="{% url 'formularios:resultados' request.client.slug c.numero %}">{% translate "Resultados" %}</a>{% endif %}
+      {% if not c.is_draft and can_links %}<a class="btn" href="{% url 'formularios:enlaces' request.client.slug c.numero %}">{% translate "Enlaces" %}</a>{% endif %}
+    </div>
+  </div>
+  <p><span class="tag">{{ c.get_estado_display }}</span>
+    <span class="muted">{% translate "Aprueba con" %} {{ c.nota_minima|floatformat:"-2" }}/100 · {{ c.intentos }} {% translate "intento(s)" %}{% if c.vence %} · {% translate "vence" %} {{ c.vence|date:"SHORT_DATE_FORMAT" }}{% endif %}{% if c.impacto %} · {% translate "verifica" %} {{ c.impacto.codigo }}{% endif %}</span></p>
+
+  {% if totales %}
+  <ul class="stats">
+    <li><strong>{{ totales.invitados }}</strong> {% translate "con enlace" %}</li>
+    <li><strong>{{ totales.respondieron }}</strong> {% translate "respondieron" %}{% if totales.pct_respuesta is not None %} ({{ totales.pct_respuesta }} %){% endif %}</li>
+  </ul>
+  {% endif %}
+
+  {% if c.is_draft and can_design %}
+    {% if errors %}
+      <section class="panel attention"><h2>{% translate "Antes de publicar" %}</h2>
+        <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></section>
+    {% else %}
+      <section class="panel attention"><h2>{% translate "Listo para publicar" %}</h2>
+        <p>{% translate "Al publicar, preguntas y puntos quedan fijos. Después se generan los enlaces." %}</p>
+        <form method="post" action="{% url 'formularios:publicar' request.client.slug c.numero %}">{% csrf_token %}<button class="btn">{% translate "Publicar" %}</button></form>
+      </section>
+    {% endif %}
+  {% endif %}
+
+  <section class="panel" id="puntos">
+    <div class="row">
+      <h2>{% translate "Preguntas" %}</h2>
+      {% if c.is_draft and can_design %}<a class="btn" href="{% url 'formularios:pregunta_nueva' request.client.slug c.numero %}">{% translate "Agregar pregunta" %}</a>{% endif %}
+    </div>
+    {% if preguntas %}
+    <form method="post" action="{% url 'formularios:puntos' request.client.slug c.numero %}"
+          x-data="{ sum() { return [...$el.querySelectorAll('input.pts')].reduce((a, i) => a + (parseFloat((i.value||'0').replace(',', '.')) || 0), 0) } }">
+      {% csrf_token %}
+      {% for p in preguntas %}
+        <article class="pregunta" id="p{{ p.pk }}">
+          <div class="row">
+            <strong>{{ forloop.counter }}. {{ p.texto }}</strong>
+            <span class="pts-box">
+              {% if c.is_draft and can_design %}
+                <input class="pts" type="text" inputmode="decimal" name="puntos-{{ p.pk }}" value="{{ p.puntos|floatformat:'2u' }}" aria-label="{% translate 'Puntos' %}" @input="$dispatch('pts')"> {% translate "pts" %}
+              {% else %}{{ p.puntos|floatformat:"-2" }} {% translate "pts" %}{% endif %}
+            </span>
+          </div>
+          <p class="muted small">{{ p.get_tipo_display }}</p>
+          <ul class="opciones">{% for o in p.opciones.all %}<li{% if o.correcta %} class="correcta"{% endif %}>{{ o.texto }}{% if o.correcta %} ✓{% endif %}</li>{% endfor %}</ul>
+          {% if c.is_draft and can_design %}
+            <div class="row small">
+              <a href="{% url 'formularios:pregunta' request.client.slug c.numero p.pk %}">{% translate "Editar" %}</a>
+              <button type="submit" form="del-{{ p.pk }}" class="link danger small">{% translate "Eliminar" %}</button>
+            </div>
+          {% endif %}
+        </article>
+      {% endfor %}
+      <div class="row pts-total" x-data="{ t: 0 }" x-init="t = sum()" @pts.window="t = sum()">
+        <span>{% translate "Total" %}: <strong{% if total != 100 %} class="error"{% endif %} x-text="t.toFixed(2)" :class="{ error: Math.abs(t - 100) > 0.001 }">{{ total|floatformat:"2" }}</strong> / 100</span>
+        {% if c.is_draft and can_design %}
+          <span class="row">
+            <button class="btn secondary">{% translate "Guardar puntos" %}</button>
+          </span>
+        {% endif %}
+      </div>
+    </form>
+    {% if c.is_draft and can_design %}
+      <form method="post" action="{% url 'formularios:repartir' request.client.slug c.numero %}" class="pts-repartir">{% csrf_token %}
+        <button class="link small">{% translate "Repartir en partes iguales" %}</button>
+        <span class="muted small">{% if c.puntos_manuales %}{% translate "Puntos ajustados a mano: se mantienen al agregar o quitar preguntas." %}{% else %}{% translate "Reparto automático: se recalcula al agregar o quitar preguntas." %}{% endif %}</span>
+      </form>
+      {% for p in preguntas %}<form id="del-{{ p.pk }}" method="post" action="{% url 'formularios:borrar_pregunta' request.client.slug c.numero p.pk %}">{% csrf_token %}</form>{% endfor %}
+    {% endif %}
+    {% else %}<p class="muted">{% translate "Sin preguntas todavía." %}</p>{% endif %}
+  </section>
+
+  {% if c.is_draft and can_design %}{% else %}{% if c.estado == "publicado" and can_design %}
+    <form method="post" action="{% url 'formularios:cerrar' request.client.slug c.numero %}">{% csrf_token %}<button class="link danger small">{% translate "Cerrar el cuestionario (deja de aceptar respuestas)" %}</button></form>
+  {% endif %}{% endif %}
+{% endblock %}

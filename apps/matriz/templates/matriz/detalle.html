@@ -113,6 +113,19 @@
     </section>
   </div>
 
+  {% if verificacion %}
+  <section class="panel" id="verificacion">
+    <h2>{% translate "Verificación de competencias" %}</h2>
+    <p class="muted small">{% if impacto.grupo %}{% blocktranslate with g=impacto.grupo %}Personas del grupo {{ g }}.{% endblocktranslate %}{% endif %}
+      {% if impacto.criterio_meta is not None %}{% translate "Meta del criterio de cierre" %}: {{ impacto.criterio_meta|floatformat:"-2" }}.{% endif %}</p>
+    <ul class="list">{% for v in verificacion %}
+      <li><span>{{ v.cuestionario.codigo }} · {{ v.cuestionario.titulo }}</span>
+        <span>{% if v.aprobados is None %}<span class="muted small">{{ v.respondieron }} {% translate "de" %} {{ v.invitados }} {% translate "respondieron (muy pocos para mostrar)" %}</span>
+        {% else %}<strong>{{ v.pct_sobre_invitados }} %</strong> {% translate "del grupo aprobó" %} <span class="muted small">({{ v.aprobados }}/{{ v.invitados }})</span>{% endif %}</span></li>
+    {% endfor %}</ul>
+  </section>
+  {% endif %}
+
   <section class="panel" id="dependencias">
     <h2>{% translate "Dependencias" %}</h2>
     {% if open_prerequisites %}

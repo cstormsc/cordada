@@ -1,0 +1,25 @@
+{% extends "public_base.html" %}
+{% load i18n %}
+{% block title %}{{ c.titulo }}{% endblock %}
+{% block brand %}{{ enlace.client.name }}{% endblock %}
+{% block content %}
+  <h1>{{ c.titulo }}</h1>
+  <p class="muted">{% blocktranslate with name=enlace.persona %}Hola, {{ name }}.{% endblocktranslate %}
+    {% if c.intentos > 1 %}{% blocktranslate with n=intento total=c.intentos %}Intento {{ n }} de {{ total }}.{% endblocktranslate %}{% endif %}</p>
+  <p class="msg">{% translate "Tus respuestas son confidenciales, no anónimas: la plataforma sabe quién respondió. Solo el equipo de cambio ve el detalle individual; los demás ven resultados agregados." %}</p>
+  {% if c.instrucciones %}<p class="pre">{{ c.instrucciones }}</p>{% endif %}
+  {% if missing %}<p class="msg msg-error">{% translate "Responde todas las preguntas." %}</p>{% endif %}
+  <form method="post" class="form">
+    {% csrf_token %}
+    {% for p in preguntas %}
+      <fieldset class="panel{% if p.pk in missing %} attention{% endif %}">
+        <legend>{{ forloop.counter }}. {{ p.texto }}</legend>
+        {% if p.tipo == "multiple" %}<p class="muted small">{% translate "Marca todas las que correspondan." %}</p>{% endif %}
+        <ul>{% for o in p.opciones.all %}
+          <li><label><input type="{% if p.tipo == 'multiple' %}checkbox{% else %}radio{% endif %}" name="p{{ p.pk }}" value="{{ o.pk }}"{% if o.checked %} checked{% endif %}> {{ o.texto }}</label></li>
+        {% endfor %}</ul>
+      </fieldset>
+    {% endfor %}
+    <button class="btn">{% translate "Enviar respuestas" %}</button>
+  </form>
+{% endblock %}

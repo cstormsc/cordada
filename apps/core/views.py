@@ -11,8 +11,8 @@ from django.views.decorators.http import require_POST
 from . import invitations
 from .decorators import client_member_required
 from .forms import AcceptInvitationForm
-from .models import Invitation, User
-from .permissions import can_configure, visible_modules
+from .models import Invitation, Module, User
+from .permissions import Action, can_configure, role_actions, visible_modules
 
 
 @login_required
@@ -28,6 +28,10 @@ def client_home(request, client_slug):
     return render(request, "core/client_home.html", {
         "modules": visible_modules(request.membership),
         "can_configure": can_configure(request.membership),
+        # Area leaders only do the practical evaluation (step 7b), not the questionnaires.
+        "module_links": {"formularios": bool(
+            {Action.EDIT, Action.DESIGN} & role_actions(request.membership.role,
+                                                        Module.FORMULARIOS))},
     })
 
 

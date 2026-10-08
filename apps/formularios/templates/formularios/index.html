@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Formularios" %} · {{ request.client.name }}{% endblock %}
+{% block content %}
+  <p><a href="{% url 'client_home' request.client.slug %}">← {{ request.client.name }}</a></p>
+  <div class="row">
+    <h1>{% translate "Verificación de competencias" %}</h1>
+    <div class="row">
+      {% if can_people %}<a href="{% url 'formularios:personas' request.client.slug %}">{% translate "Personas" %} ({{ personas }})</a>{% endif %}
+      <a class="btn" href="{% url 'formularios:crear' request.client.slug %}">{% translate "Nuevo cuestionario" %}</a>
+    </div>
+  </div>
+  {% if cuestionarios %}
+  <div class="table-wrap panel"><table>
+    <thead><tr><th>{% translate "ID" %}</th><th>{% translate "Cuestionario" %}</th><th>{% translate "Impacto" %}</th><th>{% translate "Preguntas" %}</th><th>{% translate "Enlaces" %}</th><th>{% translate "Estado" %}</th></tr></thead>
+    <tbody>{% for c in cuestionarios %}
+      <tr><td class="nowrap"><a href="{% url 'formularios:cuestionario' request.client.slug c.numero %}">{{ c.codigo }}</a></td>
+        <td><a href="{% url 'formularios:cuestionario' request.client.slug c.numero %}">{{ c.titulo }}</a></td>
+        <td>{{ c.impacto.codigo|default:"—" }}</td><td>{{ c.n_preguntas }}</td><td>{{ c.n_enlaces }}</td>
+        <td><span class="tag">{{ c.get_estado_display }}</span></td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}<p class="muted">{% translate "Todavía no hay cuestionarios." %}</p>{% endif %}
+{% endblock %}

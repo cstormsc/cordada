@@ -1,0 +1,15 @@
+{% extends "public_base.html" %}
+{% load i18n %}
+{% block brand %}{{ enlace.client.name }}{% endblock %}
+{% block content %}
+  <h1>{{ enlace.cuestionario.titulo }}</h1>
+  {% if respuesta %}
+    <section class="panel">
+      <p>{% translate "Tu puntaje" %}: <strong>{{ respuesta.puntaje|floatformat:"-2" }}</strong> / 100</p>
+      <p>{% if respuesta.aprobado %}<span class="cump a_tiempo">{% translate "Aprobado" %}</span>{% else %}<span class="cump no_realizada">{% translate "No aprobado" %}</span> <span class="muted">{% translate "Se aprueba con" %} {{ enlace.cuestionario.nota_minima|floatformat:"-2" }}.</span>{% endif %}</p>
+      {% if not respuesta.aprobado and restantes %}<p><a class="btn" href="">{% blocktranslate count n=restantes %}Intentar de nuevo ({{ n }} intento restante){% plural %}Intentar de nuevo ({{ n }} intentos restantes){% endblocktranslate %}</a></p>{% endif %}
+      {% if sin_intentos %}<p class="muted">{% translate "Ya usaste todos tus intentos." %}</p>{% endif %}
+    </section>
+  {% endif %}
+  <p class="muted">{% translate "Gracias. Puedes cerrar esta página." %}</p>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+  <p><a href="{% url 'formularios:cuestionario' request.client.slug c.numero %}">← {{ c.codigo }}</a></p>
+  <h1>{% translate "Enlaces personales" %}</h1>
+  <p class="muted">{% translate "Un enlace por persona. En esta etapa, exporta el archivo y envíalo desde el correo del cliente; la invitación debe decir que las respuestas son confidenciales, no anónimas." %}</p>
+  <div class="grid-2">
+    <section class="panel">
+      <h2>{% translate "Generar enlaces" %}</h2>
+      <form method="post" class="form">{% csrf_token %}{{ form }}
+        <button class="btn">{% translate "Generar" %}</button></form>
+      <p class="muted small">{% translate "Solo se crean enlaces para quien no tenga uno." %}</p>
+    </section>
+    <section class="panel">
+      <h2>{{ n_enlaces }} {% translate "enlaces" %}</h2>
+      <ul class="list">{% for g in por_grupo %}<li><span>{{ g.persona__grupo__name|default:_("Sin grupo") }}</span><span>{{ g.n }}</span></li>{% endfor %}</ul>
+      {% if n_enlaces %}<p class="row">
+        <a class="btn" href="{% url 'formularios:exportar_enlaces' request.client.slug c.numero %}">{% translate "Exportar Excel" %}</a>
+        <a href="{% url 'formularios:exportar_enlaces' request.client.slug c.numero %}?formato=csv">CSV</a></p>{% endif %}
+    </section>
+  </div>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+  <p><a href="{% url 'formularios:index' request.client.slug %}">← {% translate "Formularios" %}</a></p>
+  <div class="row">
+    <h1>{% translate "Personas" %}</h1>
+    <a class="btn" href="{% url 'formularios:cargar' request.client.slug %}">{% translate "Cargar listado" %}</a>
+  </div>
+  <p class="muted">{% translate "Quienes responden los cuestionarios. No tienen cuenta: reciben un enlace personal." %}</p>
+  <div class="grid-2">
+    <section class="panel">
+      <h2>{% translate "Por grupo" %}</h2>
+      <ul class="list">{% for g in por_grupo %}<li><span>{{ g.grupo__name|default:_("Sin grupo") }}</span><span>{{ g.n }}</span></li>{% empty %}<li class="muted">{% translate "Sin personas cargadas." %}</li>{% endfor %}</ul>
+    </section>
+    <section class="panel">
+      <h2>{% translate "Últimas cargas" %}</h2>
+      <ul class="list">{% for k in cargas %}<li><span>{{ k.archivo }} · {{ k.creadas }} {% translate "nuevas" %}, {{ k.actualizadas }} {% translate "actualizadas" %}{% if k.errores %}, {{ k.errores|length }} {% translate "con error" %}{% endif %}</span><span class="muted small">{{ k.fecha|date:"SHORT_DATETIME_FORMAT" }}</span></li>{% empty %}<li class="muted">{% translate "Ninguna." %}</li>{% endfor %}</ul>
+    </section>
+  </div>
+  <form method="get" class="filters">
+    <label>{% translate "Buscar" %}<input type="text" name="q" value="{{ q }}"></label>
+    <label class="row"><input type="checkbox" name="inactivas" value="1"{% if request.GET.inactivas == "1" %} checked{% endif %}> {% translate "Incluir inactivas" %}</label>
+    <button class="btn">{% translate "Filtrar" %}</button>
+  </form>
+  <p class="muted small">{{ total }} {% translate "personas" %}{% if total > 500 %} · {% translate "se muestran las primeras 500" %}{% endif %}</p>
+  <div class="table-wrap panel"><table>
+    <thead><tr><th>{% translate "Correo" %}</th><th>{% translate "Nombre" %}</th><th>{% translate "Grupo" %}</th><th>{% translate "Departamento" %}</th><th>{% translate "Supervisor" %}</th><th></th></tr></thead>
+    <tbody>{% for p in personas %}
+      <tr{% if not p.is_active %} class="muted"{% endif %}><td>{{ p.email }}</td><td>{{ p.nombre }}</td><td>{{ p.grupo|default:"—" }}</td><td>{{ p.departamento }}</td><td>{{ p.supervisor }}</td>
+        <td><form method="post" action="{% url 'formularios:persona_estado' request.client.slug p.pk %}">{% csrf_token %}<button class="link small{% if p.is_active %} danger{% endif %}">{% if p.is_active %}{% translate "Desactivar" %}{% else %}{% translate "Reactivar" %}{% endif %}</button></form></td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+{% endblock %}

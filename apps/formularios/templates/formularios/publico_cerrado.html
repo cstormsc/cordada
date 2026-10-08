@@ -1,0 +1,4 @@
+{% extends "public_base.html" %}
+{% load i18n %}
+{% block brand %}{{ enlace.client.name }}{% endblock %}
+{% block content %}<h1>{{ enlace.cuestionario.titulo }}</h1><p>{{ message }}</p>{% endblock %}

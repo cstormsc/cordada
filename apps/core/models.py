@@ -95,6 +95,11 @@ class Client(models.Model):
         default=all_modules,
         blank=True,
     )
+    tamano_minimo_grupo = models.PositiveSmallIntegerField(
+        _("tamaño mínimo de grupo"), default=5,
+        help_text=_("En las vistas agregadas, los grupos con menos respuestas que este número "
+                    "no muestran resultados, para que nadie pueda ser identificado."),
+    )
     created_at = models.DateTimeField(_("creado"), auto_now_add=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,

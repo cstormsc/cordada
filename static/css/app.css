@@ -171,3 +171,17 @@ table.report td:first-child, table.report th:first-child { text-align: left; }
 .tag.tk-derivado_ti { background: #e0eaff; color: #1d3a8a; }
 .tag.tk-resuelto, .tag.tk-cerrado { background: #e3f4ea; color: #1e6b3a; }
 tr.row-grave td { background: #fdf3f2; }
+
+/* Formularios */
+.container.public { max-width: 44rem; }
+.pregunta { border-bottom: 1px solid var(--line); padding: 0.75rem 0; }
+.pregunta .row { align-items: flex-start; }
+.opciones { margin: 0.3rem 0; padding-left: 1.2rem; }
+.opciones li.correcta { color: #1e6b3a; font-weight: 500; }
+.pts-box { white-space: nowrap; }
+.pts-box input.pts { width: 5.5rem; text-align: right; padding: 0.3rem 0.4rem; border: 1px solid var(--line); border-radius: 6px; font: inherit; }
+.pts-total { padding-top: 0.75rem; justify-content: space-between; }
+.pts-repartir { margin-top: 0.5rem; display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+.opciones-form td input[type=text] { width: 100%; }
+fieldset.panel ul { list-style: none; padding: 0; margin: 0; }
+fieldset.panel li label { display: flex; gap: 0.5rem; align-items: flex-start; padding: 0.35rem 0; font-weight: normal; }

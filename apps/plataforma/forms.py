@@ -17,10 +17,11 @@ class ClientForm(forms.ModelForm):
 
     class Meta:
         model = Client
-        fields = ["name", "slug", "is_active", "enabled_modules"]
+        fields = ["name", "slug", "is_active", "enabled_modules", "tamano_minimo_grupo"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["tamano_minimo_grupo"].required = False
         self.fields["slug"].required = False
         self.fields["slug"].help_text = _(
             "Se usa en la dirección web: /c/<identificador>/. Si lo dejas vacío, "
@@ -32,6 +33,14 @@ class ClientForm(forms.ModelForm):
         else:
             del self.fields["is_active"]  # new clients start active
             self.initial.setdefault("enabled_modules", list(Module.values))
+
+    def clean_tamano_minimo_grupo(self):
+        value = self.cleaned_data.get("tamano_minimo_grupo")
+        if value is None:
+            return Client._meta.get_field("tamano_minimo_grupo").default
+        if value < 1:
+            raise forms.ValidationError(_("Debe ser al menos 1."))
+        return value
 
     def clean_slug(self):
         if self.instance.pk:

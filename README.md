@@ -85,3 +85,16 @@ Dependencias con `uv`: editar `pyproject.toml`, luego `make lock && make build`.
   personas, tiempos, recurrencia) y exportación a Excel.
 - Un ticket de impacto no anticipado propone un impacto en la matriz. Si existe un origen con
   código `bitacora` en el catálogo de origen, se asigna automáticamente.
+
+## Formularios (verificación de competencias)
+
+- Personas (`/formularios/personas/`): carga CSV o Excel con vista previa; el correo es la única
+  columna obligatoria; una columna (normalmente departamento) se asigna al grupo impactado.
+- Cuestionarios: siempre 100 puntos. Reparto igual automático (2 decimales) hasta que se editan a
+  mano; "Repartir en partes iguales" vuelve al reparto automático. Publicar exige que sumen 100 y
+  fija preguntas y puntos. Nota mínima por defecto 80; opción múltiple: todo o nada.
+- Enlaces personales firmados (`/f/<token>/`), exportables a Excel/CSV para enviar desde el
+  correo del cliente. Intentos y vencimiento por cuestionario.
+- Resultados: agregados con tamaño mínimo de grupo (por cliente, por defecto 5); el detalle
+  individual solo lo ve el Equipo de cambio. La página del impacto muestra la verificación de su
+  grupo.

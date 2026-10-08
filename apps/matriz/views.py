@@ -150,6 +150,7 @@ def detalle(request, client_slug, numero):
         .order_by("numero"),
         "open_prerequisites": dependencias.open_prerequisites(impacto).order_by("numero"),
         "can_link": _can(request, Action.LINK),
+        "verificacion": _verificacion(request, impacto),
         "link_candidates": Impacto.objects.exclude(pk=impacto.pk)
         .exclude(dependientes__impacto=impacto).order_by("numero")
         if _can(request, Action.LINK) else None,
@@ -446,3 +447,12 @@ def quitar_dependencia(request, client_slug, numero, pk):
     dependencia.delete()
     messages.success(request, _("Dependencia quitada."))
     return redirect(f"{impacto_url(client_slug, numero)}#dependencias")
+
+
+def _verificacion(request, impacto):
+    """Questionnaire results for the impact's group (feeds the closing criterion)."""
+    if not request.client.has_module(Module.FORMULARIOS):
+        return None
+    from apps.formularios.results import for_impacto
+
+    return for_impacto(impacto, min_size=request.client.tamano_minimo_grupo) or None

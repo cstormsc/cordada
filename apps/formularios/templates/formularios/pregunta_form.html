@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+<div class="narrow-wide">
+  <p><a href="{% url 'formularios:cuestionario' request.client.slug c.numero %}">← {{ c.codigo }}</a></p>
+  <h1>{% if p.pk %}{% translate "Editar pregunta" %}{% else %}{% translate "Nueva pregunta" %}{% endif %}</h1>
+  <form method="post" class="form panel">
+    {% csrf_token %}
+    {{ form }}
+    <ul class="muted small">{% for k, v in tipo_help.items %}<li>{{ v }}</li>{% endfor %}</ul>
+    <h2>{% translate "Opciones" %}</h2>
+    <p class="muted small">{% translate "Hasta 5. Para Sí o no, deja vacío y se crean Sí y No (Sí como correcta; puedes cambiarlo después)." %}</p>
+    {{ formset.management_form }}
+    {% if formset.non_form_errors %}<div class="error">{{ formset.non_form_errors }}</div>{% endif %}
+    <table class="opciones-form">
+      <thead><tr><th>{% translate "Texto" %}</th><th>{% translate "Correcta" %}</th>{% if p.pk %}<th>{% translate "Quitar" %}</th>{% endif %}</tr></thead>
+      <tbody>{% for f in formset %}
+        <tr>{% for h in f.hidden_fields %}{{ h }}{% endfor %}
+          <td>{{ f.texto }}{{ f.texto.errors }}</td><td>{{ f.correcta }}</td>{% if p.pk %}<td>{% if f.instance.pk %}{{ f.DELETE }}{% endif %}</td>{% endif %}</tr>
+      {% endfor %}</tbody>
+    </table>
+    <button class="btn">{% translate "Guardar" %}</button>
+  </form>
+</div>
+{% endblock %}

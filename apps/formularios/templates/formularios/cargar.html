@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+  <p><a href="{% url 'formularios:personas' request.client.slug %}">← {% translate "Personas" %}</a></p>
+  <h1>{% translate "Cargar listado de personas" %}</h1>
+  <div class="grid-2">
+    <section class="panel">
+      <form method="post" enctype="multipart/form-data" class="form">
+        {% csrf_token %}{{ form }}
+        <button class="btn">{% translate "Revisar" %}</button>
+      </form>
+      <p class="muted small">{% translate "Si un correo ya existe, se actualizan sus datos. Nada se guarda hasta que confirmes." %}</p>
+    </section>
+    {% if preview %}
+    <section class="panel attention">
+      <h2>{% translate "Vista previa" %}</h2>
+      <p><strong>{{ preview.total }}</strong> {% translate "personas válidas" %}: {{ preview.nuevas }} {% translate "nuevas" %}, {{ preview.actualizadas }} {% translate "ya existentes (se actualizan)" %}.</p>
+      <p class="muted small">{% translate "Columnas reconocidas" %}: {{ preview.columnas|join:", " }}</p>
+      {% if preview.grupos %}
+        <h3>{% translate "Grupos" %}</h3>
+        <ul class="list">{% for name, exists in preview.grupos %}<li><span>{{ name }}</span><span class="{% if exists %}ok{% else %}muted{% endif %} small">{% if exists %}{% translate "existe" %}{% else %}{% translate "no existe" %}{% endif %}</span></li>{% endfor %}</ul>
+      {% endif %}
+      {% if preview.errores %}
+        <h3>{% translate "Filas con problemas (no se cargan)" %}</h3>
+        <ul class="list error">{% for e in preview.errores|slice:":20" %}<li>{{ e }}</li>{% endfor %}</ul>
+        {% if preview.errores|length > 20 %}<p class="muted small">… {% translate "y" %} {{ preview.errores|length|add:"-20" }} {% translate "más" %}</p>{% endif %}
+      {% endif %}
+      {% if preview.total %}
+      <form method="post" action="{% url 'formularios:confirmar_carga' request.client.slug %}">{% csrf_token %}
+        <button class="btn">{% blocktranslate with n=preview.total %}Confirmar y cargar {{ n }} personas{% endblocktranslate %}</button>
+      </form>
+      {% endif %}
+    </section>
+    {% endif %}
+  </div>
+{% endblock %}

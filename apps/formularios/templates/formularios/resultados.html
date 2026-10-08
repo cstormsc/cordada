@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+  <p><a href="{% url 'formularios:cuestionario' request.client.slug c.numero %}">← {{ c.codigo }}</a></p>
+  <h1>{% translate "Resultados" %} · {{ c.titulo }}</h1>
+  <ul class="stats">
+    <li><strong>{{ totales.invitados }}</strong> {% translate "con enlace" %}</li>
+    <li><strong>{{ totales.respondieron }}</strong> {% translate "respondieron" %}</li>
+    {% if totales.respondieron >= min_size %}<li><strong>{{ totales.pct_aprobados }} %</strong> {% translate "aprobó" %}</li>{% endif %}
+  </ul>
+  <p class="muted small">{% blocktranslate %}Los grupos con menos de {{ min_size }} respuestas no muestran resultados, para proteger la confidencialidad.{% endblocktranslate %}</p>
+
+  <section class="panel table-wrap">
+    <form method="get" class="filters">{% for f in form %}<label>{{ f.label }}{{ f }}</label>{% endfor %}<button class="btn secondary">{% translate "Ver" %}</button></form>
+    <table class="report">
+      <thead><tr><th>{% translate "Grupo" %}</th><th>{% translate "Con enlace" %}</th><th>{% translate "Respondieron" %}</th><th>{% translate "Aprobados" %}</th><th>{% translate "% aprobados" %}</th><th>{% translate "Promedio" %}</th></tr></thead>
+      <tbody>{% for r in agregado %}
+        <tr><td>{{ r.nombre|default:_("Sin dato") }}</td><td>{{ r.invitados }}</td><td>{{ r.respondieron }}</td>
+          {% if r.visible %}<td>{{ r.aprobados }}</td><td>{{ r.pct_aprobados }} %</td><td>{{ r.promedio }}</td>
+          {% else %}<td colspan="3" class="muted small">{% translate "menos de" %} {{ min_size }} {% translate "respuestas" %}</td>{% endif %}</tr>
+      {% endfor %}</tbody>
+    </table>
+  </section>
+
+  <section class="panel table-wrap">
+    <h2>{% translate "Por pregunta" %}</h2>
+    <table class="report"><thead><tr><th>{% translate "Pregunta" %}</th><th>{% translate "Puntos" %}</th><th>{% translate "% correcta" %}</th></tr></thead>
+      <tbody>{% for r in por_pregunta %}<tr><td>{{ forloop.counter }}. {{ r.pregunta.texto|truncatechars:90 }}</td><td>{{ r.pregunta.puntos|floatformat:"-2" }}</td><td>{% if r.pct is not None %}{{ r.pct }} %{% else %}—{% endif %}</td></tr>{% endfor %}</tbody>
+    </table>
+  </section>
+
+  {% if individual is not None %}
+  <section class="panel table-wrap">
+    <h2>{% translate "Detalle individual" %} <span class="tag">{% translate "Solo equipo de cambio" %}</span></h2>
+    <table>
+      <thead><tr><th>{% translate "Persona" %}</th><th>{% translate "Grupo" %}</th><th>{% translate "Intentos" %}</th><th>{% translate "Mejor puntaje" %}</th><th>{% translate "Resultado" %}</th><th>{% translate "Última" %}</th></tr></thead>
+      <tbody>{% for r in individual %}
+        <tr><td>{{ r.persona }}<br><span class="muted small">{{ r.persona.email }}</span></td><td>{{ r.persona.grupo|default:"—" }}</td><td>{{ r.intentos }}</td>
+          <td>{{ r.puntaje|floatformat:"-2"|default:"—" }}</td>
+          <td>{% if r.aprobado is None %}<span class="muted">{% translate "Pendiente" %}</span>{% elif r.aprobado %}<span class="cump a_tiempo">{% translate "Aprobado" %}</span>{% else %}<span class="cump no_realizada">{% translate "No aprobado" %}</span>{% endif %}</td>
+          <td class="nowrap">{{ r.ultima|date:"SHORT_DATETIME_FORMAT"|default:"" }}</td></tr>
+      {% endfor %}</tbody>
+    </table>
+  </section>
+  {% endif %}
+{% endblock %}
