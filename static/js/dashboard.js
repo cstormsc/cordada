@@ -2,8 +2,8 @@
 (function () {
   "use strict";
   const C = {
-    series: "#2a78d6", text: "#52514e", muted: "#898781",
-    grid: "#e1e0d9", axis: "#c3c2b7", surface: "#fcfcfb",
+    series: "#6a89a7", text: "#56616d", muted: "#8a96a3",
+    grid: "#dde3e9", axis: "#b9c3cd", surface: "#ffffff",
   };
 
   function data(id) {
@@ -26,7 +26,7 @@
         show: true, position: "right", color: C.text, fontSize: 12,
         formatter: (p) => (p.value === null || p.value === undefined ? "sin datos" : p.value),
       },
-      emphasis: { itemStyle: { color: "#256abf" } },
+      emphasis: { itemStyle: { color: "#384959" } },
     };
     if (opts.threshold !== null && opts.threshold !== undefined) {
       series.markLine = {
