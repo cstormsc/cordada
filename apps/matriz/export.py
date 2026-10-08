@@ -6,6 +6,7 @@ from openpyxl.utils import get_column_letter
 
 COLUMNS = [
     ("id", "ID"), ("titulo", "Título"), ("estado", "Estado"), ("prioridad", "Prioridad"),
+    ("depende_de", "Depende de"),
     ("prioridad_ajustada", "Prioridad ajustada"), ("tipo", "Tipo"), ("tiempo", "Tiempo"),
     ("origen", "Origen"), ("grupo", "Grupo impactado"),
     ("personas", "Personas impactadas"), ("descripcion", "Descripción"),
@@ -41,6 +42,7 @@ def impacto_rows(impactos):
             "titulo": i.titulo,
             "estado": i.get_estado_display(),
             "prioridad": i.get_prioridad_display() or "",
+            "depende_de": ", ".join(d.depende_de.codigo for d in i.dependencias.all()),
             "prioridad_ajustada": "Sí" if i.prioridad_ajustada else "",
             "tipo": _str(i.tipo),
             "tiempo": _str(i.tiempo),

@@ -87,7 +87,7 @@ class TestMove:
         impacto = make_impacto(complete=True)
         client.force_login(equipo)
         data = client.post(self.url(impacto), {"hacia": "evaluado"}).json()
-        assert data == {"ok": True, "message": "IMP-001: Evaluado."}
+        assert data == {"ok": True, "message": "IMP-001: Evaluado.", "warning": None}
         impacto.refresh_from_db()
         assert impacto.estado == Estado.EVALUADO
 

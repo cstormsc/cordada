@@ -24,6 +24,7 @@
               {% if i.fecha_compromiso %}<span{% if i.vencido %} class="overdue" title="{% translate 'Fecha compromiso vencida' %}"{% endif %}>{{ i.fecha_compromiso|date:"SHORT_DATE_FORMAT" }}</span>{% endif %}
             </div>
             <div class="kcard-flags small">
+              {% if i.n_bloqueos %}<span class="flag warn" title="{% translate 'Depende de impactos aún abiertos' %}">{% translate "Bloqueado" %}</span>{% endif %}
               {% if i.alerta_severidad %}<span class="flag alert">{% translate "Extrema" %}</span>{% endif %}
               {% if i.alerta_p1_sin_criterio %}<span class="flag alert">{% translate "P1 sin criterio" %}</span>{% elif not i.tiene_criterio_cierre and i.estado != 'propuesto' and i.estado != 'descartado' %}<span class="flag warn">{% translate "Sin criterio" %}</span>{% endif %}
               {% if i.descubierto %}<span class="flag warn">{% translate "Descubierto" %}</span>{% elif i.n_actividades %}<span class="flag">{{ i.n_actividades }} {% translate "act." %}</span>{% endif %}

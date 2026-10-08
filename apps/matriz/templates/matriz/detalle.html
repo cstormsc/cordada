@@ -113,6 +113,45 @@
     </section>
   </div>
 
+  <section class="panel" id="dependencias">
+    <h2>{% translate "Dependencias" %}</h2>
+    {% if open_prerequisites %}
+      <p class="msg msg-warning"><strong>{% translate "Bloqueado" %}:</strong>
+        {% translate "depende de impactos aún abiertos" %}:
+        {% for p in open_prerequisites %}<a href="{% url 'matriz:detalle' request.client.slug p.numero %}">{{ p.codigo }}</a> ({{ p.get_estado_display }}){% if not forloop.last %}, {% endif %}{% endfor %}.
+        {% translate "Es solo un aviso: no impide cambiar el estado." %}</p>
+    {% endif %}
+    <div class="grid-2">
+      <div>
+        <h3>{% translate "Depende de" %}</h3>
+        {% if dependencias %}<ul class="list">
+          {% for d in dependencias %}<li>
+            <span><a href="{% url 'matriz:detalle' request.client.slug d.depende_de.numero %}">{{ d.depende_de.codigo }} · {{ d.depende_de.titulo }}</a>
+              <span class="tag">{{ d.depende_de.get_estado_display }}</span></span>
+            {% if can_link %}<form method="post" action="{% url 'matriz:quitar_dependencia' request.client.slug impacto.numero d.pk %}">{% csrf_token %}
+              <button class="link danger small">{% translate "Quitar" %}</button></form>{% endif %}
+          </li>{% endfor %}
+        </ul>{% else %}<p class="muted">{% translate "Ninguno." %}</p>{% endif %}
+        {% if can_link and link_candidates %}
+          <form method="post" action="{% url 'matriz:agregar_dependencia' request.client.slug impacto.numero %}" class="row dep-add">
+            {% csrf_token %}
+            <select name="depende_de" required aria-label="{% translate 'Impacto del que depende' %}">
+              <option value="">{% translate "Agregar: depende de…" %}</option>
+              {% for c in link_candidates %}<option value="{{ c.pk }}">{{ c.codigo }} · {{ c.titulo|truncatechars:60 }}</option>{% endfor %}
+            </select>
+            <button class="btn secondary">{% translate "Agregar" %}</button>
+          </form>
+        {% endif %}
+      </div>
+      <div>
+        <h3>{% translate "Dependen de este" %}</h3>
+        {% if dependientes %}<ul class="list">
+          {% for d in dependientes %}<li><a href="{% url 'matriz:detalle' request.client.slug d.numero %}">{{ d.codigo }} · {{ d.titulo }}</a> <span class="tag">{{ d.get_estado_display }}</span></li>{% endfor %}
+        </ul>{% else %}<p class="muted">{% translate "Ninguno." %}</p>{% endif %}
+      </div>
+    </div>
+  </section>
+
   {% if ruta.view or ruta.edit %}
   <section class="panel" id="actividades">
     <div class="row">

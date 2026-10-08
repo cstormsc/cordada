@@ -286,3 +286,33 @@ class Foto(TenantScopedModel):
         ordering = ["-fecha"]
         verbose_name = _("foto de la matriz")
         verbose_name_plural = _("fotos de la matriz")
+
+
+# States in which an impact still blocks the impacts that depend on it.
+OPEN_STATES = (Estado.PROPUESTO, Estado.EVALUADO, Estado.EN_ATENCION, Estado.REABIERTO)
+
+
+class Dependencia(TenantScopedModel):
+    """`impacto` depende de `depende_de`. Informative only: never blocks the lifecycle."""
+
+    impacto = models.ForeignKey(Impacto, on_delete=models.CASCADE, related_name="dependencias")
+    depende_de = models.ForeignKey(Impacto, on_delete=models.CASCADE, related_name="dependientes",
+                                   verbose_name=_("depende de"))
+    creada_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                                   related_name="+")
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    history = HistoricalRecords()
+
+    class Meta(TenantScopedModel.Meta):
+        verbose_name = _("dependencia")
+        verbose_name_plural = _("dependencias")
+        ordering = ["depende_de__numero"]
+        constraints = [
+            models.UniqueConstraint(fields=["impacto", "depende_de"], name="unique_dependencia"),
+            models.CheckConstraint(condition=~models.Q(impacto=models.F("depende_de")),
+                                   name="dependencia_no_self"),
+        ]
+
+    def __str__(self):
+        return f"{self.impacto.codigo} → {self.depende_de.codigo}"

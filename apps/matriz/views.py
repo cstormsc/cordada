@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import Count
 from django.http import Http404, HttpResponse, JsonResponse
@@ -14,7 +14,7 @@ from apps.core.decorators import client_member_required
 from apps.core.models import Module
 from apps.core.permissions import Action, can
 
-from . import export, workflow
+from . import dependencias, export, workflow
 from .forms import (
     AdjuntoForm,
     ComentarioForm,
@@ -24,7 +24,7 @@ from .forms import (
     PriorityOverrideForm,
     ProposalForm,
 )
-from .models import ACTIVE_STATES, Adjunto, Estado, Foto, Impacto, sin_criterio_q
+from .models import ACTIVE_STATES, Adjunto, Dependencia, Estado, Foto, Impacto, sin_criterio_q
 
 
 def _can(request, action):
@@ -60,8 +60,8 @@ def index(request, client_slug):
             return redirect("matriz:mis_propuestas", client_slug=client_slug)
         raise PermissionDenied
     filtro = FiltroForm(request.GET or None)
-    impactos = filtro.filter(Impacto.objects.select_related("grupo", "tipo", "tiempo",
-                                                            "responsable"))
+    impactos = dependencias.with_blocked(filtro.filter(
+        Impacto.objects.select_related("grupo", "tipo", "tiempo", "responsable")))
     all_impactos = Impacto.objects.all()
     return render(request, "matriz/index.html", {
         "filtro": filtro,
@@ -145,6 +145,14 @@ def detalle(request, client_slug, numero):
         "ruta": ruta,
         "actividades": impacto.actividades.select_related("frente") if ruta["view"] else None,
         "descubierto": impacto.estado in ACTIVE_STATES and not impacto.actividades.exists(),
+        "dependencias": impacto.dependencias.select_related("depende_de", "creada_por"),
+        "dependientes": Impacto.objects.filter(dependencias__depende_de=impacto)
+        .order_by("numero"),
+        "open_prerequisites": dependencias.open_prerequisites(impacto).order_by("numero"),
+        "can_link": _can(request, Action.LINK),
+        "link_candidates": Impacto.objects.exclude(pk=impacto.pk)
+        .exclude(dependientes__impacto=impacto).order_by("numero")
+        if _can(request, Action.LINK) else None,
         "can_edit": can_edit,
         "can_edit_proposal": _can_edit_proposal(request, impacto),
         "transitions": workflow.available(impacto) if can_edit else [],
@@ -183,6 +191,8 @@ def cambiar_estado(request, client_slug, numero):
                             reason=request.POST.get("motivo", ""))
         messages.success(request,
                          _("Estado: %(estado)s.") % {"estado": impacto.get_estado_display()})
+        if warning := dependencias.transition_warning(impacto):
+            messages.warning(request, warning)
     except workflow.TransitionError as e:
         for m in e.messages:
             messages.error(request, m)
@@ -299,7 +309,8 @@ def exportar(request, client_slug):
     filtro = FiltroForm(request.GET or None)
     impactos = filtro.filter(Impacto.objects.select_related(
         "grupo", "tipo", "tiempo", "origen", "responsable", "responsable_categoria",
-        "criterio_evidencia", "tipo_cambio_conocimiento", "formacion_momento"))
+        "criterio_evidencia", "tipo_cambio_conocimiento", "formacion_momento",
+    ).prefetch_related("dependencias__depende_de"))
     rows = export.impacto_rows(impactos)
     return _xlsx_response(export.workbook(rows, request.client.name),
                           f"matriz-{request.client.slug}.xlsx")
@@ -325,7 +336,8 @@ def fotos(request, client_slug):
             foto.creada_por = request.user
             foto.datos = export.impacto_rows(Impacto.objects.select_related(
                 "grupo", "tipo", "tiempo", "origen", "responsable", "responsable_categoria",
-                "criterio_evidencia", "tipo_cambio_conocimiento", "formacion_momento"))
+                "criterio_evidencia", "tipo_cambio_conocimiento", "formacion_momento",
+    ).prefetch_related("dependencias__depende_de"))
             foto.save()
             messages.success(request, _("Foto de la matriz guardada (%(n)s impactos).")
                              % {"n": len(foto.datos)})
@@ -361,8 +373,9 @@ BOARD_COLUMNS = [Estado.PROPUESTO, Estado.EVALUADO, Estado.EN_ATENCION, Estado.A
 def tablero(request, client_slug):
     _require(request, Action.VIEW)
     filtro = FiltroForm(request.GET or None)
-    impactos = filtro.filter(Impacto.objects.select_related("grupo", "responsable")).annotate(
-        n_actividades=Count("actividades", distinct=True)).order_by("prioridad", "numero")
+    impactos = dependencias.with_blocked(
+        filtro.filter(Impacto.objects.select_related("grupo", "responsable"))
+    ).annotate(n_actividades=Count("actividades", distinct=True)).order_by("prioridad", "numero")
     can_edit = _can(request, Action.EDIT)
     today = timezone.localdate()
     open_states = (Estado.PROPUESTO, *ACTIVE_STATES)
@@ -400,5 +413,36 @@ def mover(request, client_slug, numero):
     except workflow.TransitionError as e:
         return JsonResponse({"ok": False, "codigo": impacto.codigo,
                              "errors": [str(m) for m in e.messages]}, status=400)
-    return JsonResponse({"ok": True, "message": _("%(codigo)s: %(estado)s.") % {
-        "codigo": impacto.codigo, "estado": impacto.get_estado_display()}})
+    return JsonResponse({
+        "ok": True,
+        "message": _("%(codigo)s: %(estado)s.") % {
+            "codigo": impacto.codigo, "estado": impacto.get_estado_display()},
+        "warning": dependencias.transition_warning(impacto),
+    })
+
+
+@client_member_required
+@require_POST
+def agregar_dependencia(request, client_slug, numero):
+    _require(request, Action.LINK)
+    impacto = _get_impacto(request, numero)
+    depende_de = get_object_or_404(Impacto.objects, pk=request.POST.get("depende_de") or 0)
+    try:
+        dependencias.add(impacto, depende_de, user=request.user)
+        messages.success(request, _("%(a)s ahora depende de %(b)s.")
+                         % {"a": impacto.codigo, "b": depende_de.codigo})
+    except ValidationError as e:
+        for m in e.messages:
+            messages.error(request, m)
+    return redirect(f"{impacto_url(client_slug, numero)}#dependencias")
+
+
+@client_member_required
+@require_POST
+def quitar_dependencia(request, client_slug, numero, pk):
+    _require(request, Action.LINK)
+    impacto = _get_impacto(request, numero)
+    dependencia = get_object_or_404(Dependencia.objects, impacto=impacto, pk=pk)
+    dependencia.delete()
+    messages.success(request, _("Dependencia quitada."))
+    return redirect(f"{impacto_url(client_slug, numero)}#dependencias")

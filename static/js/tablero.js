@@ -8,12 +8,12 @@
     return meta ? meta.content : "";
   }
 
-  function showMessage(text, ok) {
+  function showMessage(text, kind, append) {
     const box = document.getElementById("board-msg");
     if (!box) return;
-    box.innerHTML = "";
+    if (!append) box.innerHTML = "";
     const p = document.createElement("p");
-    p.className = "msg " + (ok ? "msg-success" : "msg-error");
+    p.className = "msg msg-" + kind;
     p.textContent = text;
     box.appendChild(p);
   }
@@ -30,10 +30,14 @@
     fetch(url, { method: "POST", body: body, headers: { "X-CSRFToken": csrfToken() } })
       .then((r) => r.json())
       .then((data) => {
-        showMessage(data.ok ? data.message : (data.codigo ? data.codigo + ": " : "") +
-          data.errors.join(" "), data.ok);
+        if (data.ok) {
+          showMessage(data.message, "success");
+          if (data.warning) showMessage(data.warning, "warning", true);
+        } else {
+          showMessage((data.codigo ? data.codigo + ": " : "") + data.errors.join(" "), "error");
+        }
       })
-      .catch(() => showMessage("No se pudo guardar el cambio. Revisa tu conexión.", false))
+      .catch(() => showMessage("No se pudo guardar el cambio. Revisa tu conexión.", "error"))
       .finally(() => refresh(board));
   }
 

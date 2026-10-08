@@ -20,6 +20,7 @@ class Action(StrEnum):
     DESIGN = "design"                  # Formularios, guides: build instruments
     VIEW_INDIVIDUAL = "view_individual"  # Formularios: individual results (§7.4)
     LEADER_EVAL = "leader_eval"        # Formularios: leader's practical evaluation
+    LINK = "link"                      # Matriz: create and remove impact dependencies
 
 
 A = Action
@@ -35,7 +36,7 @@ ROLE_PERMISSIONS: dict[str, dict[str, frozenset[Action]]] = {
         M.GUIA: frozenset({A.EDIT}),
     },
     Role.EQUIPO_CAMBIO: {
-        M.MATRIZ: frozenset({A.EDIT}),
+        M.MATRIZ: frozenset({A.EDIT, A.LINK}),
         M.RUTA: frozenset({A.EDIT}),
         M.BITACORA: frozenset({A.EDIT}),
         M.DASHBOARD: frozenset({A.VIEW}),

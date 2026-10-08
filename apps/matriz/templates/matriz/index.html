@@ -39,6 +39,7 @@
       <tr>
         <td class="nowrap"><a href="{% url 'matriz:detalle' request.client.slug impacto.numero %}">{{ impacto.codigo }}</a></td>
         <td><a href="{% url 'matriz:detalle' request.client.slug impacto.numero %}">{{ impacto.titulo }}</a>
+          {% if impacto.n_bloqueos %}<span class="flag warn small">{% translate "Bloqueado" %}</span>{% endif %}
           {% if impacto.alerta_severidad %}<span class="badge alert" title="{% translate 'Severidad extrema' %}">!</span>{% endif %}
           {% if not impacto.tiene_criterio_cierre %}<br><span class="muted small">{% translate "sin criterio de cierre" %}</span>{% endif %}</td>
         <td>{{ impacto.grupo|default:"" }}{% if not impacto.grupo and impacto.grupo_sugerido %}<span class="muted">{{ impacto.grupo_sugerido }} ({% translate "sugerido" %})</span>{% endif %}</td>

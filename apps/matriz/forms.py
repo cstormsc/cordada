@@ -8,7 +8,16 @@ from apps.core.attachments import AdjuntoForm as BaseAdjuntoForm
 from apps.core.models import User
 from apps.scoring import rules
 
-from .models import ACTIVE_STATES, Adjunto, Comentario, Estado, Foto, Impacto, sin_criterio_q
+from .models import (
+    ACTIVE_STATES,
+    OPEN_STATES,
+    Adjunto,
+    Comentario,
+    Estado,
+    Foto,
+    Impacto,
+    sin_criterio_q,
+)
 
 
 class ScaleSelect(forms.Select):
@@ -218,6 +227,7 @@ class FiltroForm(forms.Form):
         ("extrema", _("Severidad extrema")),
         ("sugerido", _("Con grupo sugerido por revisar")),
         ("descubiertos", _("Descubiertos (activos y sin actividades)")),
+        ("bloqueados", _("Bloqueados (dependen de impactos abiertos)")),
     ]
 
     q = forms.CharField(label=_("Buscar"), required=False)
@@ -266,6 +276,8 @@ class FiltroForm(forms.Form):
                 qs = qs.filter(severidad=rules.EXTREME_SEVERITY)
             case "sugerido":
                 qs = qs.filter(grupo__isnull=True).exclude(grupo_sugerido="")
+            case "bloqueados":
+                qs = qs.filter(dependencias__depende_de__estado__in=OPEN_STATES).distinct()
             case "descubiertos":
                 qs = qs.filter(estado__in=ACTIVE_STATES, actividades__isnull=True)
         return qs

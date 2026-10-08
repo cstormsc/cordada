@@ -21,6 +21,9 @@ urlpatterns = [
     path("<int:numero>/comentarios/", views.comentar, name="comentar"),
     path("<int:numero>/adjuntos/", views.adjuntar, name="adjuntar"),
     path("<int:numero>/adjuntos/<int:pk>/", views.descargar_adjunto, name="descargar_adjunto"),
+    path("<int:numero>/dependencias/", views.agregar_dependencia, name="agregar_dependencia"),
+    path("<int:numero>/dependencias/<int:pk>/quitar/", views.quitar_dependencia,
+         name="quitar_dependencia"),
     path("<int:numero>/grupo-sugerido/", views.resolver_grupo_sugerido,
          name="resolver_grupo_sugerido"),
 ]

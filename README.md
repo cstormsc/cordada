@@ -64,3 +64,12 @@ Dependencias con `uv`: editar `pyproject.toml`, luego `make lock && make build`.
 - Capitanes ven solo las actividades de sus grupos: se asignan en Configuración → Personas.
 - Informe de cumplimiento por etapa o por mes, en pantalla y en PDF (WeasyPrint).
 - Adjuntos compartidos: `apps/core/attachments.py`.
+
+## Tablero y dependencias
+
+- `/c/<cliente>/matriz/tablero/`: kanban por estado. Arrastrar cambia el estado con las mismas
+  reglas del ciclo de vida (`static/js/tablero.js` + `matriz:mover`).
+- Dependencias "Depende de" (`apps/matriz/dependencias.py`): solo avisan, nunca bloquean el
+  ciclo de vida. Un impacto está **bloqueado** si depende de uno abierto (Propuesto, Evaluado,
+  En atención, Reabierto). Solo el rol Equipo de cambio crea o quita dependencias; no se
+  permiten ciclos.
