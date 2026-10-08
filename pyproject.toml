@@ -1,0 +1,38 @@
+[project]
+name = "cordada"
+version = "0.1.0"
+description = "Plataforma Cordada: gestión del cambio"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "django>=5.2,<5.3",
+    "psycopg[binary]>=3.2",
+    "django-environ>=0.12",
+    "django-htmx>=1.23",
+    "django-simple-history>=3.8",
+    "openpyxl>=3.1",
+    "weasyprint>=65",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-django>=4.10",
+    "factory-boy>=3.3",
+    "ruff>=0.12",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["test_*.py", "tests.py"]
+addopts = "-ra --strict-markers"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+extend-exclude = ["*/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "DJ"]
