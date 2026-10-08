@@ -1,5 +1,5 @@
 from django.contrib.auth import views as auth_views
-from django.urls import path
+from django.urls import include, path
 
 from . import views
 
@@ -9,5 +9,6 @@ urlpatterns = [
     path("salir/", views.logout_view, name="logout"),
     path("invitacion/<str:token>/", views.accept_invitation, name="accept_invitation"),
     path("c/<slug:client_slug>/", views.client_home, name="client_home"),
+    path("c/<slug:client_slug>/configuracion/", include("apps.catalogs.urls")),
     path("health/", views.health, name="health"),
 ]

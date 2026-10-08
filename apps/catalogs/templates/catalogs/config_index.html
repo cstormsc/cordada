@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Configuración" %} · {{ request.client.name }}{% endblock %}
+{% block content %}
+  <p><a href="{% url 'client_home' request.client.slug %}">← {{ request.client.name }}</a></p>
+  <h1>{% translate "Configuración" %}</h1>
+  <h2>{% translate "Catálogos del cliente" %}</h2>
+  <ul class="cards">
+    {% for c in catalogs %}
+      <li><a class="card" href="{% url 'catalogs:list' request.client.slug c.key %}">
+        <strong>{{ c.name|capfirst }}</strong>
+        <span class="muted">{{ c.help }}</span>
+        <span>{% blocktranslate count n=c.count %}{{ n }} activo{% plural %}{{ n }} activos{% endblocktranslate %}</span>
+      </a></li>
+    {% endfor %}
+  </ul>
+{% endblock %}

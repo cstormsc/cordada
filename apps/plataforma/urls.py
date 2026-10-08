@@ -13,4 +13,8 @@ urlpatterns = [
          name="revoke_invitation"),
     path("clientes/<slug:slug>/miembros/<int:pk>/", views.membership_update,
          name="membership_update"),
+    path("catalogos/", views.catalog_index, name="catalog_index"),
+    path("catalogos/<slug:catalog>/nuevo/", views.catalog_item, name="catalog_item_create"),
+    path("catalogos/<slug:catalog>/<int:pk>/", views.catalog_item, name="catalog_item_edit"),
+    path("escalas/<slug:code>/", views.scale_edit, name="scale_edit"),
 ]

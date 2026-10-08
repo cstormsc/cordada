@@ -3,7 +3,10 @@
 {% block title %}{{ request.client.name }} · Cordada{% endblock %}
 {% block content %}
   <h1>{{ request.client.name }}</h1>
-  <p class="muted">{% translate "Tu rol" %}: {{ request.membership.get_role_display }}</p>
+  <div class="row">
+    <p class="muted">{% translate "Tu rol" %}: {{ request.membership.get_role_display }}</p>
+    {% if can_configure %}<a href="{% url 'catalogs:index' request.client.slug %}">{% translate "Configuración" %}</a>{% endif %}
+  </div>
   <ul class="cards">
     {% for module in modules %}
       <li><div class="card"><strong>{{ module.label }}</strong><span class="muted">{% translate "Próximamente" %}</span></div></li>

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+<div class="narrow">
+  <p><a href="{% url 'catalogs:list' request.client.slug catalog %}">← {{ name|capfirst }}</a></p>
+  <h1>{{ item.name }}{% if not item.is_active %} <span class="tag">{% translate "Inactivo" %}</span>{% endif %}</h1>
+  <form method="post" class="form">
+    {% csrf_token %}
+    {{ form }}
+    <button type="submit" class="btn">{% translate "Guardar" %}</button>
+  </form>
+  <form method="post" class="form">
+    {% csrf_token %}
+    <input type="hidden" name="toggle" value="1">
+    {% if item.is_active %}
+      <p class="muted">{% translate "Desactivar lo oculta de las listas de selección; los registros que ya lo usan no cambian." %}</p>
+      <button class="link danger">{% translate "Desactivar" %}</button>
+    {% else %}
+      <button class="link">{% translate "Reactivar" %}</button>
+    {% endif %}
+  </form>
+</div>
+{% endblock %}

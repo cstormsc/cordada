@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ name|capfirst }} · {{ request.client.name }}{% endblock %}
+{% block content %}
+  <p><a href="{% url 'catalogs:index' request.client.slug %}">← {% translate "Configuración" %}</a></p>
+  <h1>{{ name|capfirst }}</h1>
+  <p class="muted">{{ help }}</p>
+
+  <div class="grid-2">
+    <section class="panel">
+      {% if items %}
+      <div class="table-wrap"><table>
+        <thead><tr>{% if has_kind %}<th>{% translate "Tipo" %}</th>{% endif %}<th>{% translate "Nombre" %}</th><th>{% translate "Estado" %}</th></tr></thead>
+        <tbody>
+        {% for item in items %}
+          <tr{% if not item.is_active %} class="muted"{% endif %}>
+            {% if has_kind %}<td>{{ item.get_kind_display }}</td>{% endif %}
+            <td><a href="{% url 'catalogs:edit' request.client.slug catalog item.pk %}">{{ item.name }}</a>
+              {% if item.description %}<br><span class="muted">{{ item.description|truncatechars:80 }}</span>{% endif %}</td>
+            <td>{% if item.is_active %}{% translate "Activo" %}{% else %}{% translate "Inactivo" %}{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      {% else %}
+        <p class="muted">{% translate "Todavía no hay elementos." %}</p>
+      {% endif %}
+    </section>
+
+    <section class="panel">
+      <h2>{% translate "Agregar" %}</h2>
+      <form method="post" class="form">
+        {% csrf_token %}
+        {{ form }}
+        <button type="submit" class="btn">{% translate "Agregar" %}</button>
+      </form>
+    </section>
+  </div>
+{% endblock %}

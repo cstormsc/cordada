@@ -12,7 +12,7 @@ from . import invitations
 from .decorators import client_member_required
 from .forms import AcceptInvitationForm
 from .models import Invitation, User
-from .permissions import visible_modules
+from .permissions import can_configure, visible_modules
 
 
 @login_required
@@ -27,6 +27,7 @@ def home(request):
 def client_home(request, client_slug):
     return render(request, "core/client_home.html", {
         "modules": visible_modules(request.membership),
+        "can_configure": can_configure(request.membership),
     })
 
 

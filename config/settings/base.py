@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     "django_htmx",
     "simple_history",
     "apps.core",
+    "apps.catalogs",
     "apps.plataforma",
 ]
 

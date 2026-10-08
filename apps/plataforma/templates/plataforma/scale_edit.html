@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+  <p><a href="{% url 'plataforma:catalog_index' %}">← {% translate "Catálogos del sistema" %}</a></p>
+  <h1>{{ scale.name }}</h1>
+  <form method="post" class="form">
+    {% csrf_token %}
+    <section class="panel">{{ form }}</section>
+    {% if not scale.levels.exists %}<p class="muted">{% translate "Escala por definir: completa los cuatro niveles o déjalos vacíos." %}</p>{% endif %}
+    <div class="grid-2">
+      {% for lf in level_forms %}
+        <section class="panel">
+          <h2>{% translate "Nivel" %} {{ lf.instance.value }}</h2>
+          {{ lf }}
+        </section>
+      {% endfor %}
+    </div>
+    <button type="submit" class="btn">{% translate "Guardar" %}</button>
+  </form>
+{% endblock %}

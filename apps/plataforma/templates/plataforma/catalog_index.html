@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Catálogos del sistema" %} · Cordada{% endblock %}
+{% block content %}
+  <p><a href="{% url 'plataforma:client_list' %}">← {% translate "Clientes" %}</a></p>
+  <h1>{% translate "Catálogos del sistema" %}</h1>
+  <p class="muted">{% translate "Iguales para todos los clientes. Los códigos no cambian; nombres, ayuda y orden sí." %}</p>
+
+  <h2>{% translate "Escalas" %}</h2>
+  <div class="table-wrap panel"><table>
+    <thead><tr><th>{% translate "Escala" %}</th><th>{% translate "Niveles" %}</th><th>{% translate "Definiciones" %}</th></tr></thead>
+    <tbody>
+    {% for scale in scales %}
+      <tr>
+        <td><a href="{% url 'plataforma:scale_edit' scale.code %}">{{ scale.name }}</a></td>
+        <td>{% for lvl in scale.levels.all %}{{ lvl.label }}{% if not forloop.last %} · {% endif %}{% empty %}<span class="tag">{% translate "Por definir" %}</span>{% endfor %}</td>
+        <td>{% if scale.missing_definitions %}<span class="tag">{% translate "Faltan" %}</span>{% elif scale.levels.all %}{% translate "Completas" %}{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+
+  {% for c in catalogs %}
+    <section class="panel">
+      <div class="row">
+        <h2>{{ c.name }}</h2>
+        <a href="{% url 'plataforma:catalog_item_create' c.code %}">{% translate "Agregar" %}</a>
+      </div>
+      {% if c.items %}
+        <ul class="list">
+        {% for item in c.items %}
+          <li{% if not item.is_active %} class="muted"{% endif %}>
+            <a href="{% url 'plataforma:catalog_item_edit' c.code item.pk %}">{{ item.label }}</a>
+            <span class="muted">{{ item.code }}{% if not item.is_active %} · {% translate "inactivo" %}{% endif %}</span>
+          </li>
+        {% endfor %}
+        </ul>
+      {% else %}
+        <p><span class="tag">{% translate "Por definir" %}</span></p>
+      {% endif %}
+    </section>
+  {% endfor %}
+{% endblock %}

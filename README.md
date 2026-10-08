@@ -30,3 +30,14 @@ Dependencias con `uv`: editar `pyproject.toml`, luego `make lock && make build`.
   `class Meta`, debe heredar de `TenantScopedModel.Meta`.
 - `/admin/` (admin de Django) queda solo para superusuarios técnicos
   (`make manage cmd=createsuperuser`).
+
+## Catálogos y cálculos
+
+- **Del sistema** (`/plataforma/catalogos/`): tiempos, tipos de impacto, origen, categorías de
+  ticket, tipo de cambio en el conocimiento, evidencia de cierre y las escalas. Se cargan con la
+  migración `catalogs/0002`. El `código` es estable (el código fuente puede depender de él);
+  nombre, ayuda y orden se editan. En un modelo: `SystemCatalogField(SystemCatalog.TIPO_IMPACTO)`.
+- **Del cliente** (`/c/<cliente>/configuracion/`, rol Administración): grupos impactados,
+  unidades (área, oficina, sucursal, departamento), cargos y categorías de responsable.
+- **Riesgo y prioridad** (§3.4): `apps/scoring/rules.py`, probado contra las tablas completas.
+- Los estados de cada flujo (impacto, actividad, ticket…) se definen en código en su módulo.

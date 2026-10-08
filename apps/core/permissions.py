@@ -117,3 +117,8 @@ def visible_modules(membership):
         m for m in Module
         if membership.client.has_module(m) and role_actions(membership.role, m)
     ]
+
+
+def can_configure(membership) -> bool:
+    """Client configuration (catalogs, people, modules) belongs to Administración (§9)."""
+    return membership is not None and membership.role == Role.ADMINISTRACION
