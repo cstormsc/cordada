@@ -178,6 +178,9 @@ class TestSystemCatalogAdmin:
         assert client.get("/plataforma/catalogos/").status_code == 403
 
     def test_index_flags_what_is_pending(self, admin_client):
+        from apps.catalogs.models import ScaleLevel
+
+        ScaleLevel.objects.filter(scale__code="magnitud", value=1).update(definition="")
         body = admin_client.get("/plataforma/catalogos/").content.decode()
         assert "Por definir" in body and "Faltan" in body
 

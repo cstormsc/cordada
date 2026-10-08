@@ -56,6 +56,8 @@ SCALE_FIELDS = {
     "severidad": "severidad",
 }
 
+DERIVATION_FIELDS = ["requiere_comunicacion", "requiere_movilizacion", "requiere_formacion"]
+
 
 def active_or_current(queryset, current_id):
     """Active items, plus the current value even if it was deactivated since."""
@@ -101,6 +103,9 @@ class BaseImpactoForm(forms.ModelForm):
         for field in self.fields.values():
             if isinstance(field, forms.NullBooleanField):
                 field.widget = YesNoSelect()
+        for name in DERIVATION_FIELDS:
+            if name in self.fields:
+                self.fields[name].guia = anchors.REGLA_DECISION
 
     def get_sections(self):
         """[(title, [bound fields])] with only the fields present in this form."""

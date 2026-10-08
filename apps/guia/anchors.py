@@ -10,3 +10,10 @@ def catalogo(code):
 
 def escala(code):
     return f"escala-{code}"
+
+
+def tema(slug):
+    return f"tema-{slug}"
+
+
+REGLA_DECISION = tema("regla-decision")  # seeded from Parte A

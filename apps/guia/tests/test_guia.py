@@ -62,6 +62,16 @@ class TestContent:
         assert 'id="escala-magnitud"' in html
         assert 'id="calculos"' in html
 
+    def test_parte_a_is_loaded(self, client, login_as):
+        login_as(Role.CAPITAN)
+        html = client.get(guia_url()).content.decode()
+        assert 'id="tema-regla-decision"' in html
+        assert "Si solo hay que informar, es comunicación." in html
+        assert "Ajuste menor: cambia una tarea o pantalla puntual." in html  # Magnitud, Leve
+        assert "Ocurrirá salvo que se intervenga" in html  # Probabilidad, Casi segura
+        assert "¿Qué logramos y cómo hacemos que se quede?" not in html  # lowercase in source
+        assert "¿qué logramos y cómo hacemos que se quede?" in html  # Legado
+
     def test_priority_matrix_matches_parte_b(self, client, login_as):
         """§3.4: rows from Crítico down to Bajo, columns Leve to Profundo."""
         login_as(Role.CAPITAN)
@@ -167,6 +177,7 @@ class TestContextualHelp:
         html = self.form_html(client)
         assert f'href="{guia_url()}#catalogo-tiempo"' in html
         assert f'href="{guia_url()}#escala-magnitud"' in html
+        assert f'href="{guia_url()}#tema-regla-decision"' in html
 
     def test_no_links_when_the_guide_is_disabled(self, client, login_as, acme):
         acme.enabled_modules = [m for m in Module.values if m != Module.GUIA]
@@ -186,7 +197,7 @@ class TestPlataforma:
             reverse("plataforma:tema_create"),
             {
                 "titulo": "Frentes",
-                "slug": "frentes",
+                "slug": "nuevo-tema",
                 "contenido": "Cuatro frentes.",
                 "orden": 1,
                 "is_active": "on",
@@ -194,7 +205,7 @@ class TestPlataforma:
         )
         assert response.status_code == 302
         login_as(Role.CAPITAN)
-        assert 'id="tema-frentes"' in client.get(guia_url()).content.decode()
+        assert 'id="tema-nuevo-tema"' in client.get(guia_url()).content.decode()
 
     def test_template_needs_file_or_link(self, client, platform_admin):
         client.force_login(platform_admin)

@@ -8,6 +8,8 @@ from simple_history.models import HistoricalRecords
 
 from apps.core.attachments import ALLOWED_EXTENSIONS, AbstractAdjunto
 
+from . import anchors
+
 # --- Methodology material: the same for every client, maintained by platform admins ---
 
 
@@ -40,7 +42,7 @@ class Tema(models.Model):
 
     @property
     def anchor(self):
-        return f"tema-{self.slug}"
+        return anchors.tema(self.slug)
 
 
 def plantilla_path(instance, filename):
