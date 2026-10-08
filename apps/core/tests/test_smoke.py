@@ -22,3 +22,12 @@ def test_users_log_in_with_email():
     assert user.email == "Ana@example.com"
     assert user.check_password("x-secret-1")
     assert not user.is_staff
+
+
+def test_system_checks_and_url_modules_load_without_a_client():
+    # Forms built at import time must not query client-scoped models.
+    from django.core.management import call_command
+    from django.urls import get_resolver
+
+    call_command("check")
+    get_resolver().url_patterns  # noqa: B018 (imports every urls/views module)

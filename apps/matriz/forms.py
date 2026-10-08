@@ -4,10 +4,11 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from apps.catalogs.models import CategoriaResponsable, GrupoImpactado, Scale
+from apps.core.attachments import AdjuntoForm as BaseAdjuntoForm
 from apps.core.models import User
 from apps.scoring import rules
 
-from .models import MAX_UPLOAD_MB, Adjunto, Comentario, Estado, Foto, Impacto, sin_criterio_q
+from .models import ACTIVE_STATES, Adjunto, Comentario, Estado, Foto, Impacto, sin_criterio_q
 
 
 class ScaleSelect(forms.Select):
@@ -198,32 +199,9 @@ class ComentarioForm(forms.ModelForm):
         labels = {"texto": ""}
 
 
-class AdjuntoForm(forms.ModelForm):
-    url = forms.URLField(label=_("Enlace"), required=False, assume_scheme="https")
-
-    class Meta:
+class AdjuntoForm(BaseAdjuntoForm):
+    class Meta(BaseAdjuntoForm.Meta):
         model = Adjunto
-        fields = ["archivo", "url", "nombre"]
-        help_texts = {
-            "archivo": _("PDF, Office, imagen, CSV o texto. Máximo %(mb)s MB.")
-            % {"mb": MAX_UPLOAD_MB},
-            "nombre": _("Opcional. Por defecto, el nombre del archivo o el enlace."),
-        }
-
-    def clean_archivo(self):
-        archivo = self.cleaned_data.get("archivo")
-        if archivo and archivo.size > MAX_UPLOAD_MB * 1024 * 1024:
-            raise forms.ValidationError(_("El archivo supera %(mb)s MB.") % {"mb": MAX_UPLOAD_MB})
-        return archivo
-
-    def clean(self):
-        cleaned = super().clean()
-        archivo, url = cleaned.get("archivo"), cleaned.get("url")
-        if bool(archivo) == bool(url):
-            raise forms.ValidationError(_("Sube un archivo o pega un enlace (uno de los dos)."))
-        if not cleaned.get("nombre"):
-            cleaned["nombre"] = archivo.name if archivo else url
-        return cleaned
 
 
 class FotoForm(forms.ModelForm):
@@ -239,6 +217,7 @@ class FiltroForm(forms.Form):
         ("sin_criterio", _("Sin criterio de cierre")),
         ("extrema", _("Severidad extrema")),
         ("sugerido", _("Con grupo sugerido por revisar")),
+        ("descubiertos", _("Descubiertos (activos y sin actividades)")),
     ]
 
     q = forms.CharField(label=_("Buscar"), required=False)
@@ -287,4 +266,6 @@ class FiltroForm(forms.Form):
                 qs = qs.filter(severidad=rules.EXTREME_SEVERITY)
             case "sugerido":
                 qs = qs.filter(grupo__isnull=True).exclude(grupo_sugerido="")
+            case "descubiertos":
+                qs = qs.filter(estado__in=ACTIVE_STATES, actividades__isnull=True)
         return qs

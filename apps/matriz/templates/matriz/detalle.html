@@ -113,6 +113,20 @@
     </section>
   </div>
 
+  {% if ruta.view or ruta.edit %}
+  <section class="panel" id="actividades">
+    <div class="row">
+      <h2>{% translate "Actividades de la Ruta" %}</h2>
+      {% if ruta.edit %}<a href="{% url 'ruta:crear' request.client.slug %}?impacto={{ impacto.numero }}">{% translate "+ Nueva actividad para este impacto" %}</a>{% endif %}
+    </div>
+    {% if descubierto %}<p class="msg msg-warning">{% translate "Impacto descubierto: está activo y no tiene actividades en la Ruta." %}</p>{% endif %}
+    {% if actividades %}<ul class="list">
+      {% for a in actividades %}<li><a href="{% url 'ruta:detalle' request.client.slug a.numero %}">{{ a.codigo }} · {{ a.titulo }}</a>
+        <span class="muted small">{{ a.frente }} · {{ a.get_estado_display }}</span></li>{% endfor %}
+    </ul>{% elif not descubierto %}<p class="muted">{% translate "Sin actividades." %}</p>{% endif %}
+  </section>
+  {% endif %}
+
   <section class="panel" id="adjuntos">
     <h2>{% translate "Archivos y enlaces" %}</h2>
     {% with adjuntos=impacto.adjuntos.all %}

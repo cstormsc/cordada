@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+  <p>{% if actividad %}<a href="{% url 'ruta:detalle' request.client.slug actividad.numero %}">← {{ actividad.codigo }}</a>{% else %}<a href="{% url 'ruta:index' request.client.slug %}">← {% translate "Ruta" %}</a>{% endif %}</p>
+  <h1>{% if actividad %}{% translate "Editar" %} {{ actividad.codigo }}{% else %}{% translate "Nueva actividad" %}{% endif %}</h1>
+  <form method="post" class="form">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="error">{{ form.non_field_errors }}</div>{% endif %}
+    {% for title, fields in form.get_sections %}
+      <fieldset class="panel">
+        <legend>{{ title }}</legend>
+        {% for field in fields %}{{ field.as_field_group }}{% endfor %}
+      </fieldset>
+    {% endfor %}
+    <button type="submit" class="btn">{% translate "Guardar" %}</button>
+  </form>
+{% endblock %}

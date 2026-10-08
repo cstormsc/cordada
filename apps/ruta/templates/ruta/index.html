@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load i18n ruta_tags %}
+{% block title %}{% translate "Ruta" %} · {{ request.client.name }}{% endblock %}
+{% block content %}
+  <p><a href="{% url 'client_home' request.client.slug %}">← {{ request.client.name }}</a></p>
+  <div class="row">
+    <h1>{% translate "Ruta" %}</h1>
+    <div class="row">
+      {% if can_report %}
+        <a href="{% url 'ruta:informe' request.client.slug %}">{% translate "Informe de cumplimiento" %}</a>
+        <a href="{% url 'ruta:exportar' request.client.slug %}{% if querystring %}?{{ querystring }}{% endif %}">{% translate "Exportar a Excel" %}</a>
+      {% endif %}
+      {% if can_edit %}<a class="btn" href="{% url 'ruta:crear' request.client.slug %}">{% translate "Nueva actividad" %}</a>{% endif %}
+    </div>
+  </div>
+  {% if own_group_only %}<p class="muted">{% translate "Ves las actividades de tus grupos." %}</p>{% endif %}
+
+  {% if resumen %}
+  <ul class="stats">
+    <li><strong>{{ resumen.total }}</strong> {% translate "actividades" %}</li>
+    <li class="{% if resumen.no_realizadas %}alert{% endif %}"><a href="?cumplimiento=no_realizada"><strong>{{ resumen.no_realizadas }}</strong> {% translate "no realizadas (vencidas)" %}</a></li>
+    <li class="{% if resumen.huerfanas %}warn{% endif %}"><a href="?huerfanas=on"><strong>{{ resumen.huerfanas }}</strong> {% translate "huérfanas (sin impacto)" %}</a></li>
+    <li class="{% if resumen.descubiertos %}warn{% endif %}"><a href="{% url 'matriz:index' request.client.slug %}?alerta=descubiertos"><strong>{{ resumen.descubiertos }}</strong> {% translate "impactos descubiertos" %}</a></li>
+  </ul>
+  {% endif %}
+
+  <form method="get" class="filters">
+    {% for field in filtro %}<label>{{ field.label }}{{ field }}</label>{% endfor %}
+    <button type="submit" class="btn">{% translate "Filtrar" %}</button>
+    {% if querystring %}<a href="{% url 'ruta:index' request.client.slug %}">{% translate "Limpiar" %}</a>{% endif %}
+  </form>
+
+  {% if actividades %}
+  <div class="table-wrap panel"><table>
+    <thead><tr>
+      <th>{% translate "ID" %}</th><th>{% translate "Actividad" %}</th><th>{% translate "Frente" %}</th>
+      <th>{% translate "Grupos" %}</th><th>{% translate "Planificada" %}</th><th>{% translate "Real" %}</th>
+      <th>{% translate "Estado" %}</th><th>{% translate "Cumplimiento" %}</th><th>{% translate "Responsable" %}</th>
+    </tr></thead>
+    <tbody>
+    {% for a in actividades %}
+      <tr>
+        <td class="nowrap"><a href="{% url 'ruta:detalle' request.client.slug a.numero %}">{{ a.codigo }}</a></td>
+        <td><a href="{% url 'ruta:detalle' request.client.slug a.numero %}">{{ a.titulo }}</a>
+          {% if not a.impactos.all %}<br><span class="muted small">{% translate "huérfana" %}</span>{% endif %}</td>
+        <td>{{ a.frente }}</td>
+        <td>{{ a.grupos.all|join:", " }}</td>
+        <td class="nowrap">{{ a.fecha_planificada|date:"SHORT_DATE_FORMAT"|default:"—" }}</td>
+        <td class="nowrap">{{ a.fecha_real|date:"SHORT_DATE_FORMAT"|default:"—" }}</td>
+        <td><span class="tag">{{ a.get_estado_display }}</span></td>
+        <td>{% cumplimiento a.cumplimiento %}</td>
+        <td>{{ a.responsable.display_name|default:"" }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+    <p class="muted">{% if querystring %}{% translate "Ninguna actividad coincide con el filtro." %}{% else %}{% translate "Todavía no hay actividades en la Ruta." %}{% endif %}</p>
+  {% endif %}
+{% endblock %}

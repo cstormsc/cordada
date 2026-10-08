@@ -11,6 +11,8 @@
     {% for module in modules %}
       {% if module == "matriz" %}
         <li><a class="card" href="{% url 'matriz:index' request.client.slug %}"><strong>{{ module.label }}</strong><span class="muted">{% translate "Impactos, riesgos y prioridades" %}</span></a></li>
+      {% elif module == "ruta" %}
+        <li><a class="card" href="{% url 'ruta:index' request.client.slug %}"><strong>{{ module.label }}</strong><span class="muted">{% translate "Actividades planificadas y ejecutadas" %}</span></a></li>
       {% else %}
         <li><div class="card"><strong>{{ module.label }}</strong><span class="muted">{% translate "Próximamente" %}</span></div></li>
       {% endif %}

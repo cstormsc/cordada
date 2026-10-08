@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load i18n ruta_tags %}
+{% block title %}{{ actividad.codigo }} · {{ request.client.name }}{% endblock %}
+{% block content %}
+  <p><a href="{% url 'ruta:index' request.client.slug %}">← {% translate "Ruta" %}</a></p>
+  <div class="row">
+    <h1><span class="muted">{{ actividad.codigo }}</span> {{ actividad.titulo }}</h1>
+    {% if can_edit %}<a class="btn" href="{% url 'ruta:editar' request.client.slug actividad.numero %}">{% translate "Editar" %}</a>{% endif %}
+  </div>
+  <p><span class="tag">{{ actividad.get_estado_display }}</span> {% cumplimiento cumplimiento %}</p>
+  {% if not actividad.impactos.exists %}<p class="msg msg-warning">{% translate "Actividad huérfana: no responde a ningún impacto de la matriz." %}</p>{% endif %}
+
+  <div class="grid-2">
+    <section class="panel">
+      <h2>{% translate "Actividad" %}</h2>
+      <dl class="facts">
+        {% if actividad.descripcion %}<dt>{% translate "Descripción" %}</dt><dd class="pre">{{ actividad.descripcion }}</dd>{% endif %}
+        <dt>{% translate "Frente" %}</dt><dd>{{ actividad.frente }}</dd>
+        <dt>{% translate "Tiempo" %}</dt><dd>{{ actividad.tiempo|default:"—" }}</dd>
+        <dt>{% translate "Canal o formato" %}</dt><dd>{{ actividad.canal|default:"—" }}</dd>
+        {% if actividad.es_comunicacion %}<dt>{% translate "Líder o vocero" %}</dt><dd>{{ actividad.vocero|default:"—" }}</dd>{% endif %}
+        <dt>{% translate "Grupos" %}</dt><dd>{{ actividad.grupos.all|join:", "|default:"—" }}</dd>
+        <dt>{% translate "Indicador" %}</dt><dd>{{ actividad.indicador|default:"—" }}</dd>
+      </dl>
+    </section>
+    <section class="panel">
+      <h2>{% translate "Plan y ejecución" %}</h2>
+      <dl class="facts">
+        <dt>{% translate "Responsable" %}</dt><dd>{{ actividad.responsable.display_name|default:"—" }}</dd>
+        <dt>{% translate "Fecha planificada" %}</dt><dd>{% if actividad.no_planificada %}{% translate "No planificada" %}{% else %}{{ actividad.fecha_planificada|date:"SHORT_DATE_FORMAT" }}{% endif %}</dd>
+        <dt>{% translate "Fecha real" %}</dt><dd>{{ actividad.fecha_real|date:"SHORT_DATE_FORMAT"|default:"—" }}</dd>
+        {% if actividad.evidencia %}<dt>{% translate "Evidencia" %}</dt><dd class="pre">{{ actividad.evidencia }}</dd>{% endif %}
+      </dl>
+    </section>
+  </div>
+
+  {% if can_view_matrix %}
+  <section class="panel">
+    <h2>{% translate "Impactos a los que responde" %}</h2>
+    {% if impactos %}<ul class="list">
+      {% for i in impactos %}<li><a href="{% url 'matriz:detalle' request.client.slug i.numero %}">{{ i.codigo }} · {{ i.titulo }}</a> <span class="tag">{{ i.get_estado_display }}</span></li>{% endfor %}
+    </ul>{% else %}<p class="muted">{% translate "Ninguno." %}</p>{% endif %}
+  </section>
+  {% endif %}
+
+  <section class="panel" id="evidencias">
+    <h2>{% translate "Archivos y enlaces de evidencia" %}</h2>
+    {% with adjuntos=actividad.adjuntos.all %}
+      {% if adjuntos %}<ul class="list">
+        {% for a in adjuntos %}<li>
+          {% if a.archivo %}<a href="{% url 'ruta:descargar' request.client.slug actividad.numero a.pk %}">{{ a.nombre }}</a>
+          {% else %}<a href="{{ a.url }}" target="_blank" rel="noopener noreferrer">{{ a.nombre }}</a>{% endif %}
+          <span class="muted small">{{ a.fecha|date:"SHORT_DATE_FORMAT" }}</span>
+        </li>{% endfor %}
+      </ul>{% else %}<p class="muted">{% translate "Sin archivos." %}</p>{% endif %}
+    {% endwith %}
+    {% if can_edit %}
+      <details><summary>{% translate "Agregar archivo o enlace" %}</summary>
+        <form method="post" enctype="multipart/form-data" action="{% url 'ruta:adjuntar' request.client.slug actividad.numero %}" class="form">
+          {% csrf_token %}{{ adjunto_form }}
+          <button class="btn">{% translate "Agregar" %}</button>
+        </form>
+      </details>
+    {% endif %}
+  </section>
+  <p class="muted small">{% translate "Registrada por" %} {{ actividad.registrado_por.display_name }} · {{ actividad.created_at|date:"SHORT_DATETIME_FORMAT" }}</p>
+{% endblock %}

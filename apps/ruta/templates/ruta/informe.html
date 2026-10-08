@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Informe de cumplimiento" %} · {{ request.client.name }}{% endblock %}
+{% block content %}
+  <p><a href="{% url 'ruta:index' request.client.slug %}">← {% translate "Ruta" %}</a></p>
+  <div class="row">
+    <h1>{% translate "Informe de cumplimiento" %}</h1>
+    <a class="btn" href="{% url 'ruta:informe_pdf' request.client.slug %}{% if querystring %}?{{ querystring }}{% endif %}">{% translate "Descargar PDF" %}</a>
+  </div>
+  <p class="muted">{% translate "Por etapa, para las sesiones de cierre y apertura; por mes, para el resumen del patrocinador." %}</p>
+  <form method="get" class="filters">
+    {% for field in form %}<label>{{ field.label }}{{ field }}{{ field.errors }}</label>{% endfor %}
+    <button type="submit" class="btn">{% translate "Ver" %}</button>
+  </form>
+  <section class="panel table-wrap">{% include "ruta/_informe_tablas.html" %}</section>
+{% endblock %}

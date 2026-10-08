@@ -1,12 +1,13 @@
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db import IntegrityError, transaction
-from django.http import FileResponse, Http404, HttpResponse
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
 from apps.catalogs.models import GrupoImpactado
+from apps.core.attachments import file_response
 from apps.core.decorators import client_member_required
 from apps.core.models import Module
 from apps.core.permissions import Action, can
@@ -21,7 +22,7 @@ from .forms import (
     PriorityOverrideForm,
     ProposalForm,
 )
-from .models import Adjunto, Estado, Foto, Impacto, sin_criterio_q
+from .models import ACTIVE_STATES, Adjunto, Estado, Foto, Impacto, sin_criterio_q
 
 
 def _can(request, action):
@@ -71,6 +72,8 @@ def index(request, client_slug):
             "p1_sin_criterio": all_impactos.filter(sin_criterio_q(), prioridad=1).count(),
             "extrema": all_impactos.filter(severidad=4).exclude(
                 estado__in=[Estado.CERRADO, Estado.DESCARTADO]).count(),
+            "descubiertos": all_impactos.filter(estado__in=ACTIVE_STATES,
+                                                actividades__isnull=True).count(),
         },
     })
 
@@ -129,8 +132,17 @@ def editar(request, client_slug, numero):
 def detalle(request, client_slug, numero):
     impacto = _get_impacto(request, numero)
     can_edit = _can(request, Action.EDIT)
+    ruta = {
+        "view": can(request.user, request.client, Module.RUTA, Action.VIEW,
+                    membership=request.membership),
+        "edit": can(request.user, request.client, Module.RUTA, Action.EDIT,
+                    membership=request.membership),
+    }
     return render(request, "matriz/detalle.html", {
         "impacto": impacto,
+        "ruta": ruta,
+        "actividades": impacto.actividades.select_related("frente") if ruta["view"] else None,
+        "descubierto": impacto.estado in ACTIVE_STATES and not impacto.actividades.exists(),
         "can_edit": can_edit,
         "can_edit_proposal": _can_edit_proposal(request, impacto),
         "transitions": workflow.available(impacto) if can_edit else [],
@@ -211,10 +223,7 @@ def adjuntar(request, client_slug, numero):
         raise PermissionDenied
     form = AdjuntoForm(request.POST, request.FILES)
     if form.is_valid():
-        adjunto = form.save(commit=False)
-        adjunto.impacto, adjunto.subido_por = impacto, request.user
-        adjunto.nombre = form.cleaned_data["nombre"]
-        adjunto.save()
+        form.save_for(request.user, impacto=impacto)
         messages.success(request, _("Adjunto agregado."))
     else:
         for errors in form.errors.values():
@@ -226,11 +235,7 @@ def adjuntar(request, client_slug, numero):
 @client_member_required
 def descargar_adjunto(request, client_slug, numero, pk):
     impacto = _get_impacto(request, numero)
-    adjunto = get_object_or_404(Adjunto.objects, impacto=impacto, pk=pk)
-    if not adjunto.archivo:
-        raise Http404  # links are shown directly on the page
-    return FileResponse(adjunto.archivo.open("rb"), as_attachment=True,
-                        filename=adjunto.nombre or adjunto.archivo.name)
+    return file_response(get_object_or_404(Adjunto.objects, impacto=impacto, pk=pk))
 
 
 @client_member_required

@@ -4,6 +4,12 @@
 {% block content %}
   <p><a href="{% url 'client_home' request.client.slug %}">← {{ request.client.name }}</a></p>
   <h1>{% translate "Configuración" %}</h1>
+  <ul class="cards">
+    <li><a class="card" href="{% url 'catalogs:personas' request.client.slug %}">
+      <strong>{% translate "Personas y sus grupos" %}</strong>
+      <span class="muted">{% translate "Qué grupos impactados acompaña cada miembro (por ejemplo, el grupo de cada capitán)." %}</span>
+    </a></li>
+  </ul>
   <h2>{% translate "Catálogos del cliente" %}</h2>
   <ul class="cards">
     {% for c in catalogs %}

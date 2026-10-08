@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+  <p><a href="{% url 'catalogs:index' request.client.slug %}">← {% translate "Configuración" %}</a></p>
+  <h1>{% translate "Personas y sus grupos" %}</h1>
+  <p class="muted">{% translate "Los capitanes solo ven en la Ruta las actividades de sus grupos. Para invitar personas o cambiar roles, usa la administración de plataforma." %}</p>
+  {% for m, form in rows %}
+    <section class="panel">
+      <div class="row">
+        <div><strong>{{ m.user.display_name }}</strong> <span class="muted">{{ m.user.email }}</span></div>
+        <span class="tag">{{ m.get_role_display }}</span>
+      </div>
+      {% if form.fields.grupos.queryset %}
+        <form method="post" action="{% url 'catalogs:persona_grupos' request.client.slug m.pk %}" class="form">
+          {% csrf_token %}{{ form.grupos }}
+          <button class="btn secondary">{% translate "Guardar grupos" %}</button>
+        </form>
+      {% else %}
+        <p class="muted small">{% translate "Crea grupos impactados para asignarlos." %}</p>
+      {% endif %}
+    </section>
+  {% endfor %}
+{% endblock %}

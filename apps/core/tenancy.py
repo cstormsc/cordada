@@ -80,3 +80,21 @@ class TenantScopedModel(models.Model):
             raise NoCurrentClient(
                 f"{type(self).__name__} pertenece a otro cliente que el activo."
             )
+
+
+def assign_next_number(instance, field="numero"):
+    """Gives a new row the next per-client number. Call inside save() before insert."""
+    from django.db import transaction
+    from django.db.models import Max
+
+    from .models import Client
+
+    if getattr(instance, field):
+        return
+    instance.assign_client()
+    with transaction.atomic():
+        # Lock the client row so concurrent creates get consecutive numbers.
+        Client.objects.select_for_update().filter(pk=instance.client_id).first()
+        model = type(instance)
+        last = model.unscoped.filter(client_id=instance.client_id).aggregate(n=Max(field))["n"]
+        setattr(instance, field, (last or 0) + 1)

@@ -1,0 +1,39 @@
+{% load i18n ruta_tags %}
+<table class="report">
+  <thead><tr>
+    <th>{% translate "Frente" %}</th><th>{% translate "Planificadas" %}</th><th>{% translate "A tiempo" %}</th>
+    <th>{% translate "Con retraso" %}</th><th>{% translate "No realizadas" %}</th><th>{% translate "Pendientes" %}</th>
+    <th>{% translate "No planificadas" %}</th><th>{% translate "% a tiempo" %}</th><th>{% translate "% realizadas" %}</th>
+  </tr></thead>
+  <tbody>
+  {% for r in informe.rows %}
+    <tr><td>{{ r.frente }}</td><td>{{ r.planificadas }}</td><td>{{ r.a_tiempo }}</td><td>{{ r.con_retraso }}</td>
+      <td>{{ r.no_realizada }}</td><td>{{ r.pendiente }}</td><td>{{ r.no_planificada }}</td>
+      <td>{% pct r.pct_a_tiempo %}</td><td>{% pct r.pct_realizadas %}</td></tr>
+  {% endfor %}
+  </tbody>
+  <tfoot>{% with t=informe.total %}
+    <tr><th>{% translate "Total" %}</th><th>{{ t.planificadas }}</th><th>{{ t.a_tiempo }}</th><th>{{ t.con_retraso }}</th>
+      <th>{{ t.no_realizada }}</th><th>{{ t.pendiente }}</th><th>{{ t.no_planificada }}</th>
+      <th>{% pct t.pct_a_tiempo %}</th><th>{% pct t.pct_realizadas %}</th></tr>
+  {% endwith %}</tfoot>
+</table>
+<p class="muted small">{% translate "Los porcentajes se calculan sobre las actividades planificadas cuya fecha ya pasó." %}
+  {% translate "Actividades huérfanas en este informe" %}: {{ informe.huerfanas }}.</p>
+
+{% if informe.no_realizadas %}
+<h3>{% translate "No realizadas" %}</h3>
+<ul class="list">{% for a in informe.no_realizadas %}<li><span>{{ a.codigo }} · {{ a.titulo }} <span class="muted">({{ a.frente }})</span></span><span class="muted small">{{ a.fecha_planificada|date:"SHORT_DATE_FORMAT" }} · {{ a.responsable.display_name|default:"—" }}</span></li>{% endfor %}</ul>
+{% endif %}
+{% if informe.con_retraso %}
+<h3>{% translate "Hechas con retraso" %}</h3>
+<ul class="list">{% for a in informe.con_retraso %}<li><span>{{ a.codigo }} · {{ a.titulo }}</span><span class="muted small">{{ a.fecha_planificada|date:"SHORT_DATE_FORMAT" }} → {{ a.fecha_real|date:"SHORT_DATE_FORMAT" }}</span></li>{% endfor %}</ul>
+{% endif %}
+{% if informe.no_planificadas %}
+<h3>{% translate "No planificadas (surgieron sobre la marcha)" %}</h3>
+<ul class="list">{% for a in informe.no_planificadas %}<li><span>{{ a.codigo }} · {{ a.titulo }}</span><span class="muted small">{{ a.fecha_real|date:"SHORT_DATE_FORMAT"|default:"—" }}</span></li>{% endfor %}</ul>
+{% endif %}
+{% if informe.descubiertos %}
+<h3>{% translate "Impactos descubiertos (activos y sin actividades)" %}</h3>
+<ul class="list">{% for i in informe.descubiertos %}<li><span>{{ i.codigo }} · {{ i.titulo }}</span><span class="muted small">{{ i.get_prioridad_display|default:"" }}</span></li>{% endfor %}</ul>
+{% endif %}

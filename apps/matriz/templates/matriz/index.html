@@ -16,6 +16,7 @@
     <li><strong>{{ resumen.total }}</strong> {% translate "impactos" %}</li>
     <li><a href="?estado=propuesto"><strong>{{ resumen.propuestos }}</strong> {% translate "por validar" %}</a></li>
     <li class="{% if resumen.p1_sin_criterio %}alert{% endif %}"><a href="?alerta=p1_sin_criterio"><strong>{{ resumen.p1_sin_criterio }}</strong> {% translate "P1 sin criterio de cierre" %}</a></li>
+    <li class="{% if resumen.descubiertos %}warn{% endif %}"><a href="?alerta=descubiertos"><strong>{{ resumen.descubiertos }}</strong> {% translate "descubiertos (sin actividades)" %}</a></li>
     <li class="{% if resumen.extrema %}alert{% endif %}"><a href="?alerta=extrema"><strong>{{ resumen.extrema }}</strong> {% translate "con severidad extrema abiertos" %}</a></li>
   </ul>
 

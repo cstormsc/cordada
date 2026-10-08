@@ -86,7 +86,7 @@ def workbook(rows, title):
     for cell in ws[2]:
         cell.font = Font(bold=True)
     for row in rows:
-        ws.append([_cell(row.get(key)) for key, _label in COLUMNS])
+        ws.append([safe_cell(row.get(key)) for key, _label in COLUMNS])
     ws.freeze_panes = "C3"
     for idx, (key, _label) in enumerate(COLUMNS, start=1):
         width = 50 if key in {"descripcion", "medida", "riesgo_descripcion"} else 18
@@ -95,7 +95,7 @@ def workbook(rows, title):
     return wb
 
 
-def _cell(value):
+def safe_cell(value):
     # Guard against spreadsheet formula injection from free text.
     if isinstance(value, str) and value[:1] in ("=", "+", "-", "@"):
         return "'" + value

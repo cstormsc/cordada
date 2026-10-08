@@ -10,6 +10,7 @@ from apps.core.tenancy import TenantScopedModel
 
 class SystemCatalog(models.TextChoices):
     TIEMPO = "tiempo", _("Tiempos del marco")
+    FRENTE = "frente", _("Frentes")
     TIPO_IMPACTO = "tipo_impacto", _("Tipos de impacto")
     ORIGEN = "origen", _("Origen de la detección")
     CATEGORIA_TICKET = "categoria_ticket", _("Categorías de ticket")
@@ -170,6 +171,12 @@ class Cargo(ClientCatalogItem):
     class Meta(ClientCatalogItem.Meta):
         verbose_name = _("cargo")
         verbose_name_plural = _("cargos")
+
+
+class Canal(ClientCatalogItem):
+    class Meta(ClientCatalogItem.Meta):
+        verbose_name = _("canal o formato")
+        verbose_name_plural = _("canales y formatos")
 
 
 class UnidadOrganizacional(ClientCatalogItem):

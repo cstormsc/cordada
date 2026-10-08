@@ -53,3 +53,14 @@ Dependencias con `uv`: editar `pyproject.toml`, luego `make lock && make build`.
 - Riesgo y prioridad se recalculan al guardar; el ajuste manual exige justificación.
 - Adjuntos: solo se descargan por la vista con permisos (no hay `/media/` público).
 - Fotos por etapa: copia completa de la matriz en JSON, exportable a Excel.
+
+## Ruta
+
+- `/c/<cliente>/ruta/`: actividades de los cuatro frentes con lo planificado y lo ejecutado en el
+  mismo registro. Se vinculan a impactos y grupos; sin impacto, la actividad es **huérfana**; un
+  impacto activo sin actividades es **descubierto** (filtro en la matriz).
+- Cumplimiento calculado (`apps/ruta/models.py: cumplimiento`): a tiempo, con retraso,
+  no realizada (vencida), no planificada, pendiente.
+- Capitanes ven solo las actividades de sus grupos: se asignan en Configuración → Personas.
+- Informe de cumplimiento por etapa o por mes, en pantalla y en PDF (WeasyPrint).
+- Adjuntos compartidos: `apps/core/attachments.py`.

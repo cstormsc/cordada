@@ -1,8 +1,5 @@
-import os
-import uuid
-
 from django.conf import settings
-from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
 from simple_history.models import HistoricalRecords
@@ -13,8 +10,8 @@ from apps.catalogs.models import (
     SystemCatalog,
     SystemCatalogField,
 )
-from apps.core.models import Client
-from apps.core.tenancy import TenantScopedModel
+from apps.core.attachments import AbstractAdjunto
+from apps.core.tenancy import TenantScopedModel, assign_next_number
 from apps.scoring import rules
 
 
@@ -38,6 +35,10 @@ class Estado(models.TextChoices):
     CERRADO = "cerrado", _("Cerrado")
     DESCARTADO = "descartado", _("Descartado")
     REABIERTO = "reabierto", _("Reabierto")
+
+
+# Impacts being worked on: they should have activities in the Ruta.
+ACTIVE_STATES = (Estado.EVALUADO, Estado.EN_ATENCION, Estado.REABIERTO)
 
 
 class CriticidadFormacion(models.TextChoices):
@@ -231,15 +232,9 @@ class Impacto(TenantScopedModel):
 
     def save(self, *args, **kwargs):
         self.recalculate()
-        if self.numero:
-            return super().save(*args, **kwargs)
-        self.assign_client()
         with transaction.atomic():
-            # Lock the client row so concurrent creates get consecutive numbers.
-            Client.objects.select_for_update().filter(pk=self.client_id).first()
-            last = Impacto.unscoped.filter(client_id=self.client_id).aggregate(models.Max("numero"))
-            self.numero = (last["numero__max"] or 0) + 1
-            return super().save(*args, **kwargs)
+            assign_next_number(self)
+            super().save(*args, **kwargs)
 
 
 class Transicion(TenantScopedModel):
@@ -268,39 +263,13 @@ class Comentario(TenantScopedModel):
         ordering = ["fecha"]
 
 
-ALLOWED_EXTENSIONS = ["pdf", "docx", "xlsx", "pptx", "csv", "txt", "png", "jpg", "jpeg"]
-MAX_UPLOAD_MB = 10
+class Adjunto(AbstractAdjunto):
+    UPLOAD_DIR = "impactos"
 
-
-def adjunto_path(instance, filename):
-    ext = os.path.splitext(filename)[1].lower()
-    return f"clientes/{instance.client_id}/impactos/{uuid.uuid4().hex}{ext}"
-
-
-class Adjunto(TenantScopedModel):
     impacto = models.ForeignKey(Impacto, on_delete=models.CASCADE, related_name="adjuntos")
-    archivo = models.FileField(
-        _("archivo"), upload_to=adjunto_path, blank=True,
-        validators=[FileExtensionValidator(ALLOWED_EXTENSIONS)],
-    )
-    nombre = models.CharField(_("nombre"), max_length=200, blank=True)
-    url = models.URLField(_("enlace"), blank=True)
-    subido_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
-                                   related_name="+")
-    fecha = models.DateTimeField(auto_now_add=True)
 
-    class Meta(TenantScopedModel.Meta):
-        ordering = ["fecha"]
-        constraints = [
-            models.CheckConstraint(
-                condition=(~models.Q(archivo="") & models.Q(url=""))
-                | (models.Q(archivo="") & ~models.Q(url="")),
-                name="adjunto_archivo_xor_url",
-            ),
-        ]
-
-    def __str__(self):
-        return self.nombre or self.url
+    class Meta(AbstractAdjunto.Meta):
+        pass
 
 
 class Foto(TenantScopedModel):

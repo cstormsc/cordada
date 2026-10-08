@@ -133,8 +133,14 @@ class Membership(models.Model):
     role = models.CharField(_("rol"), max_length=30, choices=Role.choices)
     is_active = models.BooleanField(_("activa"), default=True)
     created_at = models.DateTimeField(_("creada"), auto_now_add=True)
+    grupos = models.ManyToManyField(
+        "catalogs.GrupoImpactado", blank=True, related_name="miembros",
+        verbose_name=_("grupos"),
+        help_text=_("Grupos impactados que acompaña. Un capitán solo ve las actividades "
+                    "de sus grupos."),
+    )
 
-    history = HistoricalRecords()
+    history = HistoricalRecords(m2m_fields=[grupos])
 
     class Meta:
         verbose_name = _("membresía")
