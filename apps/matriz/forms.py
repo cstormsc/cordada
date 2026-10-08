@@ -6,6 +6,7 @@ from django.utils.translation import gettext_lazy as _
 from apps.catalogs.models import CategoriaResponsable, GrupoImpactado, Scale
 from apps.core.attachments import AdjuntoForm as BaseAdjuntoForm
 from apps.core.models import User
+from apps.guia import anchors
 from apps.scoring import rules
 
 from .models import (
@@ -94,6 +95,7 @@ class BaseImpactoForm(forms.ModelForm):
             field = self.fields[name]
             field.widget = ScaleSelect(definitions={str(lv.value): lv.definition for lv in levels})
             field.widget.choices = [("", "—"), *scale.choices()]
+            field.guia = anchors.escala(code)
             if scale.help_text and not field.help_text:
                 field.help_text = scale.help_text
         for field in self.fields.values():
@@ -223,6 +225,7 @@ class PriorityOverrideForm(forms.ModelForm):
             ("", _("Sin ajuste (usar la calculada)")),
             *[(p.value, p.label) for p in rules.Priority],
         ]
+        self.fields["prioridad_ajustada"].guia = anchors.CALCULOS
 
     def clean(self):
         cleaned = super().clean()

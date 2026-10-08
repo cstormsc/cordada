@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Guía de campo" %} · Cordada{% endblock %}
+{% block content %}
+  <p><a href="{% url 'plataforma:client_list' %}">← {% translate "Clientes" %}</a></p>
+  <h1>{% translate "Guía de campo" %}</h1>
+  {% url 'plataforma:catalog_index' as catalogos_url %}
+  <p class="muted">{% blocktranslate %}Material de la metodología y plantillas, iguales para todos los clientes. Las escalas y los catálogos del sistema se muestran en la guía con sus definiciones; se editan en <a href="{{ catalogos_url }}">Catálogos y escalas</a>.{% endblocktranslate %}</p>
+
+  <section class="panel">
+    <div class="row">
+      <h2>{% translate "Temas de la metodología" %}</h2>
+      <a href="{% url 'plataforma:tema_create' %}">{% translate "Agregar" %}</a>
+    </div>
+    {% if temas %}
+      <ul class="list">
+      {% for t in temas %}
+        <li{% if not t.is_active %} class="muted"{% endif %}>
+          <a href="{% url 'plataforma:tema_edit' t.pk %}">{{ t.titulo }}</a>
+          <span class="muted">#{{ t.anchor }}{% if not t.is_active %} · {% translate "inactivo" %}{% endif %}</span>
+        </li>
+      {% endfor %}
+      </ul>
+    {% else %}
+      <p><span class="tag">{% translate "Por definir" %}</span></p>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <div class="row">
+      <h2>{% translate "Plantillas" %}</h2>
+      <a href="{% url 'plataforma:plantilla_create' %}">{% translate "Agregar" %}</a>
+    </div>
+    {% if plantillas %}
+      <ul class="list">
+      {% for p in plantillas %}
+        <li{% if not p.is_active %} class="muted"{% endif %}>
+          <a href="{% url 'plataforma:plantilla_edit' p.pk %}">{{ p.nombre }}</a>
+          <span class="muted">{% if p.archivo %}{% translate "archivo" %}{% else %}{% translate "enlace" %}{% endif %}{% if not p.is_active %} · {% translate "inactiva" %}{% endif %}</span>
+        </li>
+      {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">{% translate "Sin plantillas." %}</p>
+    {% endif %}
+  </section>
+{% endblock %}

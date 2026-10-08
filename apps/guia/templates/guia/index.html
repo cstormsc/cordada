@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Guía de campo" %} · {{ request.client.name }}{% endblock %}
+{% block content %}
+  <p><a href="{% url 'client_home' request.client.slug %}">← {{ request.client.name }}</a></p>
+  <h1>{% translate "Guía de campo" %}</h1>
+
+  <nav class="panel toc" aria-label="{% translate 'Contenido' %}">
+    <ul>
+      {% if temas %}<li><a href="#metodologia">{% translate "Metodología" %}</a></li>{% endif %}
+      {% if catalogos %}<li><a href="#catalogos">{% translate "Catálogos" %}</a></li>{% endif %}
+      <li><a href="#escalas">{% translate "Escalas" %}</a></li>
+      <li><a href="#{{ calculos.anchor }}">{% translate "Riesgo y prioridad" %}</a></li>
+      {% if plantillas %}<li><a href="#plantillas">{% translate "Plantillas" %}</a></li>{% endif %}
+      <li><a href="#documentos">{% translate "Documentos del cliente" %}</a></li>
+    </ul>
+  </nav>
+
+  {% if temas %}
+    <section id="metodologia">
+      <h2>{% translate "Metodología" %}</h2>
+      {% for tema in temas %}
+        <article class="panel guia-tema" id="{{ tema.anchor }}">
+          <h3>{{ tema.titulo }}</h3>
+          {{ tema.contenido|urlize|linebreaks }}
+        </article>
+      {% endfor %}
+    </section>
+  {% endif %}
+
+  {% if catalogos %}
+    <section id="catalogos">
+      <h2>{% translate "Catálogos" %}</h2>
+      {% for c in catalogos %}
+        <article class="panel" id="{{ c.anchor }}">
+          <h3>{{ c.name }}</h3>
+          <dl class="guia-defs">
+            {% for item in c.items %}
+              <dt>{{ item.label }}</dt>
+              <dd>{% if item.help_text %}{{ item.help_text|linebreaksbr }}{% else %}<span class="muted">{% translate "Sin descripción." %}</span>{% endif %}</dd>
+            {% endfor %}
+          </dl>
+        </article>
+      {% endfor %}
+    </section>
+  {% endif %}
+
+  <section id="escalas">
+    <h2>{% translate "Escalas" %}</h2>
+    {% for scale in escalas %}
+      <article class="panel" id="{{ scale.anchor }}">
+        <h3>{{ scale.name }}</h3>
+        {% if scale.help_text %}<p class="muted">{{ scale.help_text }}</p>{% endif %}
+        {% with levels=scale.levels.all %}
+          {% if levels %}
+            <dl class="guia-defs">
+              {% for lvl in levels %}
+                <dt>{{ lvl.label }} ({{ lvl.value }})</dt>
+                <dd>{% if lvl.definition %}{{ lvl.definition|linebreaksbr }}{% else %}<span class="muted">{% translate "Sin definición." %}</span>{% endif %}</dd>
+              {% endfor %}
+            </dl>
+          {% else %}
+            <p><span class="tag">{% translate "Por definir" %}</span></p>
+          {% endif %}
+        {% endwith %}
+      </article>
+    {% endfor %}
+  </section>
+
+  <section class="panel" id="{{ calculos.anchor }}">
+    <h2>{% translate "Riesgo y prioridad" %}</h2>
+    <p>{% blocktranslate %}<strong>Nivel de riesgo</strong> = probabilidad × severidad. Toda severidad Extrema genera una alerta, sin importar la probabilidad.{% endblocktranslate %}</p>
+    <ul>
+      {% for b in calculos.bands %}<li><strong>{{ b.label }}</strong>: {{ b.scores|join:", " }}</li>{% endfor %}
+    </ul>
+    <p>{% blocktranslate %}<strong>Prioridad</strong> = magnitud (1 a 4) + valor del nivel de riesgo (Bajo 1, Medio 2, Alto 3, Crítico 4).{% endblocktranslate %}</p>
+    <div class="table-wrap"><table class="guia-matrix">
+      <thead><tr><th>{% translate "Riesgo ↓ / Magnitud →" %}</th>{% for m in calculos.magnitudes %}<th>{{ m }}</th>{% endfor %}</tr></thead>
+      <tbody>
+        {% for row in calculos.matrix %}
+          <tr><th>{{ row.band }}</th>{% for p in row.cells %}<td>{{ p }}</td>{% endfor %}</tr>
+        {% endfor %}
+      </tbody>
+    </table></div>
+    <p class="muted small">{{ calculos.priorities|join:" · " }}</p>
+  </section>
+
+  {% if plantillas %}
+    <section class="panel" id="plantillas">
+      <h2>{% translate "Plantillas" %}</h2>
+      <ul class="list">
+        {% for p in plantillas %}
+          <li><div>
+            {% if p.archivo %}<a href="{% url 'guia:descargar_plantilla' request.client.slug p.pk %}">{{ p.nombre }}</a>
+            {% else %}<a href="{{ p.url }}" target="_blank" rel="noopener noreferrer">{{ p.nombre }}</a>{% endif %}
+            {% if p.descripcion %}<div class="muted small">{{ p.descripcion }}</div>{% endif %}
+          </div></li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  <section class="panel" id="documentos">
+    <h2>{% translate "Documentos del cliente" %}</h2>
+    {% if documentos %}
+      <ul class="list">
+        {% for d in documentos %}
+          <li>
+            <div>
+              {% if d.archivo %}<a href="{% url 'guia:descargar_documento' request.client.slug d.pk %}">{{ d.nombre }}</a>
+              {% else %}<a href="{{ d.url }}" target="_blank" rel="noopener noreferrer">{{ d.nombre }}</a>{% endif %}
+              {% if d.descripcion %}<div class="muted small">{{ d.descripcion }}</div>{% endif %}
+            </div>
+            {% if can_edit %}
+              <form method="post" action="{% url 'guia:eliminar_documento' request.client.slug d.pk %}" class="inline"
+                    onsubmit="return confirm('{% translate "¿Eliminar este documento?" %}')">
+                {% csrf_token %}<button type="submit" class="link">{% translate "Eliminar" %}</button>
+              </form>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">{% translate "Sin documentos." %}</p>
+    {% endif %}
+    {% if documento_form %}
+      <details><summary>{% translate "Agregar documento o enlace" %}</summary>
+        <form method="post" enctype="multipart/form-data" action="{% url 'guia:agregar_documento' request.client.slug %}" class="form">
+          {% csrf_token %}{{ documento_form }}
+          <button class="btn">{% translate "Agregar" %}</button>
+        </form>
+      </details>
+    {% endif %}
+  </section>
+{% endblock %}

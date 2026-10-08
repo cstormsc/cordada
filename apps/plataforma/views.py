@@ -17,6 +17,8 @@ from apps.catalogs.models import Scale, SystemCatalog, SystemCatalogItem
 from apps.core import invitations
 from apps.core.decorators import platform_admin_required
 from apps.core.models import Client, Invitation, Membership, Role
+from apps.guia.forms import PlantillaForm, TemaForm
+from apps.guia.models import Plantilla, Tema
 
 from .forms import ClientForm, InviteForm, MembershipRoleForm
 
@@ -195,4 +197,37 @@ def scale_edit(request, code):
             "form": form,
             "level_forms": level_forms,
         },
+    )
+
+
+@platform_admin_required
+def guia_index(request):
+    return render(
+        request,
+        "plataforma/guia_index.html",
+        {"temas": Tema.objects.all(), "plantillas": Plantilla.objects.all()},
+    )
+
+
+@platform_admin_required
+def tema_edit(request, pk=None):
+    tema = get_object_or_404(Tema, pk=pk) if pk else Tema()
+    form = TemaForm(request.POST or None, instance=tema)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, _("Tema guardado."))
+        return redirect("plataforma:guia_index")
+    return render(request, "plataforma/guia_item.html", {"form": form, "item": tema})
+
+
+@platform_admin_required
+def plantilla_edit(request, pk=None):
+    plantilla = get_object_or_404(Plantilla, pk=pk) if pk else Plantilla()
+    form = PlantillaForm(request.POST or None, request.FILES or None, instance=plantilla)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, _("Plantilla guardada."))
+        return redirect("plataforma:guia_index")
+    return render(
+        request, "plataforma/guia_item.html", {"form": form, "item": plantilla, "files": True}
     )

@@ -214,3 +214,23 @@ fieldset.panel li label { display: flex; gap: 0.5rem; align-items: flex-start; p
 .chart-card .chart { width: 100%; min-height: 120px; }
 .ind-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); gap: 0 0.75rem; align-items: end; }
 .ind-form > div { margin-bottom: 0.5rem; }
+
+/* Guía de campo */
+.label-row { display: flex; align-items: baseline; gap: 0.4rem; }
+.label-row label, .label-row legend { margin-bottom: 0.25rem; }
+.guia-link {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.1rem; height: 1.1rem; border-radius: 50%;
+  border: 1px solid var(--line); font-size: 0.75rem; font-weight: 600;
+  text-decoration: none; color: var(--muted); background: #fff;
+}
+.guia-link:hover, .guia-link:focus-visible { color: var(--accent); border-color: var(--accent); }
+.toc ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; }
+.guia-defs { margin: 0; display: grid; grid-template-columns: minmax(8rem, max-content) 1fr; gap: 0.4rem 1rem; }
+.guia-defs dt { font-weight: 600; }
+.guia-defs dd { margin: 0; }
+@media (max-width: 40rem) { .guia-defs { grid-template-columns: 1fr; } .guia-defs dd { margin-bottom: 0.5rem; } }
+.guia-matrix td, .guia-matrix th { text-align: center; }
+.guia-matrix tbody th { text-align: left; }
+section[id], article[id] { scroll-margin-top: 1rem; }
+.panel > h3:first-child { margin-top: 0; }

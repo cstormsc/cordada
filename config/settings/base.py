@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     "apps.bitacora",
     "apps.formularios",
     "apps.dashboard",
+    "apps.guia",
     "apps.plataforma",
 ]
 
@@ -61,6 +62,8 @@ TEMPLATES = [
         },
     },
 ]
+
+FORM_RENDERER = "apps.guia.renderer.FormRenderer"
 
 DATABASES = {"default": env.db("DATABASE_URL")}
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

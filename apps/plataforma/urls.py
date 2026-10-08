@@ -21,4 +21,9 @@ urlpatterns = [
     path("catalogos/<slug:catalog>/nuevo/", views.catalog_item, name="catalog_item_create"),
     path("catalogos/<slug:catalog>/<int:pk>/", views.catalog_item, name="catalog_item_edit"),
     path("escalas/<slug:code>/", views.scale_edit, name="scale_edit"),
+    path("guia/", views.guia_index, name="guia_index"),
+    path("guia/temas/nuevo/", views.tema_edit, name="tema_create"),
+    path("guia/temas/<int:pk>/", views.tema_edit, name="tema_edit"),
+    path("guia/plantillas/nueva/", views.plantilla_edit, name="plantilla_create"),
+    path("guia/plantillas/<int:pk>/", views.plantilla_edit, name="plantilla_edit"),
 ]

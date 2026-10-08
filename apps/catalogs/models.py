@@ -71,6 +71,14 @@ class SystemCatalogField(models.ForeignKey):
         kwargs.pop("limit_choices_to", None)
         return name, path, args, kwargs
 
+    def formfield(self, **kwargs):
+        from apps.guia import anchors
+
+        field = super().formfield(**kwargs)
+        if self.catalog:
+            field.guia = anchors.catalogo(self.catalog)
+        return field
+
     def validate(self, value, model_instance):
         super().validate(value, model_instance)
         if value is not None and self.catalog:
