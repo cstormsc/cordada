@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+  <p>{% if impacto %}<a href="{% url 'matriz:detalle' request.client.slug impacto.numero %}">← {{ impacto.codigo }}</a>{% else %}<a href="{% url 'matriz:index' request.client.slug %}">← {% translate "Matriz de Impactos" %}</a>{% endif %}</p>
+  <h1>{% if impacto %}{% translate "Editar" %} {{ impacto.codigo }}{% elif can_create_group %}{% translate "Nuevo impacto" %}{% else %}{% translate "Proponer impacto" %}{% endif %}</h1>
+  {% if not impacto %}<p class="muted">{% translate "Se registra como Propuesto. El equipo de cambio lo valida y lo evalúa." %}</p>{% endif %}
+
+  <form method="post" class="form impacto-form">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="error">{{ form.non_field_errors }}</div>{% endif %}
+    {% for title, fields in form.get_sections %}
+      {% if fields %}
+      <fieldset class="panel">
+        <legend>{{ title }}</legend>
+        {% for field in fields %}
+          {% if field.name == "grupo" %}
+            {% include "matriz/_grupo_field.html" %}
+          {% else %}
+            {{ field.as_field_group }}
+          {% endif %}
+        {% endfor %}
+        {% if title == _("Evaluación") %}{% for name in form.pending_scales %}
+          <p class="muted small">{{ name|capfirst }}: {% translate "escala por definir." %}</p>
+        {% endfor %}{% endif %}
+      </fieldset>
+      {% endif %}
+    {% endfor %}
+    <button type="submit" class="btn">{% translate "Guardar" %}</button>
+  </form>
+{% endblock %}

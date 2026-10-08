@@ -1,0 +1,21 @@
+{% load i18n %}
+<div id="grupo-field" class="field-grupo">
+  <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+  {{ field }}
+  {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+  {{ field.errors }}
+  {% if grupo_message %}<p class="ok small">{{ grupo_message }}</p>{% endif %}
+  {% if can_create_group %}
+    <details class="inline-create"{% if grupo_error %} open{% endif %}>
+      <summary>{% translate "+ Nuevo grupo" %}</summary>
+      <div class="row">
+        <input type="text" name="nuevo_grupo" placeholder="{% translate 'Nombre del grupo' %}" maxlength="150">
+        <button type="button" class="btn"
+                hx-post="{% url 'matriz:crear_grupo' request.client.slug %}"
+                hx-include="#grupo-field"
+                hx-target="#grupo-field" hx-swap="outerHTML">{% translate "Crear" %}</button>
+      </div>
+      {% if grupo_error %}<p class="error">{{ grupo_error }}</p>{% endif %}
+    </details>
+  {% endif %}
+</div>

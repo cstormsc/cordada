@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+  <p><a href="{% url 'client_home' request.client.slug %}">← {{ request.client.name }}</a></p>
+  <div class="row">
+    <h1>{% translate "Mis propuestas de impacto" %}</h1>
+    <a class="btn" href="{% url 'matriz:crear' request.client.slug %}">{% translate "Proponer impacto" %}</a>
+  </div>
+  <p class="muted">{% translate "El equipo de cambio revisa cada propuesta. Puedes editarla mientras siga en Propuesto." %}</p>
+  {% if impactos %}
+    <ul class="list panel">
+    {% for impacto in impactos %}
+      <li><a href="{% url 'matriz:detalle' request.client.slug impacto.numero %}">{{ impacto.codigo }} · {{ impacto.titulo }}</a>
+        <span class="tag">{{ impacto.get_estado_display }}</span></li>
+    {% endfor %}
+    </ul>
+  {% else %}
+    <p class="muted">{% translate "Aún no has propuesto impactos." %}</p>
+  {% endif %}
+{% endblock %}

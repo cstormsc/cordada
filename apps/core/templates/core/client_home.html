@@ -9,7 +9,11 @@
   </div>
   <ul class="cards">
     {% for module in modules %}
-      <li><div class="card"><strong>{{ module.label }}</strong><span class="muted">{% translate "Próximamente" %}</span></div></li>
+      {% if module == "matriz" %}
+        <li><a class="card" href="{% url 'matriz:index' request.client.slug %}"><strong>{{ module.label }}</strong><span class="muted">{% translate "Impactos, riesgos y prioridades" %}</span></a></li>
+      {% else %}
+        <li><div class="card"><strong>{{ module.label }}</strong><span class="muted">{% translate "Próximamente" %}</span></div></li>
+      {% endif %}
     {% empty %}
       <li class="muted">{% translate "Tu rol no tiene módulos activos en este cliente." %}</li>
     {% endfor %}

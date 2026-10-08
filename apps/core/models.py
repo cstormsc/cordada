@@ -57,6 +57,10 @@ class User(AbstractUser):
     def __str__(self):
         return self.email
 
+    @property
+    def display_name(self):
+        return self.get_full_name() or self.email
+
     def active_memberships(self):
         return (
             self.memberships.filter(is_active=True, client__is_active=True)

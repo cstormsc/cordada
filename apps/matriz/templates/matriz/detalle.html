@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ impacto.codigo }} · {{ request.client.name }}{% endblock %}
+{% block content %}
+  <p><a href="{% url 'matriz:index' request.client.slug %}">← {% translate "Matriz de Impactos" %}</a></p>
+
+  <div class="row">
+    <h1><span class="muted">{{ impacto.codigo }}</span> {{ impacto.titulo }}</h1>
+    {% if not impacto.is_locked and can_edit or can_edit_proposal %}
+      <a class="btn" href="{% url 'matriz:editar' request.client.slug impacto.numero %}">{% translate "Editar" %}</a>
+    {% endif %}
+  </div>
+  <p>
+    <span class="tag">{{ impacto.get_estado_display }}</span>
+    {% include "matriz/_badges.html" %}
+    {% if impacto.riesgo_nivel %}<span class="muted">{% translate "Riesgo" %} {{ impacto.get_riesgo_nivel_display }} ({{ impacto.riesgo_puntaje }})</span>{% endif %}
+  </p>
+  {% if impacto.alerta_severidad %}<p class="msg msg-error">{% translate "Alerta: severidad extrema." %}</p>{% endif %}
+  {% if impacto.alerta_p1_sin_criterio %}<p class="msg msg-error">{% translate "Alerta: prioridad P1 sin criterio de cierre." %}</p>{% endif %}
+
+  {% if can_edit and not impacto.grupo and impacto.grupo_sugerido %}
+    <section class="panel attention">
+      <h2>{% translate "Grupo sugerido por revisar" %}</h2>
+      <p>{% blocktranslate with g=impacto.grupo_sugerido %}Quien propuso escribió «{{ g }}».{% endblocktranslate %}</p>
+      <div class="row">
+        <form method="post" action="{% url 'matriz:resolver_grupo_sugerido' request.client.slug impacto.numero %}">{% csrf_token %}
+          <button class="btn">{% blocktranslate with g=impacto.grupo_sugerido %}Crear el grupo «{{ g }}»{% endblocktranslate %}</button>
+        </form>
+        {% if grupos %}
+        <form method="post" action="{% url 'matriz:resolver_grupo_sugerido' request.client.slug impacto.numero %}" class="row">{% csrf_token %}
+          <select name="grupo" required>
+            <option value="">{% translate "Asignar a un grupo existente…" %}</option>
+            {% for g in grupos %}<option value="{{ g.pk }}">{{ g.name }}</option>{% endfor %}
+          </select>
+          <button class="btn">{% translate "Asignar" %}</button>
+        </form>
+        {% endif %}
+      </div>
+    </section>
+  {% endif %}
+
+  {% if transitions %}
+    <section class="panel">
+      <h2>{% translate "Estado" %}</h2>
+      {% if missing and impacto.estado == "propuesto" %}
+        <p class="muted small">{% translate "Para evaluar faltan" %}: {{ missing|join:", " }}.</p>
+      {% endif %}
+      <div class="transitions">
+      {% for t in transitions %}
+        <form method="post" action="{% url 'matriz:cambiar_estado' request.client.slug impacto.numero %}" class="transition">
+          {% csrf_token %}
+          <input type="hidden" name="hacia" value="{{ t.target }}">
+          {% if t.needs_reason %}<input type="text" name="motivo" placeholder="{% translate 'Motivo' %}" required>{% endif %}
+          <button class="btn{% if t.target == 'descartado' %} secondary{% endif %}">{{ t.label }}</button>
+        </form>
+      {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  <div class="grid-2">
+    <section class="panel">
+      <h2>{% translate "Identificación" %}</h2>
+      <dl class="facts">
+        <dt>{% translate "Descripción" %}</dt><dd class="pre">{{ impacto.descripcion }}</dd>
+        {% if impacto.situacion_actual %}<dt>{% translate "Situación actual" %}</dt><dd class="pre">{{ impacto.situacion_actual }}</dd>{% endif %}
+        {% if impacto.situacion_futura %}<dt>{% translate "Situación futura" %}</dt><dd class="pre">{{ impacto.situacion_futura }}</dd>{% endif %}
+        <dt>{% translate "Origen" %}</dt><dd>{{ impacto.origen|default:"—" }}</dd>
+        <dt>{% translate "Tipo" %}</dt><dd>{{ impacto.tipo|default:"—" }}</dd>
+        <dt>{% translate "Tiempo" %}</dt><dd>{{ impacto.tiempo|default:"—" }}</dd>
+        <dt>{% translate "Grupo" %}</dt><dd>{{ impacto.grupo|default:"—" }}{% if impacto.personas_impactadas %} · {{ impacto.personas_impactadas }} {% translate "personas" %}{% endif %}</dd>
+      </dl>
+    </section>
+    <section class="panel">
+      <h2>{% translate "Evaluación y riesgo" %}</h2>
+      <dl class="facts">
+        <dt>{% translate "Magnitud" %}</dt><dd>{{ impacto.magnitud|default:"—" }}</dd>
+        <dt>{% translate "Resistencia / preparación" %}</dt><dd>{{ impacto.resistencia|default:"—" }} / {{ impacto.preparacion|default:"—" }}</dd>
+        <dt>{% translate "Probabilidad × severidad" %}</dt><dd>{{ impacto.probabilidad|default:"—" }} × {{ impacto.severidad|default:"—" }}</dd>
+        {% if impacto.riesgo_descripcion %}<dt>{% translate "Riesgo" %}</dt><dd class="pre">{{ impacto.riesgo_descripcion }}</dd>{% endif %}
+        <dt>{% translate "Prioridad calculada" %}</dt><dd>{{ impacto.get_prioridad_calculada_display|default:"—" }}</dd>
+        {% if impacto.prioridad_ajustada %}<dt>{% translate "Prioridad ajustada" %}</dt><dd>{{ impacto.get_prioridad_ajustada_display }} — {{ impacto.prioridad_justificacion }}</dd>{% endif %}
+      </dl>
+      {% if can_edit %}
+        <details>
+          <summary>{% translate "Ajustar prioridad" %}</summary>
+          <form method="post" action="{% url 'matriz:ajustar_prioridad' request.client.slug impacto.numero %}" class="form">
+            {% csrf_token %}{{ priority_form }}
+            <button class="btn">{% translate "Guardar ajuste" %}</button>
+          </form>
+        </details>
+      {% endif %}
+    </section>
+    <section class="panel">
+      <h2>{% translate "Derivación" %}</h2>
+      <dl class="facts">
+        <dt>{% translate "Comunicación · movilización · formación" %}</dt>
+        <dd>{{ impacto.requiere_comunicacion|yesno:"Sí,No,—" }} · {{ impacto.requiere_movilizacion|yesno:"Sí,No,—" }} · {{ impacto.requiere_formacion|yesno:"Sí,No,—" }}</dd>
+        <dt>{% translate "Cambio en el conocimiento" %}</dt><dd>{{ impacto.tipo_cambio_conocimiento|default:"—" }}</dd>
+        {% if impacto.requiere_formacion %}<dt>{% translate "Formación" %}</dt><dd>{{ impacto.get_formacion_criticidad_display|default:"—" }} · {{ impacto.formacion_momento|default:"—" }}</dd>{% endif %}
+      </dl>
+    </section>
+    <section class="panel">
+      <h2>{% translate "Mitigación y cierre" %}</h2>
+      <dl class="facts">
+        {% if impacto.medida %}<dt>{% translate "Medida" %}</dt><dd class="pre">{{ impacto.medida }}</dd>{% endif %}
+        <dt>{% translate "Responsable" %}</dt><dd>{{ impacto.responsable.display_name|default:"—" }}{% if impacto.responsable_categoria %} · {{ impacto.responsable_categoria }}{% endif %}</dd>
+        <dt>{% translate "Fecha compromiso" %}</dt><dd>{{ impacto.fecha_compromiso|date:"SHORT_DATE_FORMAT"|default:"—" }}</dd>
+        <dt>{% translate "Criterio de cierre" %}</dt>
+        <dd>{% if impacto.tiene_criterio_cierre %}{{ impacto.criterio_evidencia }}{% if impacto.criterio_meta is not None %} · {% translate "meta" %} {{ impacto.criterio_meta|floatformat:"-2" }}{% endif %} — {{ impacto.criterio_descripcion }}{% else %}<span class="muted">{% translate "Sin definir" %}</span>{% endif %}</dd>
+        <dt>{% translate "Certificación del líder" %}</dt><dd>{{ impacto.requiere_certificacion_lider|yesno:"Sí,No" }}</dd>
+      </dl>
+    </section>
+  </div>
+
+  <section class="panel" id="adjuntos">
+    <h2>{% translate "Archivos y enlaces" %}</h2>
+    {% with adjuntos=impacto.adjuntos.all %}
+      {% if adjuntos %}<ul class="list">
+        {% for a in adjuntos %}<li>
+          {% if a.archivo %}<a href="{% url 'matriz:descargar_adjunto' request.client.slug impacto.numero a.pk %}">{{ a.nombre }}</a>
+          {% else %}<a href="{{ a.url }}" target="_blank" rel="noopener noreferrer">{{ a.nombre }}</a>{% endif %}
+          <span class="muted small">{{ a.fecha|date:"SHORT_DATE_FORMAT" }}</span>
+        </li>{% endfor %}
+      </ul>{% else %}<p class="muted">{% translate "Sin adjuntos." %}</p>{% endif %}
+    {% endwith %}
+    {% if can_edit or can_edit_proposal %}
+      <details><summary>{% translate "Agregar archivo o enlace" %}</summary>
+        <form method="post" enctype="multipart/form-data" action="{% url 'matriz:adjuntar' request.client.slug impacto.numero %}" class="form">
+          {% csrf_token %}{{ adjunto_form }}
+          <button class="btn">{% translate "Agregar" %}</button>
+        </form>
+      </details>
+    {% endif %}
+  </section>
+
+  <section class="panel" id="comentarios">
+    <h2>{% translate "Comentarios" %}</h2>
+    {% for c in impacto.comentarios.all %}
+      <div class="comment"><strong>{{ c.autor.display_name }}</strong> <span class="muted small">{{ c.fecha|date:"SHORT_DATETIME_FORMAT" }}</span><p class="pre">{{ c.texto }}</p></div>
+    {% empty %}<p class="muted">{% translate "Sin comentarios." %}</p>{% endfor %}
+    <form method="post" action="{% url 'matriz:comentar' request.client.slug impacto.numero %}" class="form">
+      {% csrf_token %}{{ comentario_form }}
+      <button class="btn">{% translate "Comentar" %}</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>{% translate "Historial" %}</h2>
+    <ul class="list">
+      {% for t in transiciones %}
+        <li><span>{{ t.get_desde_display }} → <strong>{{ t.get_hacia_display }}</strong>{% if t.motivo %}: {{ t.motivo }}{% endif %}</span>
+            <span class="muted small">{{ t.usuario.display_name }} · {{ t.fecha|date:"SHORT_DATETIME_FORMAT" }}</span></li>
+      {% endfor %}
+    </ul>
+    <details><summary>{% translate "Cambios en los campos" %}</summary>
+      <ul class="list">
+      {% for record, fields in historial %}
+        <li><span>{{ fields|join:", " }}</span>
+            <span class="muted small">{{ record.history_user.display_name|default:"—" }} · {{ record.history_date|date:"SHORT_DATETIME_FORMAT" }}</span></li>
+      {% endfor %}
+      </ul>
+    </details>
+    <p class="muted small">{% translate "Registrado por" %} {{ impacto.registrado_por.display_name }} · {{ impacto.created_at|date:"SHORT_DATETIME_FORMAT" }}</p>
+  </section>
+{% endblock %}

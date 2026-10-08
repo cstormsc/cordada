@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Matriz de Impactos" %} · {{ request.client.name }}{% endblock %}
+{% block content %}
+  <p><a href="{% url 'client_home' request.client.slug %}">← {{ request.client.name }}</a></p>
+  <div class="row">
+    <h1>{% translate "Matriz de Impactos" %}</h1>
+    <div class="row">
+      <a href="{% url 'matriz:fotos' request.client.slug %}">{% translate "Fotos por etapa" %}</a>
+      <a href="{% url 'matriz:exportar' request.client.slug %}{% if querystring %}?{{ querystring }}{% endif %}">{% translate "Exportar a Excel" %}</a>
+      <a class="btn" href="{% url 'matriz:crear' request.client.slug %}">{% translate "Nuevo impacto" %}</a>
+    </div>
+  </div>
+
+  <ul class="stats">
+    <li><strong>{{ resumen.total }}</strong> {% translate "impactos" %}</li>
+    <li><a href="?estado=propuesto"><strong>{{ resumen.propuestos }}</strong> {% translate "por validar" %}</a></li>
+    <li class="{% if resumen.p1_sin_criterio %}alert{% endif %}"><a href="?alerta=p1_sin_criterio"><strong>{{ resumen.p1_sin_criterio }}</strong> {% translate "P1 sin criterio de cierre" %}</a></li>
+    <li class="{% if resumen.extrema %}alert{% endif %}"><a href="?alerta=extrema"><strong>{{ resumen.extrema }}</strong> {% translate "con severidad extrema abiertos" %}</a></li>
+  </ul>
+
+  <form method="get" class="filters">
+    {% for field in filtro %}<label>{{ field.label }}{{ field }}</label>{% endfor %}
+    <button type="submit" class="btn">{% translate "Filtrar" %}</button>
+    {% if querystring %}<a href="{% url 'matriz:index' request.client.slug %}">{% translate "Limpiar" %}</a>{% endif %}
+  </form>
+
+  {% if impactos %}
+  <div class="table-wrap panel"><table>
+    <thead><tr>
+      <th>{% translate "ID" %}</th><th>{% translate "Impacto" %}</th><th>{% translate "Grupo" %}</th>
+      <th>{% translate "Prioridad" %}</th><th>{% translate "Riesgo" %}</th><th>{% translate "Estado" %}</th>
+      <th>{% translate "Responsable" %}</th><th>{% translate "Compromiso" %}</th>
+    </tr></thead>
+    <tbody>
+    {% for impacto in impactos %}
+      <tr>
+        <td class="nowrap"><a href="{% url 'matriz:detalle' request.client.slug impacto.numero %}">{{ impacto.codigo }}</a></td>
+        <td><a href="{% url 'matriz:detalle' request.client.slug impacto.numero %}">{{ impacto.titulo }}</a>
+          {% if impacto.alerta_severidad %}<span class="badge alert" title="{% translate 'Severidad extrema' %}">!</span>{% endif %}
+          {% if not impacto.tiene_criterio_cierre %}<br><span class="muted small">{% translate "sin criterio de cierre" %}</span>{% endif %}</td>
+        <td>{{ impacto.grupo|default:"" }}{% if not impacto.grupo and impacto.grupo_sugerido %}<span class="muted">{{ impacto.grupo_sugerido }} ({% translate "sugerido" %})</span>{% endif %}</td>
+        <td class="nowrap">{% include "matriz/_badges.html" %}</td>
+        <td>{{ impacto.get_riesgo_nivel_display|default:"" }}</td>
+        <td><span class="tag">{{ impacto.get_estado_display }}</span></td>
+        <td>{{ impacto.responsable.display_name|default:"" }}</td>
+        <td class="nowrap">{{ impacto.fecha_compromiso|date:"SHORT_DATE_FORMAT"|default:"" }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+    <p class="muted">{% if querystring %}{% translate "Ningún impacto coincide con el filtro." %}{% else %}{% translate "Todavía no hay impactos registrados." %}{% endif %}</p>
+  {% endif %}
+{% endblock %}

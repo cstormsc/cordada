@@ -1,0 +1,5 @@
+<div class="scale-field" x-data="{ defs: JSON.parse($el.dataset.defs), val: $el.dataset.initial }"
+     data-defs="{{ widget.definitions_json }}" data-initial="{{ widget.initial }}">
+  {% include "django/forms/widgets/select.html" %}
+  <p class="scale-def" x-show="defs[val]" x-text="defs[val]" x-cloak></p>
+</div>

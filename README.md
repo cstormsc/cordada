@@ -41,3 +41,15 @@ Dependencias con `uv`: editar `pyproject.toml`, luego `make lock && make build`.
   unidades (área, oficina, sucursal, departamento), cargos y categorías de responsable.
 - **Riesgo y prioridad** (§3.4): `apps/scoring/rules.py`, probado contra las tablas completas.
 - Los estados de cada flujo (impacto, actividad, ticket…) se definen en código en su módulo.
+
+## Matriz de Impactos
+
+- `/c/<cliente>/matriz/`. Quien edita la matriz (Administración, Equipo de cambio) ve todo y
+  usa el formulario completo; quien propone (Capitán, Guía, Equipo técnico) ve solo sus
+  propuestas y un formulario corto, con "grupo sugerido" si el grupo no existe.
+- Ciclo de vida y campos obligatorios para evaluar: `apps/matriz/workflow.py`
+  (`REQUIRED_FOR_EVALUATION`, pendiente de la lista final §13.1). Cada cambio de estado queda
+  en `Transicion`.
+- Riesgo y prioridad se recalculan al guardar; el ajuste manual exige justificación.
+- Adjuntos: solo se descargan por la vista con permisos (no hay `/media/` público).
+- Fotos por etapa: copia completa de la matriz en JSON, exportable a Excel.

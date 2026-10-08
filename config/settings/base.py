@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     "simple_history",
     "apps.core",
     "apps.catalogs",
+    "apps.matriz",
     "apps.plataforma",
 ]
 
@@ -81,7 +82,10 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+# Uploaded files are served only through views that check permissions; never
+# expose MEDIA_ROOT directly.
 MEDIA_URL = "media/"
+DATA_UPLOAD_MAX_MEMORY_SIZE = 12 * 1024 * 1024
 MEDIA_ROOT = BASE_DIR / "media"
 
 vars().update(env.email_url("EMAIL_URL", default="consolemail://"))

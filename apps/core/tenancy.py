@@ -68,6 +68,11 @@ class TenantScopedModel(models.Model):
         base_manager_name = "unscoped"
 
     def save(self, *args, **kwargs):
+        self.assign_client()
+        super().save(*args, **kwargs)
+
+    def assign_client(self):
+        """Sets client from the current one; refuses rows of another client."""
         current = _require_client()
         if self.client_id is None:
             self.client = current
@@ -75,4 +80,3 @@ class TenantScopedModel(models.Model):
             raise NoCurrentClient(
                 f"{type(self).__name__} pertenece a otro cliente que el activo."
             )
-        super().save(*args, **kwargs)

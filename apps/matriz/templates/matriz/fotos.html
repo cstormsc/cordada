@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+  <p><a href="{% url 'matriz:index' request.client.slug %}">← {% translate "Matriz de Impactos" %}</a></p>
+  <h1>{% translate "Fotos de la matriz por etapa" %}</h1>
+  <p class="muted">{% translate "Al cerrar cada etapa se guarda una copia de la matriz completa, tal como estaba." %}</p>
+  <div class="grid-2">
+    <section class="panel">
+      {% if fotos %}<ul class="list">
+        {% for f in fotos %}<li>
+          <span><strong>{{ f.tiempo }}</strong> · {{ f.fecha|date:"SHORT_DATETIME_FORMAT" }} · {{ f.datos|length }} {% translate "impactos" %}{% if f.nota %}<br><span class="muted">{{ f.nota }}</span>{% endif %}</span>
+          <a href="{% url 'matriz:exportar_foto' request.client.slug f.pk %}">Excel</a>
+        </li>{% endfor %}
+      </ul>{% else %}<p class="muted">{% translate "Aún no hay fotos." %}</p>{% endif %}
+    </section>
+    {% if can_edit %}
+    <section class="panel">
+      <h2>{% translate "Cerrar etapa y guardar foto" %}</h2>
+      <form method="post" class="form">{% csrf_token %}{{ form }}
+        <button class="btn">{% translate "Guardar foto" %}</button>
+      </form>
+    </section>
+    {% endif %}
+  </div>
+{% endblock %}
