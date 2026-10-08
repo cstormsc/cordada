@@ -189,3 +189,28 @@ fieldset.panel li label { display: flex; gap: 0.5rem; align-items: flex-start; p
 .crit-choice { display: flex; gap: 1rem; white-space: nowrap; }
 .crit-choice label { display: inline-flex; gap: 0.3rem; align-items: center; font-weight: normal; }
 .inline-form { display: inline; }
+
+/* Dashboard */
+.dash { max-width: 90rem; margin: 0 auto; }
+.dash-frente { margin: 1.5rem 0; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); gap: 0.75rem; }
+.tile { background: #fcfcfb; border: 1px solid var(--line); border-radius: 8px; padding: 0.8rem 0.9rem; display: flex; flex-direction: column; gap: 0.35rem; }
+.tile-head { display: flex; justify-content: space-between; gap: 0.5rem; align-items: flex-start; }
+.tile-label { font-size: 0.9rem; color: #52514e; }
+.tile-value { font-size: 1.9rem; font-weight: 600; color: #0b0b0b; line-height: 1.1; }
+.tile-detail { margin: 0; font-size: 0.82rem; color: #52514e; }
+.tile-info summary { font-size: 0.8rem; color: var(--muted); }
+.tile-info dl { margin: 0.4rem 0 0; font-size: 0.8rem; }
+.tile-info dt { color: var(--muted); }
+.tile-info dd { margin: 0 0 0.3rem; }
+.status { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.82rem; color: #0b0b0b; }
+.status-icon { display: inline-grid; place-items: center; width: 1.1rem; height: 1.1rem; border-radius: 50%; font-size: 0.7rem; font-weight: 700; color: #fff; }
+.status-good .status-icon { background: #0ca30c; }
+.status-warning .status-icon { background: #fab219; color: #0b0b0b; }
+.status-critical .status-icon { background: #d03b3b; }
+.status-none .status-icon { background: #e1e0d9; color: #52514e; }
+.alert-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: 1rem; }
+.alert-col h3 { display: flex; align-items: center; gap: 0.4rem; margin-top: 0; font-size: 0.95rem; }
+.chart-card .chart { width: 100%; min-height: 120px; }
+.ind-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); gap: 0 0.75rem; align-items: end; }
+.ind-form > div { margin-bottom: 0.5rem; }

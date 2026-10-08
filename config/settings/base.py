@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     "apps.ruta",
     "apps.bitacora",
     "apps.formularios",
+    "apps.dashboard",
     "apps.plataforma",
 ]
 

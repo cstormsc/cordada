@@ -9,6 +9,10 @@
       <strong>{% translate "Personas y sus grupos" %}</strong>
       <span class="muted">{% translate "Qué grupos impactados acompaña cada miembro (por ejemplo, el grupo de cada capitán)." %}</span>
     </a></li>
+    <li><a class="card" href="{% url 'dashboard:indicadores' request.client.slug %}">
+      <strong>{% translate "Indicadores del dashboard" %}</strong>
+      <span class="muted">{% translate "Umbrales del semáforo, responsable y frecuencia de cada indicador." %}</span>
+    </a></li>
   </ul>
   <h2>{% translate "Catálogos del cliente" %}</h2>
   <ul class="cards">

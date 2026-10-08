@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+  <p><a href="{% url 'catalogs:index' request.client.slug %}">← {% translate "Configuración" %}</a></p>
+  <h1>{% translate "Indicadores del dashboard" %}</h1>
+  <p class="muted">{% translate "Los umbrales están por definir en la metodología: estos valores son un punto de partida. Para indicadores donde menos es mejor (como tickets), el semáforo se invierte." %}</p>
+  {% for i, form in rows %}
+    <section class="panel" id="{{ i.key }}">
+      <div class="row"><h2>{{ i.nombre }}</h2>{% if i.manual %}<span class="tag small">{% translate "carga manual" %}</span>{% endif %}</div>
+      <p class="muted small">{{ i.formula }}</p>
+      <form method="post" action="{% url 'dashboard:indicador_guardar' request.client.slug i.key %}" class="form ind-form">
+        {% csrf_token %}{{ form }}
+        <button class="btn secondary">{% translate "Guardar" %}</button>
+      </form>
+    </section>
+  {% endfor %}
+{% endblock %}

@@ -1,0 +1,115 @@
+from django.contrib import messages
+from django.core.exceptions import PermissionDenied
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.translation import gettext as _
+from django.views.decorators.http import require_POST
+
+from apps.core.decorators import client_admin_required, client_member_required
+from apps.core.models import Module, Role
+from apps.core.permissions import Action, can
+
+from . import indicators as ind
+from .forms import FiltroForm, IndicadorConfigForm, ValorManualForm
+from .models import IndicadorConfig, ValorManual
+
+DATA_ROLES = (Role.ADMINISTRACION, Role.EQUIPO_CAMBIO)
+
+
+def _can_view(request):
+    return can(request.user, request.client, Module.DASHBOARD, Action.VIEW,
+               membership=request.membership)
+
+
+def _can_load(request):
+    return _can_view(request) and request.membership.role in DATA_ROLES
+
+
+@client_member_required
+def index(request, client_slug):
+    if not _can_view(request):
+        raise PermissionDenied
+    filtro = FiltroForm(request.GET or None)
+    params = filtro.cleaned_data if filtro.is_valid() else {}
+    ctx = ind.Ctx(request.client, tiempo=params.get("tiempo"), grupo=params.get("grupo"))
+    tiles = ind.tiles(ctx)
+    frentes = [(code, label, [t for t in tiles if t.indicator.frente == code])
+               for code, label in ind.FRENTES]
+    readiness = ind.readiness_by_group(ctx)
+    verde, amarillo = ind.threshold("tr_preparacion")
+    return render(request, "dashboard/index.html", {
+        "filtro": filtro,
+        "frentes": [f for f in frentes if f[2]],
+        "niveles": ind.NIVELES,
+        "alerts": ind.alerts(ctx),
+        "can_view_matrix": can(request.user, request.client, Module.MATRIZ, Action.VIEW,
+                               membership=request.membership),
+        "can_load": _can_load(request),
+        "chart_readiness": {
+            "rows": [{"label": r["grupo"].name,
+                      "value": float(r["value"]) if r["value"] is not None else None}
+                     for r in readiness],
+            "threshold": float(amarillo) if amarillo is not None else None,
+        },
+        "readiness": readiness,
+        "chart_tickets": ind.tickets_by_type(ctx),
+        "querystring": request.GET.urlencode(),
+    })
+
+
+@client_member_required
+def datos(request, client_slug):
+    """Manual data (§8): values that do not come from the platform."""
+    if not _can_load(request):
+        raise PermissionDenied
+    form = ValorManualForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        valor = form.save(commit=False)
+        valor.cargado_por = request.user
+        valor.save()
+        messages.success(request, _("Dato guardado."))
+        return redirect("dashboard:datos", client_slug=client_slug)
+    return render(request, "dashboard/datos.html", {
+        "form": form,
+        "valores": ValorManual.objects.select_related("grupo", "cargado_por")[:100],
+        "names": {i.key: i.nombre for i in ind.INDICATORS},
+    })
+
+
+@client_member_required
+@require_POST
+def borrar_dato(request, client_slug, pk):
+    if not _can_load(request):
+        raise PermissionDenied
+    get_object_or_404(ValorManual.objects, pk=pk).delete()
+    messages.success(request, _("Dato eliminado."))
+    return redirect("dashboard:datos", client_slug=client_slug)
+
+
+@client_admin_required
+def indicadores(request, client_slug):
+    """Configuración → Indicadores: thresholds, owner, frequency, visibility."""
+    existing = {c.key: c for c in IndicadorConfig.objects.all()}
+    rows = []
+    for i in ind.INDICATORS:
+        instance = existing.get(i.key) or IndicadorConfig(
+            key=i.key, verde=i.verde, amarillo=i.amarillo, frecuencia=str(i.frecuencia))
+        rows.append((i, IndicadorConfigForm(instance=instance, indicator=i, prefix=i.key)))
+    return render(request, "dashboard/indicadores.html", {"rows": rows})
+
+
+@client_admin_required
+@require_POST
+def indicador_guardar(request, client_slug, key):
+    i = ind.BY_KEY.get(key)
+    if i is None:
+        raise PermissionDenied
+    instance = IndicadorConfig.objects.filter(key=key).first() or IndicadorConfig(key=key)
+    form = IndicadorConfigForm(request.POST, instance=instance, indicator=i, prefix=key)
+    if form.is_valid():
+        form.save()
+        messages.success(request, _("«%(n)s» actualizado.") % {"n": i.nombre})
+    else:
+        for errors in form.errors.values():
+            for e in errors:
+                messages.error(request, f"{i.nombre}: {e}")
+    return redirect(f"/c/{client_slug}/dashboard/indicadores/#{key}")

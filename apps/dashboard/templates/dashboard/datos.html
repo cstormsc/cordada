@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load i18n dashboard_tags %}
+{% block content %}
+  <p><a href="{% url 'dashboard:index' request.client.slug %}">← {% translate "Dashboard" %}</a></p>
+  <h1>{% translate "Datos externos" %}</h1>
+  <p class="muted">{% translate "Indicadores que no salen de la plataforma: usuarios activos, adopción sostenida, comprensión, formación y diagnóstico. El dashboard muestra el dato más reciente." %}</p>
+  <div class="grid-2">
+    <section class="panel"><h2>{% translate "Cargar dato" %}</h2>
+      <form method="post" class="form">{% csrf_token %}{{ form }}<button class="btn">{% translate "Guardar" %}</button></form></section>
+    <section class="panel table-wrap"><h2>{% translate "Últimos datos" %}</h2>
+      <table class="small"><thead><tr><th>{% translate "Indicador" %}</th><th>{% translate "Fecha" %}</th><th>{% translate "Valor" %}</th><th>{% translate "Grupo" %}</th><th></th></tr></thead>
+        <tbody>{% for v in valores %}<tr><td>{{ names|get_item:v.key }}{% if v.nota %}<br><span class="muted">{{ v.nota }}</span>{% endif %}</td><td>{{ v.fecha|date:"SHORT_DATE_FORMAT" }}</td><td>{{ v.valor|floatformat:"-2" }}</td><td>{{ v.grupo|default:_("Toda") }}</td>
+          <td><form method="post" action="{% url 'dashboard:borrar_dato' request.client.slug v.pk %}">{% csrf_token %}<button class="link danger small">{% translate "Borrar" %}</button></form></td></tr>
+        {% empty %}<tr><td colspan="5" class="muted">{% translate "Sin datos." %}</td></tr>{% endfor %}</tbody></table></section>
+  </div>
+{% endblock %}

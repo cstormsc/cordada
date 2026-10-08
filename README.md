@@ -103,3 +103,15 @@ Dependencias con `uv`: editar `pyproject.toml`, luego `make lock && make build`.
   sale del campo supervisor (= correo del líder) y, si el impacto tiene cuestionario, solo quienes
   lo aprobaron. PDF prellenado para firmar; al subirlo firmado, cada persona queda certificada o
   en refuerzo y se avisa por correo a los guías de su grupo.
+
+## Dashboard
+
+- `/c/<cliente>/dashboard/`: indicadores por frente (Impactos, Comunicación, Movilización,
+  Formación, Transversales) y nivel, con semáforo (ícono + texto, nunca solo color), alertas
+  (P1 sin criterio, severidad extrema, grupos bajo el umbral de preparación) y filtros por tiempo
+  y grupo. Registro de indicadores: `apps/dashboard/indicators.py` (fórmula, fuente, frecuencia).
+- Umbrales, responsable y frecuencia por cliente: Configuración → Indicadores del dashboard.
+- Datos externos (usuarios activos, adopción 30/60/90, comprensión, formación, diagnóstico):
+  carga manual por Administración y Equipo de cambio.
+- El índice de preparación es provisional (promedio de impactos atendidos, verificación y
+  certificación por grupo) hasta que la metodología lo defina.

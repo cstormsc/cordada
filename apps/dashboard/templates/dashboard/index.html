@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% load i18n static dashboard_tags %}
+{% block title %}{% translate "Dashboard" %} · {{ request.client.name }}{% endblock %}
+{% block main_class %}wide{% endblock %}
+{% block head %}
+  <script src="{% static 'vendor/echarts.min.js' %}" defer></script>
+  <script src="{% static 'js/dashboard.js' %}" defer></script>
+{% endblock %}
+{% block content %}
+<div class="dash">
+  <p><a href="{% url 'client_home' request.client.slug %}">← {{ request.client.name }}</a></p>
+  <div class="row">
+    <h1>{% translate "Dashboard" %}</h1>
+    {% if can_load %}<a href="{% url 'dashboard:datos' request.client.slug %}">{% translate "Cargar datos externos" %}</a>{% endif %}
+  </div>
+
+  <form method="get" class="filters">
+    {% for field in filtro %}<label>{{ field.label }}{{ field }}</label>{% endfor %}
+    <button class="btn">{% translate "Ver" %}</button>
+    {% if querystring %}<a href="{% url 'dashboard:index' request.client.slug %}">{% translate "Limpiar" %}</a>{% endif %}
+  </form>
+
+  {% with a=alerts %}
+  <section class="panel dash-alerts" aria-labelledby="alertas-h">
+    <h2 id="alertas-h">{% translate "Alertas" %}</h2>
+    <div class="alert-grid">
+      <div class="alert-col">
+        <h3>{% alert_chip a.p1_sin_criterio|length %} {% translate "P1 sin criterio de cierre" %} <span class="kcount">{{ a.p1_sin_criterio|length }}</span></h3>
+        <ul class="list small">{% for i in a.p1_sin_criterio|slice:":5" %}<li>{% if can_view_matrix %}<a href="{% url 'matriz:detalle' request.client.slug i.numero %}">{{ i.codigo }} · {{ i.titulo }}</a>{% else %}{{ i.codigo }} · {{ i.titulo }}{% endif %}</li>{% empty %}<li class="muted">{% translate "Ninguno" %}</li>{% endfor %}</ul>
+      </div>
+      <div class="alert-col">
+        <h3>{% alert_chip a.extrema|length %} {% translate "Severidad extrema" %} <span class="kcount">{{ a.extrema|length }}</span></h3>
+        <ul class="list small">{% for i in a.extrema|slice:":5" %}<li>{% if can_view_matrix %}<a href="{% url 'matriz:detalle' request.client.slug i.numero %}">{{ i.codigo }} · {{ i.titulo }}</a>{% else %}{{ i.codigo }} · {{ i.titulo }}{% endif %}</li>{% empty %}<li class="muted">{% translate "Ninguno" %}</li>{% endfor %}</ul>
+      </div>
+      <div class="alert-col">
+        <h3>{% alert_chip a.grupos_bajo_umbral|length %} {% translate "Grupos bajo el umbral de preparación" %} <span class="kcount">{{ a.grupos_bajo_umbral|length }}</span></h3>
+        <ul class="list small">{% for r in a.grupos_bajo_umbral %}<li><span>{{ r.grupo }}</span><span>{{ r.value }}</span></li>{% empty %}<li class="muted">{% translate "Ninguno" %}</li>{% endfor %}</ul>
+        {% if a.umbral_preparacion is not None %}<p class="muted small">{% translate "Umbral" %}: {{ a.umbral_preparacion|floatformat:"-2" }}</p>{% endif %}
+      </div>
+    </div>
+  </section>
+  {% endwith %}
+
+  {% for code, label, tiles in frentes %}
+    <section class="dash-frente" aria-labelledby="f-{{ code }}">
+      <h2 id="f-{{ code }}">{{ label }}</h2>
+      <div class="tiles">
+        {% for t in tiles %}
+          <article class="tile" id="{{ t.indicator.key }}">
+            <div class="tile-head">
+              <span class="tile-label">{{ t.indicator.nombre }}</span>
+              <span class="tag small">{{ niveles|get_item:t.indicator.nivel }}</span>
+            </div>
+            <div class="tile-value">{% tile_value t %}</div>
+            <div class="tile-status">{% status_chip t.status %}{% if t.indicator.provisional %} <span class="tag small">{% translate "provisional" %}</span>{% endif %}</div>
+            <p class="tile-detail">{{ t.result.detail }}</p>
+            <details class="tile-info">
+              <summary>{% translate "Cómo se calcula" %}</summary>
+              <dl>
+                <dt>{% translate "Fórmula" %}</dt><dd>{{ t.indicator.formula }}</dd>
+                <dt>{% translate "Fuente" %}</dt><dd>{{ t.indicator.fuente }}</dd>
+                <dt>{% translate "Frecuencia" %}</dt><dd>{{ t.frecuencia }}</dd>
+                <dt>{% translate "Responsable" %}</dt><dd>{{ t.responsable|default:_("Por definir") }}</dd>
+                {% if t.verde is not None and t.indicator.higher_is_better is not None %}
+                  <dt>{% translate "Semáforo" %}</dt>
+                  <dd>{% if t.indicator.higher_is_better %}{% translate "en meta desde" %} {{ t.verde|floatformat:"-2" }}{% if t.amarillo is not None %}; {% translate "atención desde" %} {{ t.amarillo|floatformat:"-2" }}{% endif %}{% else %}{% translate "en meta hasta" %} {{ t.verde|floatformat:"-2" }}{% if t.amarillo is not None %}; {% translate "atención hasta" %} {{ t.amarillo|floatformat:"-2" }}{% endif %}{% endif %}</dd>
+                {% endif %}
+              </dl>
+            </details>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  {% endfor %}
+
+  <div class="grid-2">
+    <section class="panel chart-card">
+      <h2>{% translate "Índice de preparación por grupo" %} <span class="tag small">{% translate "provisional" %}</span></h2>
+      <p class="muted small">{% translate "0 a 100." %}{% if chart_readiness.threshold is not None %} {% blocktranslate with u=chart_readiness.threshold|floatformat:"-2" %}La línea vertical marca el umbral de atención ({{ u }}).{% endblocktranslate %}{% endif %}</p>
+      <div class="chart" id="chart-readiness" role="img" aria-label="{% translate 'Índice de preparación por grupo' %}"></div>
+      <details><summary>{% translate "Ver tabla" %}</summary>
+        <table class="report small"><thead><tr><th>{% translate "Grupo" %}</th><th>{% translate "Índice" %}</th><th>{% translate "Impactos atendidos" %}</th><th>{% translate "Verificación" %}</th><th>{% translate "Certificación" %}</th></tr></thead>
+          <tbody>{% for r in readiness %}<tr><td>{{ r.grupo }}</td><td>{{ r.value|default:"—" }}</td><td>{{ r.parts.impactos|default:"—" }}</td><td>{{ r.parts.verificacion|default:"—" }}</td><td>{{ r.parts.certificacion|default:"—" }}</td></tr>{% endfor %}</tbody></table>
+      </details>
+    </section>
+    <section class="panel chart-card">
+      <h2>{% translate "Tickets por tipo" %}</h2>
+      <p class="muted small">{% translate "Bitácora, con los filtros aplicados." %}</p>
+      <div class="chart" id="chart-tickets" role="img" aria-label="{% translate 'Tickets por tipo' %}"></div>
+      <details><summary>{% translate "Ver tabla" %}</summary>
+        <table class="report small"><thead><tr><th>{% translate "Categoría" %}</th><th>{% translate "Tickets" %}</th></tr></thead>
+          <tbody>{% for r in chart_tickets %}<tr><td>{{ r.label }}</td><td>{{ r.value }}</td></tr>{% endfor %}</tbody></table>
+      </details>
+    </section>
+  </div>
+  {{ chart_readiness|json_script:"data-readiness" }}
+  {{ chart_tickets|json_script:"data-tickets" }}
+</div>
+{% endblock %}
