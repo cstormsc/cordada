@@ -32,9 +32,16 @@ class TestAccess:
         body = client.get(f"{BASE}nuevo/").content.decode()
         assert f'value="{grupo.pk}" selected' in body  # their only group is preselected
         assert 'name="impacto"' not in body  # captains do not see the matrix
-        client.post(f"{BASE}nuevo/", {"titulo": "Se cae al guardar", "descripcion": "x",
-                                      "categoria": categoria("tecnico").pk,
-                                      "urgencia": "grave", "grupo": grupo.pk})
+        client.post(
+            f"{BASE}nuevo/",
+            {
+                "titulo": "Se cae al guardar",
+                "descripcion": "x",
+                "categoria": categoria("tecnico").pk,
+                "urgencia": "grave",
+                "grupo": grupo.pk,
+            },
+        )
         body = client.get(BASE).content.decode()
         assert "Se cae al guardar" in body and "De otra persona" not in body
         assert client.get(f"{BASE}{ajeno.numero}/").status_code == 404
@@ -43,8 +50,15 @@ class TestAccess:
 
     def test_captain_derives_own_severe_failure(self, client, login_as, acme):
         captain = login_as(Role.CAPITAN)
-        client.post(f"{BASE}nuevo/", {"titulo": "Caído", "descripcion": "x",
-                                      "categoria": categoria("tecnico").pk, "urgencia": "grave"})
+        client.post(
+            f"{BASE}nuevo/",
+            {
+                "titulo": "Caído",
+                "descripcion": "x",
+                "categoria": categoria("tecnico").pk,
+                "urgencia": "grave",
+            },
+        )
         with tenant_context(acme):
             t = Ticket.objects.get(registrado_por=captain)
         body = client.get(f"{BASE}{t.numero}/").content.decode()
@@ -59,9 +73,16 @@ class TestClassification:
         original = make_ticket(titulo="Original")
         repetido = make_ticket(titulo="Repetido")
         login_as(Role.GUIA)
-        response = client.post(f"{BASE}{repetido.numero}/editar/", {
-            "titulo": "Repetido", "descripcion": "d", "categoria": categoria("conocimiento").pk,
-            "urgencia": "normal", "recurrente_de": original.pk})
+        response = client.post(
+            f"{BASE}{repetido.numero}/editar/",
+            {
+                "titulo": "Repetido",
+                "descripcion": "d",
+                "categoria": categoria("conocimiento").pk,
+                "urgencia": "normal",
+                "recurrente_de": original.pk,
+            },
+        )
         assert response.status_code == 302
         repetido.refresh_from_db()
         assert repetido.recurrente_de == original
@@ -88,8 +109,9 @@ class TestClassification:
 
 
 class TestProposeImpact:
-    def test_unanticipated_impact_becomes_a_proposal(self, client, login_as, make_ticket, acme,
-                                                     grupo):
+    def test_unanticipated_impact_becomes_a_proposal(
+        self, client, login_as, make_ticket, acme, grupo
+    ):
         SystemCatalogItem.objects.create(catalog="origen", code="bitacora", label="Bitácora")
         t = make_ticket("impacto_no_anticipado", titulo="Nadie aprueba facturas", grupo=grupo)
         user = login_as(Role.GUIA)
@@ -98,7 +120,11 @@ class TestProposeImpact:
             impacto = Impacto.objects.get()
         assert response.url == f"/c/acme/matriz/{impacto.numero}/"
         assert (impacto.estado, impacto.grupo, impacto.origen.code, impacto.registrado_por) == (
-            Estado.PROPUESTO, grupo, "bitacora", user)
+            Estado.PROPUESTO,
+            grupo,
+            "bitacora",
+            user,
+        )
         assert t.codigo in impacto.descripcion
         t.refresh_from_db()
         assert t.impacto == impacto
@@ -120,12 +146,19 @@ class TestMetrics:
         make_ticket("conocimiento", recurrente_de=a)
         with tenant_context(acme):
             Ticket.objects.filter(pk__in=[a.pk, b.pk]).update(
-                created_at=base, primera_respuesta_at=base + datetime.timedelta(hours=2),
-                resuelto_at=base + datetime.timedelta(hours=6), estado=E.RESUELTO)
+                created_at=base,
+                primera_respuesta_at=base + datetime.timedelta(hours=2),
+                resuelto_at=base + datetime.timedelta(hours=6),
+                estado=E.RESUELTO,
+            )
             m = metrics.metricas()
         tec = next(r for r in m["categorias"] if r["categoria"].code == "tecnico")
         assert (tec["total"], tec["abiertos"], tec["primera_h"], tec["resolucion_h"]) == (
-            2, 0, 2.0, 6.0)
+            2,
+            0,
+            2.0,
+            6.0,
+        )
         row = next(r for r in m["grupos"] if r["grupo"] == norte)
         assert (row["total"], row["por_100"]) == (2, 4.0)
         assert (m["recurrentes"], m["pct_recurrentes"]) == (1, 33)
@@ -138,5 +171,6 @@ class TestMetrics:
         import io
 
         from openpyxl import load_workbook
+
         ws = load_workbook(io.BytesIO(client.get(f"{BASE}exportar/").content)).active
         assert ws.cell(2, 1).value == "TCK-001" and ws.cell(2, 2).value == "'=cmd"

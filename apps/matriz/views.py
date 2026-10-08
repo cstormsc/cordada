@@ -28,8 +28,7 @@ from .models import ACTIVE_STATES, Adjunto, Dependencia, Estado, Foto, Impacto, 
 
 
 def _can(request, action):
-    return can(request.user, request.client, Module.MATRIZ, action,
-               membership=request.membership)
+    return can(request.user, request.client, Module.MATRIZ, action, membership=request.membership)
 
 
 def _require(request, action):
@@ -39,8 +38,12 @@ def _require(request, action):
 
 def _get_impacto(request, numero):
     """Viewers see every impact; proposers only their own."""
-    impacto = get_object_or_404(Impacto.objects.select_related(
-        "grupo", "tipo", "tiempo", "origen", "responsable", "registrado_por"), numero=numero)
+    impacto = get_object_or_404(
+        Impacto.objects.select_related(
+            "grupo", "tipo", "tiempo", "origen", "responsable", "registrado_por"
+        ),
+        numero=numero,
+    )
     if _can(request, Action.VIEW):
         return impacto
     if _can(request, Action.PROPOSE) and impacto.registrado_por_id == request.user.pk:
@@ -49,8 +52,11 @@ def _get_impacto(request, numero):
 
 
 def _can_edit_proposal(request, impacto):
-    return (impacto.registrado_por_id == request.user.pk
-            and impacto.estado == Estado.PROPUESTO and _can(request, Action.PROPOSE))
+    return (
+        impacto.registrado_por_id == request.user.pk
+        and impacto.estado == Estado.PROPUESTO
+        and _can(request, Action.PROPOSE)
+    )
 
 
 @client_member_required
@@ -60,24 +66,31 @@ def index(request, client_slug):
             return redirect("matriz:mis_propuestas", client_slug=client_slug)
         raise PermissionDenied
     filtro = FiltroForm(request.GET or None)
-    impactos = dependencias.with_blocked(filtro.filter(
-        Impacto.objects.select_related("grupo", "tipo", "tiempo", "responsable")))
+    impactos = dependencias.with_blocked(
+        filtro.filter(Impacto.objects.select_related("grupo", "tipo", "tiempo", "responsable"))
+    )
     all_impactos = Impacto.objects.all()
-    return render(request, "matriz/index.html", {
-        "filtro": filtro,
-        "impactos": impactos,
-        "can_edit": _can(request, Action.EDIT),
-        "querystring": request.GET.urlencode(),
-        "resumen": {
-            "total": all_impactos.count(),
-            "propuestos": all_impactos.filter(estado=Estado.PROPUESTO).count(),
-            "p1_sin_criterio": all_impactos.filter(sin_criterio_q(), prioridad=1).count(),
-            "extrema": all_impactos.filter(severidad=4).exclude(
-                estado__in=[Estado.CERRADO, Estado.DESCARTADO]).count(),
-            "descubiertos": all_impactos.filter(estado__in=ACTIVE_STATES,
-                                                actividades__isnull=True).count(),
+    return render(
+        request,
+        "matriz/index.html",
+        {
+            "filtro": filtro,
+            "impactos": impactos,
+            "can_edit": _can(request, Action.EDIT),
+            "querystring": request.GET.urlencode(),
+            "resumen": {
+                "total": all_impactos.count(),
+                "propuestos": all_impactos.filter(estado=Estado.PROPUESTO).count(),
+                "p1_sin_criterio": all_impactos.filter(sin_criterio_q(), prioridad=1).count(),
+                "extrema": all_impactos.filter(severidad=4)
+                .exclude(estado__in=[Estado.CERRADO, Estado.DESCARTADO])
+                .count(),
+                "descubiertos": all_impactos.filter(
+                    estado__in=ACTIVE_STATES, actividades__isnull=True
+                ).count(),
+            },
         },
-    })
+    )
 
 
 @client_member_required
@@ -100,12 +113,18 @@ def crear(request, client_slug):
         impacto = form.save(commit=False)
         impacto.registrado_por = request.user
         impacto.save()
-        messages.success(request, _("%(codigo)s registrado como Propuesto.")
-                         % {"codigo": impacto.codigo})
+        messages.success(
+            request, _("%(codigo)s registrado como Propuesto.") % {"codigo": impacto.codigo}
+        )
         return redirect("matriz:detalle", client_slug=client_slug, numero=impacto.numero)
-    return render(request, "matriz/form.html", {
-        "form": form, "can_create_group": _can(request, Action.EDIT),
-    })
+    return render(
+        request,
+        "matriz/form.html",
+        {
+            "form": form,
+            "can_create_group": _can(request, Action.EDIT),
+        },
+    )
 
 
 @client_member_required
@@ -125,9 +144,15 @@ def editar(request, client_slug, numero):
         form.save()
         messages.success(request, _("Cambios guardados."))
         return redirect("matriz:detalle", client_slug=client_slug, numero=numero)
-    return render(request, "matriz/form.html", {
-        "form": form, "impacto": impacto, "can_create_group": _can(request, Action.EDIT),
-    })
+    return render(
+        request,
+        "matriz/form.html",
+        {
+            "form": form,
+            "impacto": impacto,
+            "can_create_group": _can(request, Action.EDIT),
+        },
+    )
 
 
 @client_member_required
@@ -135,37 +160,46 @@ def detalle(request, client_slug, numero):
     impacto = _get_impacto(request, numero)
     can_edit = _can(request, Action.EDIT)
     ruta = {
-        "view": can(request.user, request.client, Module.RUTA, Action.VIEW,
-                    membership=request.membership),
-        "edit": can(request.user, request.client, Module.RUTA, Action.EDIT,
-                    membership=request.membership),
+        "view": can(
+            request.user, request.client, Module.RUTA, Action.VIEW, membership=request.membership
+        ),
+        "edit": can(
+            request.user, request.client, Module.RUTA, Action.EDIT, membership=request.membership
+        ),
     }
-    return render(request, "matriz/detalle.html", {
-        "impacto": impacto,
-        "ruta": ruta,
-        "actividades": impacto.actividades.select_related("frente") if ruta["view"] else None,
-        "descubierto": impacto.estado in ACTIVE_STATES and not impacto.actividades.exists(),
-        "dependencias": impacto.dependencias.select_related("depende_de", "creada_por"),
-        "dependientes": Impacto.objects.filter(dependencias__depende_de=impacto)
-        .order_by("numero"),
-        "open_prerequisites": dependencias.open_prerequisites(impacto).order_by("numero"),
-        "can_link": _can(request, Action.LINK),
-        "verificacion": _verificacion(request, impacto),
-        "certificacion": _certificacion(request, impacto),
-        "link_candidates": Impacto.objects.exclude(pk=impacto.pk)
-        .exclude(dependientes__impacto=impacto).order_by("numero")
-        if _can(request, Action.LINK) else None,
-        "can_edit": can_edit,
-        "can_edit_proposal": _can_edit_proposal(request, impacto),
-        "transitions": workflow.available(impacto) if can_edit else [],
-        "missing": workflow.missing_fields(impacto),
-        "priority_form": PriorityOverrideForm(instance=impacto),
-        "comentario_form": ComentarioForm(),
-        "adjunto_form": AdjuntoForm(),
-        "grupos": GrupoImpactado.objects.filter(is_active=True),
-        "historial": _historial(impacto),
-        "transiciones": impacto.transiciones.select_related("usuario"),
-    })
+    return render(
+        request,
+        "matriz/detalle.html",
+        {
+            "impacto": impacto,
+            "ruta": ruta,
+            "actividades": impacto.actividades.select_related("frente") if ruta["view"] else None,
+            "descubierto": impacto.estado in ACTIVE_STATES and not impacto.actividades.exists(),
+            "dependencias": impacto.dependencias.select_related("depende_de", "creada_por"),
+            "dependientes": Impacto.objects.filter(dependencias__depende_de=impacto).order_by(
+                "numero"
+            ),
+            "open_prerequisites": dependencias.open_prerequisites(impacto).order_by("numero"),
+            "can_link": _can(request, Action.LINK),
+            "verificacion": _verificacion(request, impacto),
+            "certificacion": _certificacion(request, impacto),
+            "link_candidates": Impacto.objects.exclude(pk=impacto.pk)
+            .exclude(dependientes__impacto=impacto)
+            .order_by("numero")
+            if _can(request, Action.LINK)
+            else None,
+            "can_edit": can_edit,
+            "can_edit_proposal": _can_edit_proposal(request, impacto),
+            "transitions": workflow.available(impacto) if can_edit else [],
+            "missing": workflow.missing_fields(impacto),
+            "priority_form": PriorityOverrideForm(instance=impacto),
+            "comentario_form": ComentarioForm(),
+            "adjunto_form": AdjuntoForm(),
+            "grupos": GrupoImpactado.objects.filter(is_active=True),
+            "historial": _historial(impacto),
+            "transiciones": impacto.transiciones.select_related("usuario"),
+        },
+    )
 
 
 def _historial(impacto):
@@ -189,10 +223,15 @@ def cambiar_estado(request, client_slug, numero):
     _require(request, Action.EDIT)
     impacto = _get_impacto(request, numero)
     try:
-        workflow.transition(impacto, request.POST.get("hacia"), user=request.user,
-                            reason=request.POST.get("motivo", ""))
-        messages.success(request,
-                         _("Estado: %(estado)s.") % {"estado": impacto.get_estado_display()})
+        workflow.transition(
+            impacto,
+            request.POST.get("hacia"),
+            user=request.user,
+            reason=request.POST.get("motivo", ""),
+        )
+        messages.success(
+            request, _("Estado: %(estado)s.") % {"estado": impacto.get_estado_display()}
+        )
         if warning := dependencias.transition_warning(impacto):
             messages.warning(request, warning)
     except workflow.TransitionError as e:
@@ -297,7 +336,8 @@ def crear_grupo(request, client_slug):
             grupo.save(update_fields=["is_active"])
         selected = grupo.pk
         context["grupo_message"] = (
-            _("Grupo «%(name)s» creado y seleccionado.") if created
+            _("Grupo «%(name)s» creado y seleccionado.")
+            if created
             else _("Ya existía «%(name)s»; quedó seleccionado.")
         ) % {"name": grupo.name}
     form = ImpactoForm(initial={"grupo": selected}, client=request.client)
@@ -309,18 +349,29 @@ def crear_grupo(request, client_slug):
 def exportar(request, client_slug):
     _require(request, Action.VIEW)
     filtro = FiltroForm(request.GET or None)
-    impactos = filtro.filter(Impacto.objects.select_related(
-        "grupo", "tipo", "tiempo", "origen", "responsable", "responsable_categoria",
-        "criterio_evidencia", "tipo_cambio_conocimiento", "formacion_momento",
-    ).prefetch_related("dependencias__depende_de"))
+    impactos = filtro.filter(
+        Impacto.objects.select_related(
+            "grupo",
+            "tipo",
+            "tiempo",
+            "origen",
+            "responsable",
+            "responsable_categoria",
+            "criterio_evidencia",
+            "tipo_cambio_conocimiento",
+            "formacion_momento",
+        ).prefetch_related("dependencias__depende_de")
+    )
     rows = export.impacto_rows(impactos)
-    return _xlsx_response(export.workbook(rows, request.client.name),
-                          f"matriz-{request.client.slug}.xlsx")
+    return _xlsx_response(
+        export.workbook(rows, request.client.name), f"matriz-{request.client.slug}.xlsx"
+    )
 
 
 def _xlsx_response(workbook, filename):
     response = HttpResponse(
-        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     workbook.save(response)
     return response
@@ -336,18 +387,33 @@ def fotos(request, client_slug):
         if form.is_valid():
             foto = form.save(commit=False)
             foto.creada_por = request.user
-            foto.datos = export.impacto_rows(Impacto.objects.select_related(
-                "grupo", "tipo", "tiempo", "origen", "responsable", "responsable_categoria",
-                "criterio_evidencia", "tipo_cambio_conocimiento", "formacion_momento",
-    ).prefetch_related("dependencias__depende_de"))
+            foto.datos = export.impacto_rows(
+                Impacto.objects.select_related(
+                    "grupo",
+                    "tipo",
+                    "tiempo",
+                    "origen",
+                    "responsable",
+                    "responsable_categoria",
+                    "criterio_evidencia",
+                    "tipo_cambio_conocimiento",
+                    "formacion_momento",
+                ).prefetch_related("dependencias__depende_de")
+            )
             foto.save()
-            messages.success(request, _("Foto de la matriz guardada (%(n)s impactos).")
-                             % {"n": len(foto.datos)})
+            messages.success(
+                request, _("Foto de la matriz guardada (%(n)s impactos).") % {"n": len(foto.datos)}
+            )
             return redirect("matriz:fotos", client_slug=client_slug)
-    return render(request, "matriz/fotos.html", {
-        "fotos": Foto.objects.select_related("tiempo", "creada_por"),
-        "form": form, "can_edit": can_edit,
-    })
+    return render(
+        request,
+        "matriz/fotos.html",
+        {
+            "fotos": Foto.objects.select_related("tiempo", "creada_por"),
+            "form": form,
+            "can_edit": can_edit,
+        },
+    )
 
 
 @client_member_required
@@ -355,8 +421,9 @@ def exportar_foto(request, client_slug, pk):
     _require(request, Action.VIEW)
     foto = get_object_or_404(Foto.objects.select_related("tiempo"), pk=pk)
     title = f"{request.client.name} · {foto.tiempo} · {foto.fecha:%Y-%m-%d}"
-    return _xlsx_response(export.workbook(foto.datos, title),
-                          f"matriz-{request.client.slug}-{foto.fecha:%Y%m%d}.xlsx")
+    return _xlsx_response(
+        export.workbook(foto.datos, title), f"matriz-{request.client.slug}-{foto.fecha:%Y%m%d}.xlsx"
+    )
 
 
 def impacto_url(client_slug, numero):
@@ -367,24 +434,38 @@ def impacto_url(client_slug, numero):
 
 # --- Kanban board ---
 
-BOARD_COLUMNS = [Estado.PROPUESTO, Estado.EVALUADO, Estado.EN_ATENCION, Estado.ATENDIDO,
-                 Estado.CERRADO, Estado.REABIERTO, Estado.DESCARTADO]
+BOARD_COLUMNS = [
+    Estado.PROPUESTO,
+    Estado.EVALUADO,
+    Estado.EN_ATENCION,
+    Estado.ATENDIDO,
+    Estado.CERRADO,
+    Estado.REABIERTO,
+    Estado.DESCARTADO,
+]
 
 
 @client_member_required
 def tablero(request, client_slug):
     _require(request, Action.VIEW)
     filtro = FiltroForm(request.GET or None)
-    impactos = dependencias.with_blocked(
-        filtro.filter(Impacto.objects.select_related("grupo", "responsable"))
-    ).annotate(n_actividades=Count("actividades", distinct=True)).order_by("prioridad", "numero")
+    impactos = (
+        dependencias.with_blocked(
+            filtro.filter(Impacto.objects.select_related("grupo", "responsable"))
+        )
+        .annotate(n_actividades=Count("actividades", distinct=True))
+        .order_by("prioridad", "numero")
+    )
     can_edit = _can(request, Action.EDIT)
     today = timezone.localdate()
     open_states = (Estado.PROPUESTO, *ACTIVE_STATES)
     by_state = {estado: [] for estado in BOARD_COLUMNS}
     for impacto in impactos:
-        impacto.vencido = bool(impacto.fecha_compromiso and impacto.fecha_compromiso < today
-                               and impacto.estado in open_states)
+        impacto.vencido = bool(
+            impacto.fecha_compromiso
+            and impacto.fecha_compromiso < today
+            and impacto.estado in open_states
+        )
         impacto.descubierto = impacto.estado in ACTIVE_STATES and not impacto.n_actividades
         if can_edit:
             moves = workflow.available(impacto)
@@ -406,21 +487,30 @@ def tablero(request, client_slug):
 def mover(request, client_slug, numero):
     """JSON endpoint for drag and drop on the board."""
     if not _can(request, Action.EDIT):
-        return JsonResponse({"ok": False, "errors": [_("Tu rol no puede cambiar estados.")]},
-                            status=403)
+        return JsonResponse(
+            {"ok": False, "errors": [_("Tu rol no puede cambiar estados.")]}, status=403
+        )
     impacto = _get_impacto(request, numero)
     try:
-        workflow.transition(impacto, request.POST.get("hacia"), user=request.user,
-                            reason=request.POST.get("motivo", ""))
+        workflow.transition(
+            impacto,
+            request.POST.get("hacia"),
+            user=request.user,
+            reason=request.POST.get("motivo", ""),
+        )
     except workflow.TransitionError as e:
-        return JsonResponse({"ok": False, "codigo": impacto.codigo,
-                             "errors": [str(m) for m in e.messages]}, status=400)
-    return JsonResponse({
-        "ok": True,
-        "message": _("%(codigo)s: %(estado)s.") % {
-            "codigo": impacto.codigo, "estado": impacto.get_estado_display()},
-        "warning": dependencias.transition_warning(impacto),
-    })
+        return JsonResponse(
+            {"ok": False, "codigo": impacto.codigo, "errors": [str(m) for m in e.messages]},
+            status=400,
+        )
+    return JsonResponse(
+        {
+            "ok": True,
+            "message": _("%(codigo)s: %(estado)s.")
+            % {"codigo": impacto.codigo, "estado": impacto.get_estado_display()},
+            "warning": dependencias.transition_warning(impacto),
+        }
+    )
 
 
 @client_member_required
@@ -431,8 +521,10 @@ def agregar_dependencia(request, client_slug, numero):
     depende_de = get_object_or_404(Impacto.objects, pk=request.POST.get("depende_de") or 0)
     try:
         dependencias.add(impacto, depende_de, user=request.user)
-        messages.success(request, _("%(a)s ahora depende de %(b)s.")
-                         % {"a": impacto.codigo, "b": depende_de.codigo})
+        messages.success(
+            request,
+            _("%(a)s ahora depende de %(b)s.") % {"a": impacto.codigo, "b": depende_de.codigo},
+        )
     except ValidationError as e:
         for m in e.messages:
             messages.error(request, m)
@@ -460,8 +552,7 @@ def _verificacion(request, impacto):
 
 
 def _certificacion(request, impacto):
-    if not (impacto.requiere_certificacion_lider
-            and request.client.has_module(Module.FORMULARIOS)):
+    if not (impacto.requiere_certificacion_lider and request.client.has_module(Module.FORMULARIOS)):
         return None
     from apps.formularios.certificacion import summary
 

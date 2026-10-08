@@ -24,8 +24,7 @@ def client_permission_required(module, action):
         @wraps(view)
         @login_required
         def wrapper(request, *args, **kwargs):
-            if not can(request.user, request.client, module, action,
-                       membership=request.membership):
+            if not can(request.user, request.client, module, action, membership=request.membership):
                 raise PermissionDenied
             return view(request, *args, **kwargs)
 

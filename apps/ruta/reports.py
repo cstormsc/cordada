@@ -46,8 +46,10 @@ def informe(actividades, *, tiempo=None, mes=None, frente=None, today=None):
         impactos = impactos.filter(tiempo=tiempo)
     if mes:
         start, end = month_range(mes)
-        qs = qs.filter(Q(no_planificada=False, fecha_planificada__range=(start, end))
-                       | Q(no_planificada=True, fecha_real__range=(start, end)))
+        qs = qs.filter(
+            Q(no_planificada=False, fecha_planificada__range=(start, end))
+            | Q(no_planificada=True, fecha_real__range=(start, end))
+        )
     if frente:
         qs = qs.filter(frente=frente)
 

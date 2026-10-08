@@ -36,23 +36,37 @@ def setup(acme, equipo, member, make_impacto, make_cuestionario):
         c.estado = EstadoCuestionario.PUBLICADO
         c.save()
         people = {}
-        for email, passed in [("ana@x.com", True), ("beto@x.com", True),
-                              ("caro@x.com", False)]:
-            p = Persona.objects.create(email=email, nombre=email.split("@")[0].title(),
-                                       supervisor="LIDER@x.com", grupo=norte)
+        for email, passed in [("ana@x.com", True), ("beto@x.com", True), ("caro@x.com", False)]:
+            p = Persona.objects.create(
+                email=email,
+                nombre=email.split("@")[0].title(),
+                supervisor="LIDER@x.com",
+                grupo=norte,
+            )
             enlace = Enlace.objects.create(cuestionario=c, persona=p)
-            Respuesta.objects.create(enlace=enlace, intento=1, elecciones={},
-                                     puntos_por_pregunta={}, puntaje=Decimal("90" if passed
-                                                                             else "20"),
-                                     aprobado=passed)
+            Respuesta.objects.create(
+                enlace=enlace,
+                intento=1,
+                elecciones={},
+                puntos_por_pregunta={},
+                puntaje=Decimal("90" if passed else "20"),
+                aprobado=passed,
+            )
             people[email] = p
         Persona.objects.create(email="otro@x.com", supervisor="otro-lider@x.com", grupo=norte)
-        lista = ListaObservacion.objects.create(impacto=impacto, titulo="Observación",
-                                                creada_por=equipo, estado="publicada")
+        lista = ListaObservacion.objects.create(
+            impacto=impacto, titulo="Observación", creada_por=equipo, estado="publicada"
+        )
         c1 = Criterio.objects.create(lista=lista, texto="Registra el pago", orden=1)
         c2 = Criterio.objects.create(lista=lista, texto="Concilia", orden=2)
-    return {"leader": leader, "lista": lista, "criterios": [c1, c2], "people": people,
-            "impacto": impacto, "grupo": norte}
+    return {
+        "leader": leader,
+        "lista": lista,
+        "criterios": [c1, c2],
+        "people": people,
+        "impacto": impacto,
+        "grupo": norte,
+    }
 
 
 def pdf_upload(name="firmado.pdf"):
@@ -95,11 +109,13 @@ class TestEvaluate:
         return client.post(f"{BASE}evaluar/{lista.pk}/", data)
 
     def states(self, setup):
-        return dict(Evaluacion.unscoped.filter(lista=setup["lista"])
-                    .values_list("persona__email", "estado"))
+        return dict(
+            Evaluacion.unscoped.filter(lista=setup["lista"]).values_list("persona__email", "estado")
+        )
 
-    def test_full_flow_certifies_only_if_all_criteria_met(self, client, setup, member, acme,
-                                                          django_capture_on_commit_callbacks):
+    def test_full_flow_certifies_only_if_all_criteria_met(
+        self, client, setup, member, acme, django_capture_on_commit_callbacks
+    ):
         guia, _ = member(Role.GUIA, client=acme, email="guia@x.com")
         with tenant_context(acme):
             Membership.objects.get(user=guia).grupos.set([setup["grupo"]])
@@ -121,11 +137,9 @@ class TestEvaluate:
 
     def test_certified_results_are_locked_but_refuerzo_can_be_reevaluated(self, client, setup):
         client.force_login(setup["leader"])
-        self.post_results(client, setup, {"ana@x.com": [True, True],
-                                          "beto@x.com": [False, False]})
+        self.post_results(client, setup, {"ana@x.com": [True, True], "beto@x.com": [False, False]})
         client.post(f"{BASE}evaluar/{setup['lista'].pk}/acta/", {"archivo": pdf_upload()})
-        self.post_results(client, setup, {"ana@x.com": [False, False],
-                                          "beto@x.com": [True, True]})
+        self.post_results(client, setup, {"ana@x.com": [False, False], "beto@x.com": [True, True]})
         states = self.states(setup)
         assert states["ana@x.com"] == E.CERTIFICADO
         assert states["beto@x.com"] == E.APLICADO  # re-evaluated, waits for a new signature
@@ -167,8 +181,9 @@ class TestDesignAndFollowUp:
 
     def test_follow_up_visibility(self, client, setup, equipo, member, acme):
         client.force_login(setup["leader"])
-        TestEvaluate().post_results(client, setup, {"ana@x.com": [True, True],
-                                                    "beto@x.com": [True, False]})
+        TestEvaluate().post_results(
+            client, setup, {"ana@x.com": [True, True], "beto@x.com": [True, False]}
+        )
         client.post(f"{BASE}evaluar/{setup['lista'].pk}/acta/", {"archivo": pdf_upload()})
         url = f"{BASE}listas/{setup['lista'].pk}/seguimiento/"
 

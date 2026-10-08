@@ -16,18 +16,27 @@ def open_prerequisites(impacto):
 
 def with_blocked(queryset):
     """Annotates n_bloqueos: open prerequisites per impact."""
-    return queryset.annotate(n_bloqueos=Count(
-        "dependencias", filter=Q(dependencias__depende_de__estado__in=OPEN_STATES),
-        distinct=True,
-    ))
+    return queryset.annotate(
+        n_bloqueos=Count(
+            "dependencias",
+            filter=Q(dependencias__depende_de__estado__in=OPEN_STATES),
+            distinct=True,
+        )
+    )
 
 
 def _reachable_from(start):
     """Every impact that `start` depends on, directly or not."""
     seen, frontier = set(), {start.pk}
     while frontier:
-        frontier = set(Dependencia.objects.filter(impacto_id__in=frontier)
-                       .values_list("depende_de_id", flat=True)) - seen
+        frontier = (
+            set(
+                Dependencia.objects.filter(impacto_id__in=frontier).values_list(
+                    "depende_de_id", flat=True
+                )
+            )
+            - seen
+        )
         seen |= frontier
     return seen
 
@@ -36,12 +45,17 @@ def add(impacto, depende_de, *, user):
     if impacto.pk == depende_de.pk:
         raise ValidationError(_("Un impacto no puede depender de sí mismo."))
     if Dependencia.objects.filter(impacto=impacto, depende_de=depende_de).exists():
-        raise ValidationError(_("%(a)s ya depende de %(b)s.")
-                              % {"a": impacto.codigo, "b": depende_de.codigo})
+        raise ValidationError(
+            _("%(a)s ya depende de %(b)s.") % {"a": impacto.codigo, "b": depende_de.codigo}
+        )
     if impacto.pk in _reachable_from(depende_de):
-        raise ValidationError(_("No se puede: %(b)s ya depende (directa o indirectamente) de "
-                                "%(a)s, y se formaría un ciclo.")
-                              % {"a": impacto.codigo, "b": depende_de.codigo})
+        raise ValidationError(
+            _(
+                "No se puede: %(b)s ya depende (directa o indirectamente) de "
+                "%(a)s, y se formaría un ciclo."
+            )
+            % {"a": impacto.codigo, "b": depende_de.codigo}
+        )
     return Dependencia.objects.create(impacto=impacto, depende_de=depende_de, creada_por=user)
 
 

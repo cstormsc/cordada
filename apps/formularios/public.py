@@ -15,16 +15,24 @@ from .models import Enlace, Respuesta, TipoPregunta
 
 
 def _closed(request, enlace, message, status=410):
-    return render(request, "formularios/publico_cerrado.html",
-                  {"enlace": enlace, "message": message}, status=status)
+    return render(
+        request,
+        "formularios/publico_cerrado.html",
+        {"enlace": enlace, "message": message},
+        status=status,
+    )
 
 
 @never_cache
 @xframe_options_deny
 def responder(request, token):
     enlace = Enlace.from_token(token)
-    if enlace is None or not enlace.client.is_active \
-            or not enlace.client.has_module(Module.FORMULARIOS) or not enlace.persona.is_active:
+    if (
+        enlace is None
+        or not enlace.client.is_active
+        or not enlace.client.has_module(Module.FORMULARIOS)
+        or not enlace.persona.is_active
+    ):
         raise Http404
     with tenant_context(enlace.client):
         c = enlace.cuestionario
@@ -33,8 +41,11 @@ def responder(request, token):
         usados = enlace.intentos_usados()
         if usados >= c.intentos:
             ultima = enlace.respuestas.order_by("-enviada_at").first()
-            return render(request, "formularios/publico_resultado.html",
-                          {"enlace": enlace, "respuesta": ultima, "sin_intentos": True})
+            return render(
+                request,
+                "formularios/publico_resultado.html",
+                {"enlace": enlace, "respuesta": ultima, "sin_intentos": True},
+            )
 
         preguntas = list(c.preguntas.prefetch_related("opciones"))
         missing = []
@@ -56,18 +67,32 @@ def responder(request, token):
                 try:
                     with transaction.atomic():
                         respuesta = Respuesta.objects.create(
-                            enlace=enlace, intento=usados + 1,
+                            enlace=enlace,
+                            intento=usados + 1,
                             elecciones={str(k): sorted(v) for k, v in elecciones.items()},
                             puntos_por_pregunta={str(k): str(v) for k, v in per_q.items()},
-                            puntaje=total, aprobado=passed,
+                            puntaje=total,
+                            aprobado=passed,
                         )
                 except IntegrityError:  # double submit
                     respuesta = enlace.respuestas.get(intento=usados + 1)
-                return render(request, "formularios/publico_resultado.html", {
-                    "enlace": enlace, "respuesta": respuesta,
-                    "restantes": c.intentos - respuesta.intento,
-                })
-        return render(request, "formularios/publico_responder.html", {
-            "enlace": enlace, "c": c, "preguntas": preguntas, "missing": missing,
-            "intento": usados + 1,
-        })
+                return render(
+                    request,
+                    "formularios/publico_resultado.html",
+                    {
+                        "enlace": enlace,
+                        "respuesta": respuesta,
+                        "restantes": c.intentos - respuesta.intento,
+                    },
+                )
+        return render(
+            request,
+            "formularios/publico_responder.html",
+            {
+                "enlace": enlace,
+                "c": c,
+                "preguntas": preguntas,
+                "missing": missing,
+                "intento": usados + 1,
+            },
+        )

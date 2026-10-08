@@ -21,25 +21,38 @@ from .views import A, _actions, _require
 
 
 def _lista(pk):
-    return get_object_or_404(ListaObservacion.objects.select_related("impacto",
-                                                                     "impacto__grupo"), pk=pk)
+    return get_object_or_404(
+        ListaObservacion.objects.select_related("impacto", "impacto__grupo"), pk=pk
+    )
 
 
 # --- Checklists (training team) ---
 
+
 @client_member_required
 def listas(request, client_slug):
     _require(request, A.DESIGN, A.EDIT)
-    impactos = (Impacto.objects.filter(requiere_certificacion_lider=True)
-                .exclude(estado=Estado.DESCARTADO).select_related("grupo")
-                .order_by("numero"))
+    impactos = (
+        Impacto.objects.filter(requiere_certificacion_lider=True)
+        .exclude(estado=Estado.DESCARTADO)
+        .select_related("grupo")
+        .order_by("numero")
+    )
     rows = []
     for i in impactos:
         lista = getattr(i, "lista_observacion", None)
-        rows.append({"impacto": i, "lista": lista,
-                     "resumen": certificacion.summary(lista) if lista else None})
-    return render(request, "formularios/listas.html", {
-        "rows": rows, "can_design": A.DESIGN in _actions(request)})
+        rows.append(
+            {
+                "impacto": i,
+                "lista": lista,
+                "resumen": certificacion.summary(lista) if lista else None,
+            }
+        )
+    return render(
+        request,
+        "formularios/listas.html",
+        {"rows": rows, "can_design": A.DESIGN in _actions(request)},
+    )
 
 
 @client_member_required
@@ -47,10 +60,13 @@ def lista_crear(request, client_slug, impacto):
     _require(request, A.DESIGN)
     impacto = get_object_or_404(Impacto.objects, numero=impacto, requiere_certificacion_lider=True)
     if hasattr(impacto, "lista_observacion"):
-        return redirect("formularios:lista", client_slug=client_slug,
-                        pk=impacto.lista_observacion.pk)
-    form = ListaForm(request.POST or None,
-                     initial={"titulo": _("Observación práctica · %(t)s") % {"t": impacto.titulo}})
+        return redirect(
+            "formularios:lista", client_slug=client_slug, pk=impacto.lista_observacion.pk
+        )
+    form = ListaForm(
+        request.POST or None,
+        initial={"titulo": _("Observación práctica · %(t)s") % {"t": impacto.titulo}},
+    )
     if request.method == "POST" and form.is_valid():
         lista = form.save(commit=False)
         lista.impacto, lista.creada_por = impacto, request.user
@@ -76,10 +92,17 @@ def lista(request, client_slug, pk):
             form.save()
             messages.success(request, _("Cambios guardados."))
             return redirect("formularios:lista", client_slug=client_slug, pk=pk)
-    return render(request, "formularios/lista.html", {
-        "lista": lista, "form": form, "criterio_form": criterio_form,
-        "criterios": lista.criterios.all(), "can_design": can_design,
-    })
+    return render(
+        request,
+        "formularios/lista.html",
+        {
+            "lista": lista,
+            "form": form,
+            "criterio_form": criterio_form,
+            "criterios": lista.criterios.all(),
+            "can_design": can_design,
+        },
+    )
 
 
 @client_member_required
@@ -113,20 +136,27 @@ def seguimiento(request, client_slug, pk):
     _require(request, A.DESIGN, A.EDIT)
     lista = _lista(pk)
     evaluaciones = lista.evaluaciones.select_related("persona", "lider").order_by(
-        "lider__email", "persona__nombre")
+        "lider__email", "persona__nombre"
+    )
     leaders = {}
     for ev in evaluaciones:
         row = leaders.setdefault(ev.lider, dict.fromkeys(EstadoCertificacion.values, 0))
         row[ev.estado] += 1
     individual = A.VIEW_INDIVIDUAL in actions
-    return render(request, "formularios/seguimiento.html", {
-        "lista": lista, "resumen": certificacion.summary(lista),
-        "leaders": leaders.items(),
-        "evaluaciones": evaluaciones if individual else None,
-        "refuerzo": evaluaciones.filter(estado=EstadoCertificacion.EN_REFUERZO)
-        if individual or A.DESIGN in actions else None,
-        "actas": lista.actas.select_related("lider"),
-    })
+    return render(
+        request,
+        "formularios/seguimiento.html",
+        {
+            "lista": lista,
+            "resumen": certificacion.summary(lista),
+            "leaders": leaders.items(),
+            "evaluaciones": evaluaciones if individual else None,
+            "refuerzo": evaluaciones.filter(estado=EstadoCertificacion.EN_REFUERZO)
+            if individual or A.DESIGN in actions
+            else None,
+            "actas": lista.actas.select_related("lider"),
+        },
+    )
 
 
 @client_member_required
@@ -140,6 +170,7 @@ def acta_descargar(request, client_slug, pk, acta):
 
 
 # --- Leader ---
+
 
 def _leader_lista(request, pk):
     if A.LEADER_EVAL not in _actions(request):
@@ -156,12 +187,18 @@ def evaluar_index(request, client_slug):
         raise PermissionDenied
     rows = []
     for lista in ListaObservacion.objects.filter(estado=EstadoLista.PUBLICADA).select_related(
-            "impacto"):
+        "impacto"
+    ):
         n = certificacion.team(lista, request.user.email).count()
         if n:
             mine = lista.evaluaciones.filter(lider=request.user)
-            rows.append({"lista": lista, "equipo": n,
-                         "hechas": mine.exclude(estado=EstadoCertificacion.PENDIENTE).count()})
+            rows.append(
+                {
+                    "lista": lista,
+                    "equipo": n,
+                    "hechas": mine.exclude(estado=EstadoCertificacion.PENDIENTE).count(),
+                }
+            )
     return render(request, "formularios/evaluar_index.html", {"rows": rows})
 
 
@@ -181,21 +218,28 @@ def evaluar(request, client_slug, pk):
                         resultados[cid] = value == "si"
                 obs = request.POST.get(f"e{ev.pk}-obs")
                 if resultados or obs is not None:
-                    certificacion.save_results(ev, resultados,
-                                               obs.strip() if obs is not None else None, ids)
+                    certificacion.save_results(
+                        ev, resultados, obs.strip() if obs is not None else None, ids
+                    )
         messages.success(request, _("Evaluación guardada."))
         return redirect("formularios:evaluar", client_slug=client_slug, pk=pk)
     for ev in evaluaciones:
         ev.cells = [(c, ev.resultados.get(str(c.pk))) for c in criterios]
         ev.editable = ev.estado in certificacion.EDITABLE
     pendientes_firma = [e for e in evaluaciones if e.estado == EstadoCertificacion.APLICADO]
-    return render(request, "formularios/evaluar.html", {
-        "lista": lista, "criterios": criterios, "evaluaciones": evaluaciones,
-        "pendientes_firma": pendientes_firma,
-        "faltan": [e for e in evaluaciones if e.estado == EstadoCertificacion.PENDIENTE],
-        "acta_form": ActaForm(),
-        "actas": lista.actas.filter(lider=request.user),
-    })
+    return render(
+        request,
+        "formularios/evaluar.html",
+        {
+            "lista": lista,
+            "criterios": criterios,
+            "evaluaciones": evaluaciones,
+            "pendientes_firma": pendientes_firma,
+            "faltan": [e for e in evaluaciones if e.estado == EstadoCertificacion.PENDIENTE],
+            "acta_form": ActaForm(),
+            "actas": lista.actas.filter(lider=request.user),
+        },
+    )
 
 
 @client_member_required
@@ -204,24 +248,35 @@ def evaluar_pdf(request, client_slug, pk):
     lista = _leader_lista(request, pk)
     criterios = list(lista.criterios.all())
     ids = [c.pk for c in criterios]
-    evaluaciones = [ev for ev in certificacion.evaluations_for(lista, request.user)
-                    if ev.estado == EstadoCertificacion.APLICADO]
+    evaluaciones = [
+        ev
+        for ev in certificacion.evaluations_for(lista, request.user)
+        if ev.estado == EstadoCertificacion.APLICADO
+    ]
     for ev in evaluaciones:
         ev.cells = [ev.resultados.get(str(c.pk)) for c in criterios]
         ev.certifica = ev.cumple_todo(ids)
     from weasyprint import HTML
 
-    html = render_to_string("formularios/evaluar_pdf.html", {
-        "lista": lista, "criterios": criterios, "evaluaciones": evaluaciones,
-        "lider": request.user, "fecha": timezone.localdate(),
-        "certificados": sum(1 for e in evaluaciones if e.certifica),
-        "refuerzo": sum(1 for e in evaluaciones if not e.certifica),
-    }, request=request)
+    html = render_to_string(
+        "formularios/evaluar_pdf.html",
+        {
+            "lista": lista,
+            "criterios": criterios,
+            "evaluaciones": evaluaciones,
+            "lider": request.user,
+            "fecha": timezone.localdate(),
+            "certificados": sum(1 for e in evaluaciones if e.certifica),
+            "refuerzo": sum(1 for e in evaluaciones if not e.certifica),
+        },
+        request=request,
+    )
     pdf = HTML(string=html, base_url=request.build_absolute_uri("/")).write_pdf()
     response = HttpResponse(pdf, content_type="application/pdf")
     response["Content-Disposition"] = (
         f'attachment; filename="evaluacion-{lista.impacto.codigo.lower()}-'
-        f'{timezone.localdate():%Y%m%d}.pdf"')
+        f'{timezone.localdate():%Y%m%d}.pdf"'
+    )
     return response
 
 
@@ -229,8 +284,9 @@ def evaluar_pdf(request, client_slug, pk):
 @require_POST
 def evaluar_acta(request, client_slug, pk):
     lista = _leader_lista(request, pk)
-    if not lista.evaluaciones.filter(lider=request.user,
-                                     estado=EstadoCertificacion.APLICADO).exists():
+    if not lista.evaluaciones.filter(
+        lider=request.user, estado=EstadoCertificacion.APLICADO
+    ).exists():
         messages.error(request, _("No hay evaluaciones aplicadas pendientes de firma."))
         return redirect("formularios:evaluar", client_slug=client_slug, pk=pk)
     form = ActaForm(request.POST, request.FILES)
@@ -239,10 +295,13 @@ def evaluar_acta(request, client_slug, pk):
             for e in errors:
                 messages.error(request, e)
         return redirect("formularios:evaluar", client_slug=client_slug, pk=pk)
-    _acta, refuerzo = certificacion.register_signed_summary(lista, request.user, form,
-                                                           notify_request=request)
+    _acta, refuerzo = certificacion.register_signed_summary(
+        lista, request.user, form, notify_request=request
+    )
     messages.success(request, _("Resumen firmado registrado."))
     if refuerzo:
-        messages.info(request, _("%(n)s persona(s) quedan en refuerzo; se avisó a los guías.")
-                      % {"n": len(refuerzo)})
+        messages.info(
+            request,
+            _("%(n)s persona(s) quedan en refuerzo; se avisó a los guías.") % {"n": len(refuerzo)},
+        )
     return redirect("formularios:evaluar", client_slug=client_slug, pk=pk)

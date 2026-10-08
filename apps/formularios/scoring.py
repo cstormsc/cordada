@@ -42,11 +42,11 @@ def publish_errors(cuestionario):
         if len(opciones) < 2:
             errors.append(_("Pregunta %(n)s: necesita al menos dos opciones.") % {"n": i})
         if len(opciones) > MAX_OPTIONS:
-            errors.append(_("Pregunta %(n)s: máximo %(max)s opciones.")
-                          % {"n": i, "max": MAX_OPTIONS})
+            errors.append(
+                _("Pregunta %(n)s: máximo %(max)s opciones.") % {"n": i, "max": MAX_OPTIONS}
+            )
         if p.tipo == TipoPregunta.SI_NO and len(opciones) != 2:
-            errors.append(_("Pregunta %(n)s: una pregunta Sí o no tiene dos opciones.")
-                          % {"n": i})
+            errors.append(_("Pregunta %(n)s: una pregunta Sí o no tiene dos opciones.") % {"n": i})
         if p.tipo == TipoPregunta.MULTIPLE and correctas < 1:
             errors.append(_("Pregunta %(n)s: marca al menos una opción correcta.") % {"n": i})
         if p.tipo != TipoPregunta.MULTIPLE and correctas != 1:

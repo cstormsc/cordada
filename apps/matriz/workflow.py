@@ -12,10 +12,17 @@ E = Estado
 # Fields that must be filled before an impact leaves Propuesto. §4 suggests this
 # list; the final one is still to be decided (§13.1), so it lives here only.
 REQUIRED_FOR_EVALUATION = [
-    "titulo", "tipo", "grupo", "magnitud",
-    "requiere_comunicacion", "requiere_movilizacion", "requiere_formacion",
-    "responsable", "fecha_compromiso",
-    "criterio_evidencia", "criterio_descripcion",
+    "titulo",
+    "tipo",
+    "grupo",
+    "magnitud",
+    "requiere_comunicacion",
+    "requiere_movilizacion",
+    "requiere_formacion",
+    "responsable",
+    "fecha_compromiso",
+    "criterio_evidencia",
+    "criterio_descripcion",
 ]
 
 
@@ -37,8 +44,9 @@ TRANSITIONS: dict[Estado, list[Transition]] = {
         Transition(E.DESCARTADO, _("Descartar"), needs_reason=True),
     ],
     E.EN_ATENCION: [
-        Transition(E.ATENDIDO, _("Marcar atendido (cumple el criterio de cierre)"),
-                   check_required=True),
+        Transition(
+            E.ATENDIDO, _("Marcar atendido (cumple el criterio de cierre)"), check_required=True
+        ),
         Transition(E.DESCARTADO, _("Descartar"), needs_reason=True),
     ],
     E.ATENDIDO: [
@@ -90,15 +98,17 @@ def transition(impacto, target, *, user, reason=""):
     if t.check_required:
         missing = missing_fields(impacto)
         if missing:
-            errors.append(_("Faltan campos: %(campos)s.")
-                          % {"campos": ", ".join(str(m) for m in missing)})
+            errors.append(
+                _("Faltan campos: %(campos)s.") % {"campos": ", ".join(str(m) for m in missing)}
+            )
     if t.needs_reason and not reason.strip():
         errors.append(_("Indica el motivo."))
     if errors:
         raise TransitionError(errors)
 
-    Transicion.objects.create(impacto=impacto, desde=impacto.estado, hacia=target,
-                              motivo=reason.strip(), usuario=user)
+    Transicion.objects.create(
+        impacto=impacto, desde=impacto.estado, hacia=target, motivo=reason.strip(), usuario=user
+    )
     impacto.estado = target
     impacto.save()
     return impacto

@@ -28,13 +28,22 @@ def xlsx_file(rows):
 
 
 def test_csv_semicolons_latin1_and_header_aliases():
-    headers, rows = importer.read_rows(csv_file(
-        "Correo electrónico;Nombre;Depto;Jefe\nana@x.com;Ana Núñez;Cobranzas;lider@x.com\n",
-        encoding="latin-1"))
+    headers, rows = importer.read_rows(
+        csv_file(
+            "Correo electrónico;Nombre;Depto;Jefe\nana@x.com;Ana Núñez;Cobranzas;lider@x.com\n",
+            encoding="latin-1",
+        )
+    )
     mapping = importer.map_headers(headers)
     records, errors = importer.parse(rows, mapping)
-    assert records == [{"email": "ana@x.com", "nombre": "Ana Núñez",
-                        "departamento": "Cobranzas", "supervisor": "lider@x.com"}]
+    assert records == [
+        {
+            "email": "ana@x.com",
+            "nombre": "Ana Núñez",
+            "departamento": "Cobranzas",
+            "supervisor": "lider@x.com",
+        }
+    ]
     assert errors == []
 
 
@@ -55,13 +64,21 @@ def test_preview_then_confirm_creates_groups_and_upserts(client, equipo, acme):
         Persona.objects.create(email="ana@x.com", nombre="Viejo nombre")
         GrupoImpactado.objects.create(name="Cobranzas")
     client.force_login(equipo)
-    response = client.post(URL, {
-        "archivo": xlsx_file([["correo", "nombre", "departamento"],
-                              ["ana@x.com", "Ana", "cobranzas"],
-                              ["beto@x.com", "Beto", "Ventas"],
-                              ["malo", "", ""]]),
-        "columna_grupo": "departamento", "crear_grupos": "on",
-    })
+    response = client.post(
+        URL,
+        {
+            "archivo": xlsx_file(
+                [
+                    ["correo", "nombre", "departamento"],
+                    ["ana@x.com", "Ana", "cobranzas"],
+                    ["beto@x.com", "Beto", "Ventas"],
+                    ["malo", "", ""],
+                ]
+            ),
+            "columna_grupo": "departamento",
+            "crear_grupos": "on",
+        },
+    )
     body = response.content.decode()
     assert "Vista previa" in body and "1 nuevas" in body and "Fila 4" in body
     with tenant_context(acme):

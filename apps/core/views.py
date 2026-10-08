@@ -26,15 +26,19 @@ def home(request):
 @client_member_required
 def client_home(request, client_slug):
     form_actions = role_actions(request.membership.role, Module.FORMULARIOS)
-    return render(request, "core/client_home.html", {
-        "modules": visible_modules(request.membership),
-        "can_configure": can_configure(request.membership),
-        # Area leaders only do the practical evaluation, not the questionnaires.
-        "module_links": {
-            "formularios": bool({Action.EDIT, Action.DESIGN} & form_actions),
-            "evaluar": Action.LEADER_EVAL in form_actions,
+    return render(
+        request,
+        "core/client_home.html",
+        {
+            "modules": visible_modules(request.membership),
+            "can_configure": can_configure(request.membership),
+            # Area leaders only do the practical evaluation, not the questionnaires.
+            "module_links": {
+                "formularios": bool({Action.EDIT, Action.DESIGN} & form_actions),
+                "evaluar": Action.LEADER_EVAL in form_actions,
+            },
         },
-    })
+    )
 
 
 def accept_invitation(request, token):
@@ -49,12 +53,16 @@ def accept_invitation(request, token):
     if user is not None:
         # Existing account: they must be logged in as that account to accept.
         if not request.user.is_authenticated:
-            messages.info(request, _("Inicia sesión con %(email)s para aceptar la invitación.")
-                          % {"email": invitation.email})
+            messages.info(
+                request,
+                _("Inicia sesión con %(email)s para aceptar la invitación.")
+                % {"email": invitation.email},
+            )
             return redirect_to_login(request.get_full_path())
         if request.user != user:
-            return render(request, "core/invitation_wrong_user.html",
-                          {"invitation": invitation}, status=403)
+            return render(
+                request, "core/invitation_wrong_user.html", {"invitation": invitation}, status=403
+            )
         if request.method == "POST":
             invitations.accept(invitation, user)
             return redirect("client_home", client_slug=invitation.client.slug)

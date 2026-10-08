@@ -69,18 +69,26 @@ def make_impacto(acme, equipo):
             return _make(complete, **kwargs)
 
     def _make(complete, **kwargs):
-        data = {"titulo": "Nuevo flujo de cobranza", "descripcion": "Cambia el proceso",
-                "registrado_por": equipo}
+        data = {
+            "titulo": "Nuevo flujo de cobranza",
+            "descripcion": "Cambia el proceso",
+            "registrado_por": equipo,
+        }
         if complete:
             data.update(
                 tipo=_item("tipo_impacto", "proceso"),
                 grupo=GrupoImpactado.objects.get_or_create(name="Cobranzas")[0],
-                magnitud=3, probabilidad=3, severidad=3,
-                requiere_comunicacion=True, requiere_movilizacion=False,
-                requiere_formacion=True, responsable=equipo,
+                magnitud=3,
+                probabilidad=3,
+                severidad=3,
+                requiere_comunicacion=True,
+                requiere_movilizacion=False,
+                requiere_formacion=True,
+                responsable=equipo,
                 fecha_compromiso=datetime.date(2026, 12, 1),
                 criterio_evidencia=_item("evidencia_cierre", "formacion_completada"),
-                criterio_meta=90, criterio_descripcion="90 % del grupo formado",
+                criterio_meta=90,
+                criterio_descripcion="90 % del grupo formado",
             )
         data.update(kwargs)
         from apps.matriz.models import Impacto

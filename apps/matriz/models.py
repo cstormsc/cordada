@@ -17,7 +17,10 @@ from apps.scoring import rules
 
 def scale_field(verbose_name, help_text):
     return models.PositiveSmallIntegerField(
-        verbose_name, null=True, blank=True, help_text=help_text,
+        verbose_name,
+        null=True,
+        blank=True,
+        help_text=help_text,
         validators=[MinValueValidator(1), MaxValueValidator(4)],
     )
 
@@ -54,46 +57,70 @@ def sin_criterio_q():
 
 class Impacto(TenantScopedModel):
     numero = models.PositiveIntegerField(_("ID"), editable=False)
-    estado = models.CharField(_("estado"), max_length=20, choices=Estado.choices,
-                              default=Estado.PROPUESTO, editable=False)
+    estado = models.CharField(
+        _("estado"), max_length=20, choices=Estado.choices, default=Estado.PROPUESTO, editable=False
+    )
 
     # Identificación
     titulo = models.CharField(
-        _("título"), max_length=200,
+        _("título"),
+        max_length=200,
         help_text=_("Una frase que nombre el cambio que vive el grupo."),
     )
     descripcion = models.TextField(
         _("descripción del impacto"),
-        help_text=_("Qué cambia para las personas, en su trabajo diario. Describe el efecto, "
-                    "no la solución."),
+        help_text=_(
+            "Qué cambia para las personas, en su trabajo diario. Describe el efecto, "
+            "no la solución."
+        ),
     )
-    situacion_actual = models.TextField(_("situación actual"), blank=True,
-                                        help_text=_("Cómo se trabaja hoy."))
-    situacion_futura = models.TextField(_("situación futura"), blank=True,
-                                        help_text=_("Cómo se trabajará después del cambio."))
-    origen = SystemCatalogField(SystemCatalog.ORIGEN, verbose_name=_("origen"),
-                                null=True, blank=True,
-                                help_text=_("Dónde o cómo se detectó el impacto."))
+    situacion_actual = models.TextField(
+        _("situación actual"), blank=True, help_text=_("Cómo se trabaja hoy.")
+    )
+    situacion_futura = models.TextField(
+        _("situación futura"), blank=True, help_text=_("Cómo se trabajará después del cambio.")
+    )
+    origen = SystemCatalogField(
+        SystemCatalog.ORIGEN,
+        verbose_name=_("origen"),
+        null=True,
+        blank=True,
+        help_text=_("Dónde o cómo se detectó el impacto."),
+    )
 
     # Clasificación
-    tipo = SystemCatalogField(SystemCatalog.TIPO_IMPACTO, verbose_name=_("tipo de impacto"),
-                              null=True, blank=True)
-    tiempo = SystemCatalogField(SystemCatalog.TIEMPO, verbose_name=_("tiempo del marco"),
-                                null=True, blank=True,
-                                help_text=_("En qué tiempo se atiende."))
+    tipo = SystemCatalogField(
+        SystemCatalog.TIPO_IMPACTO, verbose_name=_("tipo de impacto"), null=True, blank=True
+    )
+    tiempo = SystemCatalogField(
+        SystemCatalog.TIEMPO,
+        verbose_name=_("tiempo del marco"),
+        null=True,
+        blank=True,
+        help_text=_("En qué tiempo se atiende."),
+    )
 
     # Quién
     grupo = models.ForeignKey(
-        GrupoImpactado, on_delete=models.PROTECT, null=True, blank=True, related_name="impactos",
+        GrupoImpactado,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="impactos",
         verbose_name=_("grupo impactado"),
     )
     grupo_sugerido = models.CharField(
-        _("grupo sugerido"), max_length=150, blank=True,
-        help_text=_("Si el grupo no está en la lista, escríbelo aquí. El equipo de cambio "
-                    "lo agrega o lo asigna a uno existente."),
+        _("grupo sugerido"),
+        max_length=150,
+        blank=True,
+        help_text=_(
+            "Si el grupo no está en la lista, escríbelo aquí. El equipo de cambio "
+            "lo agrega o lo asigna a uno existente."
+        ),
     )
-    personas_impactadas = models.PositiveIntegerField(_("personas impactadas"), null=True,
-                                                      blank=True)
+    personas_impactadas = models.PositiveIntegerField(
+        _("personas impactadas"), null=True, blank=True
+    )
 
     # Evaluación
     magnitud = scale_field(_("magnitud"), _("Cuánto cambia el trabajo del grupo."))
@@ -102,16 +129,21 @@ class Impacto(TenantScopedModel):
 
     # Riesgo
     riesgo_descripcion = models.TextField(
-        _("descripción del riesgo"), blank=True,
+        _("descripción del riesgo"),
+        blank=True,
         help_text=_("Qué podría salir mal si el impacto no se atiende."),
     )
     probabilidad = scale_field(_("probabilidad"), _("Qué tan probable es que el riesgo ocurra."))
-    severidad = scale_field(_("severidad"), _("Qué tan grave sería si ocurre. "
-                                              "Extrema siempre genera alerta."))
-    riesgo_puntaje = models.PositiveSmallIntegerField(_("puntaje de riesgo"), null=True,
-                                                      editable=False)
+    severidad = scale_field(
+        _("severidad"), _("Qué tan grave sería si ocurre. Extrema siempre genera alerta.")
+    )
+    riesgo_puntaje = models.PositiveSmallIntegerField(
+        _("puntaje de riesgo"), null=True, editable=False
+    )
     riesgo_nivel = models.PositiveSmallIntegerField(
-        _("nivel de riesgo"), null=True, editable=False,
+        _("nivel de riesgo"),
+        null=True,
+        editable=False,
         choices=[(b.value, b.label) for b in rules.RiskBand],
     )
 
@@ -120,65 +152,102 @@ class Impacto(TenantScopedModel):
     requiere_movilizacion = yes_no_field(_("requiere movilización"))
     requiere_formacion = yes_no_field(_("requiere formación"))
     tipo_cambio_conocimiento = SystemCatalogField(
-        SystemCatalog.TIPO_CAMBIO_CONOCIMIENTO, verbose_name=_("tipo de cambio en el conocimiento"),
-        null=True, blank=True,
+        SystemCatalog.TIPO_CAMBIO_CONOCIMIENTO,
+        verbose_name=_("tipo de cambio en el conocimiento"),
+        null=True,
+        blank=True,
     )
-    formacion_criticidad = models.CharField(_("criticidad de la formación"), max_length=10,
-                                            choices=CriticidadFormacion.choices, blank=True)
+    formacion_criticidad = models.CharField(
+        _("criticidad de la formación"),
+        max_length=10,
+        choices=CriticidadFormacion.choices,
+        blank=True,
+    )
     formacion_momento = SystemCatalogField(
-        SystemCatalog.TIEMPO, verbose_name=_("momento requerido de la formación"),
-        null=True, blank=True, help_text=_("En qué tiempo del marco debe estar lista."),
+        SystemCatalog.TIEMPO,
+        verbose_name=_("momento requerido de la formación"),
+        null=True,
+        blank=True,
+        help_text=_("En qué tiempo del marco debe estar lista."),
     )
 
     # Mitigación y acción
-    medida = models.TextField(_("medida de mitigación"), blank=True,
-                              help_text=_("Qué se hará para atender el impacto."))
+    medida = models.TextField(
+        _("medida de mitigación"), blank=True, help_text=_("Qué se hará para atender el impacto.")
+    )
     responsable = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True,
-        related_name="+", verbose_name=_("responsable"),
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="+",
+        verbose_name=_("responsable"),
     )
     responsable_categoria = models.ForeignKey(
-        CategoriaResponsable, on_delete=models.PROTECT, null=True, blank=True, related_name="+",
+        CategoriaResponsable,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="+",
         verbose_name=_("categoría del responsable"),
     )
     fecha_compromiso = models.DateField(_("fecha compromiso"), null=True, blank=True)
 
     # Cierre
     criterio_evidencia = SystemCatalogField(
-        SystemCatalog.EVIDENCIA_CIERRE, verbose_name=_("tipo de evidencia de cierre"),
-        null=True, blank=True,
-        help_text=_("Con qué se demostrará que el impacto está atendido. "
-                    "Se define al evaluar, no al final."),
+        SystemCatalog.EVIDENCIA_CIERRE,
+        verbose_name=_("tipo de evidencia de cierre"),
+        null=True,
+        blank=True,
+        help_text=_(
+            "Con qué se demostrará que el impacto está atendido. Se define al evaluar, no al final."
+        ),
     )
     criterio_meta = models.DecimalField(
-        _("meta"), max_digits=10, decimal_places=2, null=True, blank=True,
+        _("meta"),
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
         help_text=_("Valor numérico a alcanzar, por ejemplo 90 (%) o 5 (tickets)."),
     )
-    criterio_descripcion = models.CharField(_("descripción del criterio"), max_length=300,
-                                            blank=True)
+    criterio_descripcion = models.CharField(
+        _("descripción del criterio"), max_length=300, blank=True
+    )
     requiere_certificacion_lider = models.BooleanField(
-        _("requiere certificación del líder"), default=False,
+        _("requiere certificación del líder"),
+        default=False,
         help_text=_("Si se marca, el líder del área aplica la evaluación práctica."),
     )
 
     # Prioridad
     prioridad_calculada = models.PositiveSmallIntegerField(
-        _("prioridad calculada"), null=True, editable=False,
+        _("prioridad calculada"),
+        null=True,
+        editable=False,
         choices=[(p.value, p.label) for p in rules.Priority],
     )
     prioridad_ajustada = models.PositiveSmallIntegerField(
-        _("prioridad ajustada"), null=True, blank=True,
+        _("prioridad ajustada"),
+        null=True,
+        blank=True,
         choices=[(p.value, p.label) for p in rules.Priority],
     )
     prioridad_justificacion = models.TextField(_("justificación del ajuste"), blank=True)
     prioridad = models.PositiveSmallIntegerField(
-        _("prioridad"), null=True, editable=False, db_index=True,
+        _("prioridad"),
+        null=True,
+        editable=False,
+        db_index=True,
         choices=[(p.value, p.label) for p in rules.Priority],
     )
 
     # Control
     registrado_por = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+", editable=False,
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="+",
+        editable=False,
         verbose_name=_("registrado por"),
     )
     created_at = models.DateTimeField(_("fecha de registro"), auto_now_add=True)
@@ -244,8 +313,9 @@ class Transicion(TenantScopedModel):
     desde = models.CharField(max_length=20, choices=Estado.choices)
     hacia = models.CharField(max_length=20, choices=Estado.choices)
     motivo = models.TextField(_("motivo"), blank=True)
-    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
-                                related_name="+")
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
+    )
     fecha = models.DateTimeField(auto_now_add=True)
 
     class Meta(TenantScopedModel.Meta):
@@ -254,8 +324,7 @@ class Transicion(TenantScopedModel):
 
 class Comentario(TenantScopedModel):
     impacto = models.ForeignKey(Impacto, on_delete=models.CASCADE, related_name="comentarios")
-    autor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
-                              related_name="+")
+    autor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
     texto = models.TextField(_("comentario"))
     fecha = models.DateTimeField(auto_now_add=True)
 
@@ -278,8 +347,9 @@ class Foto(TenantScopedModel):
     tiempo = SystemCatalogField(SystemCatalog.TIEMPO, verbose_name=_("etapa que se cierra"))
     nota = models.CharField(_("nota"), max_length=300, blank=True)
     datos = models.JSONField(editable=False)
-    creada_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
-                                   related_name="+")
+    creada_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
+    )
     fecha = models.DateTimeField(auto_now_add=True)
 
     class Meta(TenantScopedModel.Meta):
@@ -296,10 +366,12 @@ class Dependencia(TenantScopedModel):
     """`impacto` depende de `depende_de`. Informative only: never blocks the lifecycle."""
 
     impacto = models.ForeignKey(Impacto, on_delete=models.CASCADE, related_name="dependencias")
-    depende_de = models.ForeignKey(Impacto, on_delete=models.CASCADE, related_name="dependientes",
-                                   verbose_name=_("depende de"))
-    creada_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
-                                   related_name="+")
+    depende_de = models.ForeignKey(
+        Impacto, on_delete=models.CASCADE, related_name="dependientes", verbose_name=_("depende de")
+    )
+    creada_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
+    )
     fecha = models.DateTimeField(auto_now_add=True)
 
     history = HistoricalRecords()
@@ -310,8 +382,9 @@ class Dependencia(TenantScopedModel):
         ordering = ["depende_de__numero"]
         constraints = [
             models.UniqueConstraint(fields=["impacto", "depende_de"], name="unique_dependencia"),
-            models.CheckConstraint(condition=~models.Q(impacto=models.F("depende_de")),
-                                   name="dependencia_no_self"),
+            models.CheckConstraint(
+                condition=~models.Q(impacto=models.F("depende_de")), name="dependencia_no_self"
+            ),
         ]
 
     def __str__(self):

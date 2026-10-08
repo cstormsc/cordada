@@ -52,8 +52,7 @@ STEPS: dict[EstadoTicket, list[Step]] = {
     ],
     E.DERIVADO_TI: [
         Step(E.RESUELTO, _("Marcar resuelto"), A.EDIT_DERIVED),
-        Step(E.EN_CLASIFICACION, _("Devolver: mal clasificado"), A.EDIT_DERIVED,
-             needs_reason=True),
+        Step(E.EN_CLASIFICACION, _("Devolver: mal clasificado"), A.EDIT_DERIVED, needs_reason=True),
     ],
     E.RESUELTO: [
         Step(E.CERRADO, _("Cerrar"), A.CLASSIFY),
@@ -77,8 +76,11 @@ def available(ticket, actions):
 
 def can_validate(ticket, actions):
     """Parallel validation of a severe failure sent straight to IT."""
-    return (A.CLASSIFY in actions and not ticket.validado
-            and ticket.estado in (E.DERIVADO_TI, E.RESUELTO))
+    return (
+        A.CLASSIFY in actions
+        and not ticket.validado
+        and ticket.estado in (E.DERIVADO_TI, E.RESUELTO)
+    )
 
 
 @transaction.atomic
@@ -96,8 +98,9 @@ def transition(ticket, target, *, user, actions, reason=""):
         raise TicketError(errors)
 
     now = timezone.now()
-    TicketTransicion.objects.create(ticket=ticket, desde=ticket.estado, hacia=target,
-                                    motivo=reason.strip(), usuario=user)
+    TicketTransicion.objects.create(
+        ticket=ticket, desde=ticket.estado, hacia=target, motivo=reason.strip(), usuario=user
+    )
     if ticket.estado == E.NUEVO and ticket.primera_respuesta_at is None:
         ticket.primera_respuesta_at = now
     if target == E.VALIDADO and ticket.estado == E.EN_CLASIFICACION:

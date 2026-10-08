@@ -40,8 +40,12 @@ def _visible(request):
 
 
 def _get(request, numero):
-    return get_object_or_404(_visible(request).select_related(
-        "frente", "tiempo", "responsable", "canal", "registrado_por"), numero=numero)
+    return get_object_or_404(
+        _visible(request).select_related(
+            "frente", "tiempo", "responsable", "canal", "registrado_por"
+        ),
+        numero=numero,
+    )
 
 
 @client_member_required
@@ -50,23 +54,33 @@ def index(request, client_slug):
     own_group_only = not _can(request, Action.VIEW)
     grupos = request.membership.grupos.all() if own_group_only else None
     filtro = FiltroForm(request.GET or None, grupos=grupos)
-    listed = filtro.filter(actividades.with_cumplimiento()).select_related(
-        "frente", "tiempo", "responsable").prefetch_related("grupos", "impactos")
-    return render(request, "ruta/index.html", {
-        "filtro": filtro,
-        "actividades": listed,
-        "can_edit": _can(request, Action.EDIT),
-        "can_report": _can(request, Action.VIEW),
-        "own_group_only": own_group_only,
-        "querystring": request.GET.urlencode(),
-        "resumen": None if own_group_only else {
-            "total": actividades.count(),
-            "huerfanas": actividades.huerfanas().count(),
-            "descubiertos": reports.descubiertos().count(),
-            "no_realizadas": actividades.with_cumplimiento().filter(
-                cumplimiento="no_realizada").count(),
+    listed = (
+        filtro.filter(actividades.with_cumplimiento())
+        .select_related("frente", "tiempo", "responsable")
+        .prefetch_related("grupos", "impactos")
+    )
+    return render(
+        request,
+        "ruta/index.html",
+        {
+            "filtro": filtro,
+            "actividades": listed,
+            "can_edit": _can(request, Action.EDIT),
+            "can_report": _can(request, Action.VIEW),
+            "own_group_only": own_group_only,
+            "querystring": request.GET.urlencode(),
+            "resumen": None
+            if own_group_only
+            else {
+                "total": actividades.count(),
+                "huerfanas": actividades.huerfanas().count(),
+                "descubiertos": reports.descubiertos().count(),
+                "no_realizadas": actividades.with_cumplimiento()
+                .filter(cumplimiento="no_realizada")
+                .count(),
+            },
         },
-    })
+    )
 
 
 def _form_response(request, form, actividad=None):
@@ -80,8 +94,11 @@ def crear(request, client_slug):
     if numero := request.GET.get("impacto"):
         impacto = Impacto.objects.filter(numero=numero).select_related("grupo", "tiempo").first()
         if impacto:
-            initial = {"impactos": [impacto.pk], "tiempo": impacto.tiempo_id,
-                       "grupos": [impacto.grupo_id] if impacto.grupo_id else []}
+            initial = {
+                "impactos": [impacto.pk],
+                "tiempo": impacto.tiempo_id,
+                "grupos": [impacto.grupo_id] if impacto.grupo_id else [],
+            }
     form = ActividadForm(request.POST or None, initial=initial, client=request.client)
     if request.method == "POST" and form.is_valid():
         actividad = form.save(commit=False)
@@ -109,14 +126,18 @@ def editar(request, client_slug, numero):
 def detalle(request, client_slug, numero):
     actividad = _get(request, numero)
     can_view_matrix = _can(request, Action.VIEW, Module.MATRIZ)
-    return render(request, "ruta/detalle.html", {
-        "actividad": actividad,
-        "cumplimiento": actividad.get_cumplimiento(),
-        "can_edit": _can(request, Action.EDIT),
-        "can_view_matrix": can_view_matrix,
-        "impactos": actividad.impactos.all() if can_view_matrix else None,
-        "adjunto_form": EvidenciaForm(),
-    })
+    return render(
+        request,
+        "ruta/detalle.html",
+        {
+            "actividad": actividad,
+            "cumplimiento": actividad.get_cumplimiento(),
+            "can_edit": _can(request, Action.EDIT),
+            "can_view_matrix": can_view_matrix,
+            "impactos": actividad.impactos.all() if can_view_matrix else None,
+            "adjunto_form": EvidenciaForm(),
+        },
+    )
 
 
 @client_member_required
@@ -147,8 +168,9 @@ def _informe_context(request):
     return {
         "form": form,
         "params": params,
-        "informe": reports.informe(Actividad.objects.all(), **{
-            k: params.get(k) for k in ("tiempo", "mes", "frente")}),
+        "informe": reports.informe(
+            Actividad.objects.all(), **{k: params.get(k) for k in ("tiempo", "mes", "frente")}
+        ),
         "generated": timezone.localtime(),
         "querystring": request.GET.urlencode(),
     }
@@ -170,7 +192,8 @@ def informe_pdf(request, client_slug):
     response = HttpResponse(pdf, content_type="application/pdf")
     stamp = timezone.localdate().isoformat()
     response["Content-Disposition"] = (
-        f'attachment; filename="cumplimiento-{request.client.slug}-{stamp}.pdf"')
+        f'attachment; filename="cumplimiento-{request.client.slug}-{stamp}.pdf"'
+    )
     return response
 
 
@@ -178,31 +201,64 @@ def informe_pdf(request, client_slug):
 def exportar(request, client_slug):
     _require(request, Action.VIEW)
     filtro = FiltroForm(request.GET or None)
-    actividades = filtro.filter(Actividad.objects.with_cumplimiento()).select_related(
-        "frente", "tiempo", "responsable", "canal").prefetch_related("grupos", "impactos")
+    actividades = (
+        filtro.filter(Actividad.objects.with_cumplimiento())
+        .select_related("frente", "tiempo", "responsable", "canal")
+        .prefetch_related("grupos", "impactos")
+    )
     wb = Workbook()
     ws = wb.active
     ws.title = "Ruta"
-    headers = ["ID", "Actividad", "Frente", "Tiempo", "Impactos", "Grupos", "Responsable",
-               "Fecha planificada", "Fecha real", "Estado", "Cumplimiento", "Canal", "Vocero",
-               "Evidencia", "Indicador", "No planificada"]
+    headers = [
+        "ID",
+        "Actividad",
+        "Frente",
+        "Tiempo",
+        "Impactos",
+        "Grupos",
+        "Responsable",
+        "Fecha planificada",
+        "Fecha real",
+        "Estado",
+        "Cumplimiento",
+        "Canal",
+        "Vocero",
+        "Evidencia",
+        "Indicador",
+        "No planificada",
+    ]
     ws.append(headers)
     for cell in ws[1]:
         cell.font = Font(bold=True)
     labels = dict(reports.C.choices)
     for a in actividades:
-        ws.append([safe_cell(v) for v in [
-            a.codigo, a.titulo, str(a.frente), str(a.tiempo or ""),
-            ", ".join(i.codigo for i in a.impactos.all()),
-            ", ".join(g.name for g in a.grupos.all()),
-            a.responsable.display_name if a.responsable else "",
-            a.fecha_planificada, a.fecha_real, a.get_estado_display(),
-            str(labels[a.cumplimiento]), str(a.canal or ""), a.vocero, a.evidencia, a.indicador,
-            "Sí" if a.no_planificada else "",
-        ]])
+        ws.append(
+            [
+                safe_cell(v)
+                for v in [
+                    a.codigo,
+                    a.titulo,
+                    str(a.frente),
+                    str(a.tiempo or ""),
+                    ", ".join(i.codigo for i in a.impactos.all()),
+                    ", ".join(g.name for g in a.grupos.all()),
+                    a.responsable.display_name if a.responsable else "",
+                    a.fecha_planificada,
+                    a.fecha_real,
+                    a.get_estado_display(),
+                    str(labels[a.cumplimiento]),
+                    str(a.canal or ""),
+                    a.vocero,
+                    a.evidencia,
+                    a.indicador,
+                    "Sí" if a.no_planificada else "",
+                ]
+            ]
+        )
     ws.freeze_panes = "C2"
     response = HttpResponse(
-        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
     response["Content-Disposition"] = f'attachment; filename="ruta-{request.client.slug}.xlsx"'
     wb.save(response)
     return response

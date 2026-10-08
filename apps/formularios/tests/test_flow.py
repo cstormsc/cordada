@@ -28,19 +28,26 @@ def base(c):
 
 class TestEditor:
     def add_question(self, client, c, texto="¿Qué hace el botón?"):
-        return client.post(f"{base(c)}preguntas/nueva/", {
-            "texto": texto, "tipo": "simple",
-            "op-TOTAL_FORMS": "5", "op-INITIAL_FORMS": "0", "op-MIN_NUM_FORMS": "0",
-            "op-MAX_NUM_FORMS": "5",
-            "op-0-texto": "Guarda", "op-0-correcta": "on", "op-1-texto": "Borra",
-        })
+        return client.post(
+            f"{base(c)}preguntas/nueva/",
+            {
+                "texto": texto,
+                "tipo": "simple",
+                "op-TOTAL_FORMS": "5",
+                "op-INITIAL_FORMS": "0",
+                "op-MIN_NUM_FORMS": "0",
+                "op-MAX_NUM_FORMS": "5",
+                "op-0-texto": "Guarda",
+                "op-0-correcta": "on",
+                "op-1-texto": "Borra",
+            },
+        )
 
     def points(self, c, acme):
         with tenant_context(acme):
             return [p.puntos for p in Pregunta.objects.filter(cuestionario=c)]
 
-    def test_automatic_split_until_edited_by_hand(self, client, equipo, make_cuestionario,
-                                                  acme):
+    def test_automatic_split_until_edited_by_hand(self, client, equipo, make_cuestionario, acme):
         c = make_cuestionario()
         client.force_login(equipo)
         for _ in range(3):
@@ -49,8 +56,10 @@ class TestEditor:
 
         with tenant_context(acme):
             ids = list(Pregunta.objects.filter(cuestionario=c).values_list("pk", flat=True))
-        client.post(f"{base(c)}puntos/", {f"puntos-{ids[0]}": "50", f"puntos-{ids[1]}": "25",
-                                          f"puntos-{ids[2]}": "25,00"})
+        client.post(
+            f"{base(c)}puntos/",
+            {f"puntos-{ids[0]}": "50", f"puntos-{ids[1]}": "25", f"puntos-{ids[2]}": "25,00"},
+        )
         assert self.points(c, acme) == [D("50"), D("25"), D("25")]
         self.add_question(client, c)  # manual points are kept; the new one starts at 0
         assert self.points(c, acme) == [D("50"), D("25"), D("25"), D("0")]
@@ -60,8 +69,9 @@ class TestEditor:
         client.post(f"{base(c)}repartir/")
         assert self.points(c, acme) == [D("25")] * 4
 
-    def test_deleting_redistributes_in_automatic_mode(self, client, equipo, make_cuestionario,
-                                                      acme):
+    def test_deleting_redistributes_in_automatic_mode(
+        self, client, equipo, make_cuestionario, acme
+    ):
         c = make_cuestionario(4)
         client.force_login(equipo)
         with tenant_context(acme):
@@ -74,8 +84,9 @@ class TestEditor:
         client.force_login(equipo)
         with tenant_context(acme):
             ids = list(Pregunta.objects.filter(cuestionario=c).values_list("pk", flat=True))
-        response = client.post(f"{base(c)}puntos/", {f"puntos-{ids[0]}": "60",
-                                                     f"puntos-{ids[1]}": "30"}, follow=True)
+        response = client.post(
+            f"{base(c)}puntos/", {f"puntos-{ids[0]}": "60", f"puntos-{ids[1]}": "30"}, follow=True
+        )
         assert "Suman 90.00" in response.content.decode()
         response = client.post(f"{base(c)}publicar/", follow=True)
         assert "deben sumar 100" in response.content.decode()
@@ -96,11 +107,17 @@ class TestEditor:
         client.post(f"{base(c)}preguntas/{p.pk}/borrar/")
         assert self.points(c, acme) == [D("50"), D("50")]
         # Only the closing date can still change.
-        client.post(f"{base(c)}editar/", {"titulo": "Otro", "nota_minima": "10", "intentos": "9",
-                                         "vence": "2030-01-01"})
+        client.post(
+            f"{base(c)}editar/",
+            {"titulo": "Otro", "nota_minima": "10", "intentos": "9", "vence": "2030-01-01"},
+        )
         c.refresh_from_db()
         assert (c.titulo, c.nota_minima, c.intentos, c.vence) == (
-            "Nuevo flujo", D("80"), 1, datetime.date(2030, 1, 1))
+            "Nuevo flujo",
+            D("80"),
+            1,
+            datetime.date(2030, 1, 1),
+        )
 
     def test_guide_designs_but_cannot_send_links(self, client, member, acme, make_cuestionario):
         c = make_cuestionario(2)
@@ -200,13 +217,20 @@ class TestResults:
         with tenant_context(acme):
             for email in emails:
                 enlace, _ = Enlace.objects.get_or_create(
-                    cuestionario=published, persona=Persona.objects.get(email=email))
-                Respuesta.objects.create(enlace=enlace, intento=1, elecciones={},
-                                         puntos_por_pregunta={}, puntaje=D(score),
-                                         aprobado=D(score) >= D("80"))
+                    cuestionario=published, persona=Persona.objects.get(email=email)
+                )
+                Respuesta.objects.create(
+                    enlace=enlace,
+                    intento=1,
+                    elecciones={},
+                    puntos_por_pregunta={},
+                    puntaje=D(score),
+                    aprobado=D(score) >= D("80"),
+                )
 
     def test_small_groups_are_hidden_and_detail_only_for_change_team(
-            self, client, equipo, member, published, acme):
+        self, client, equipo, member, published, acme
+    ):
         self.respond(published, acme, [f"p{i}@x.com" for i in range(5)], "90")
         self.respond(published, acme, ["sur@x.com"], "10")
         client.force_login(equipo)
@@ -220,8 +244,9 @@ class TestResults:
         body = client.get(f"{base(published)}resultados/").content.decode()
         assert "Detalle individual" not in body and "sur@x.com" not in body
 
-    def test_impact_page_shows_group_verification(self, client, equipo, make_impacto,
-                                                  published, acme):
+    def test_impact_page_shows_group_verification(
+        self, client, equipo, make_impacto, published, acme
+    ):
         with tenant_context(acme):
             norte = GrupoImpactado.objects.get(name="Norte")
         impacto = make_impacto(grupo=norte)

@@ -56,8 +56,9 @@ class TenantManager(models.Manager):
 
 
 class TenantScopedModel(models.Model):
-    client = models.ForeignKey("core.Client", on_delete=models.PROTECT, related_name="+",
-                               editable=False)
+    client = models.ForeignKey(
+        "core.Client", on_delete=models.PROTECT, related_name="+", editable=False
+    )
 
     objects = TenantManager()
     unscoped = models.Manager()  # noqa: DJ012 (fields in subclasses come after these)
@@ -77,9 +78,7 @@ class TenantScopedModel(models.Model):
         if self.client_id is None:
             self.client = current
         elif self.client_id != current.pk:
-            raise NoCurrentClient(
-                f"{type(self).__name__} pertenece a otro cliente que el activo."
-            )
+            raise NoCurrentClient(f"{type(self).__name__} pertenece a otro cliente que el activo.")
 
 
 def assign_next_number(instance, field="numero"):

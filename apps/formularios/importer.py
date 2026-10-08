@@ -43,8 +43,10 @@ def read_rows(uploaded):
             wb = load_workbook(uploaded, read_only=True, data_only=True)
         except Exception:
             raise PeopleImportError(_("No se pudo leer el archivo Excel.")) from None
-        values = [["" if v is None else str(v).strip() for v in row]
-                  for row in wb.active.iter_rows(values_only=True)]
+        values = [
+            ["" if v is None else str(v).strip() for v in row]
+            for row in wb.active.iter_rows(values_only=True)
+        ]
     elif name.endswith(".csv"):
         raw = uploaded.read()
         for encoding in ("utf-8-sig", "latin-1"):
@@ -93,8 +95,10 @@ def parse(rows, mapping):
             errors.append(_("Fila %(n)s: correo no válido «%(e)s».") % {"n": line, "e": email})
             continue
         if email in seen:
-            errors.append(_("Fila %(n)s: correo repetido %(e)s (se usa la primera fila).")
-                          % {"n": line, "e": email})
+            errors.append(
+                _("Fila %(n)s: correo repetido %(e)s (se usa la primera fila).")
+                % {"n": line, "e": email}
+            )
             continue
         seen.add(email)
         rec["email"] = email
@@ -128,6 +132,11 @@ def apply(records, *, filename, user, group_field="", create_groups=False, error
             persona.save()
             updated += 1
     return Carga.objects.create(
-        archivo=filename, columna_grupo=group_field, filas=len(records) + len(errors),
-        creadas=created, actualizadas=updated, errores=list(errors), creada_por=user,
+        archivo=filename,
+        columna_grupo=group_field,
+        filas=len(records) + len(errors),
+        creadas=created,
+        actualizadas=updated,
+        errores=list(errors),
+        creada_por=user,
     )

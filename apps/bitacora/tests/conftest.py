@@ -11,8 +11,12 @@ def categoria(code):
 @pytest.fixture
 def make_ticket(acme, equipo):
     def make(cat="conocimiento", **kwargs):
-        data = {"titulo": "No encuentro el botón", "descripcion": "d",
-                "categoria": categoria(cat), "registrado_por": equipo}
+        data = {
+            "titulo": "No encuentro el botón",
+            "descripcion": "d",
+            "categoria": categoria(cat),
+            "registrado_por": equipo,
+        }
         data.update(kwargs)
         with tenant_context(acme):
             from apps.bitacora.models import Ticket
@@ -30,4 +34,3 @@ def login_as(client, member, acme):
         return user
 
     return login
-

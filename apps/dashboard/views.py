@@ -16,8 +16,9 @@ DATA_ROLES = (Role.ADMINISTRACION, Role.EQUIPO_CAMBIO)
 
 
 def _can_view(request):
-    return can(request.user, request.client, Module.DASHBOARD, Action.VIEW,
-               membership=request.membership)
+    return can(
+        request.user, request.client, Module.DASHBOARD, Action.VIEW, membership=request.membership
+    )
 
 
 def _can_load(request):
@@ -32,28 +33,43 @@ def index(request, client_slug):
     params = filtro.cleaned_data if filtro.is_valid() else {}
     ctx = ind.Ctx(request.client, tiempo=params.get("tiempo"), grupo=params.get("grupo"))
     tiles = ind.tiles(ctx)
-    frentes = [(code, label, [t for t in tiles if t.indicator.frente == code])
-               for code, label in ind.FRENTES]
+    frentes = [
+        (code, label, [t for t in tiles if t.indicator.frente == code])
+        for code, label in ind.FRENTES
+    ]
     readiness = ind.readiness_by_group(ctx)
     verde, amarillo = ind.threshold("tr_preparacion")
-    return render(request, "dashboard/index.html", {
-        "filtro": filtro,
-        "frentes": [f for f in frentes if f[2]],
-        "niveles": ind.NIVELES,
-        "alerts": ind.alerts(ctx),
-        "can_view_matrix": can(request.user, request.client, Module.MATRIZ, Action.VIEW,
-                               membership=request.membership),
-        "can_load": _can_load(request),
-        "chart_readiness": {
-            "rows": [{"label": r["grupo"].name,
-                      "value": float(r["value"]) if r["value"] is not None else None}
-                     for r in readiness],
-            "threshold": float(amarillo) if amarillo is not None else None,
+    return render(
+        request,
+        "dashboard/index.html",
+        {
+            "filtro": filtro,
+            "frentes": [f for f in frentes if f[2]],
+            "niveles": ind.NIVELES,
+            "alerts": ind.alerts(ctx),
+            "can_view_matrix": can(
+                request.user,
+                request.client,
+                Module.MATRIZ,
+                Action.VIEW,
+                membership=request.membership,
+            ),
+            "can_load": _can_load(request),
+            "chart_readiness": {
+                "rows": [
+                    {
+                        "label": r["grupo"].name,
+                        "value": float(r["value"]) if r["value"] is not None else None,
+                    }
+                    for r in readiness
+                ],
+                "threshold": float(amarillo) if amarillo is not None else None,
+            },
+            "readiness": readiness,
+            "chart_tickets": ind.tickets_by_type(ctx),
+            "querystring": request.GET.urlencode(),
         },
-        "readiness": readiness,
-        "chart_tickets": ind.tickets_by_type(ctx),
-        "querystring": request.GET.urlencode(),
-    })
+    )
 
 
 @client_member_required
@@ -68,11 +84,15 @@ def datos(request, client_slug):
         valor.save()
         messages.success(request, _("Dato guardado."))
         return redirect("dashboard:datos", client_slug=client_slug)
-    return render(request, "dashboard/datos.html", {
-        "form": form,
-        "valores": ValorManual.objects.select_related("grupo", "cargado_por")[:100],
-        "names": {i.key: i.nombre for i in ind.INDICATORS},
-    })
+    return render(
+        request,
+        "dashboard/datos.html",
+        {
+            "form": form,
+            "valores": ValorManual.objects.select_related("grupo", "cargado_por")[:100],
+            "names": {i.key: i.nombre for i in ind.INDICATORS},
+        },
+    )
 
 
 @client_member_required
@@ -92,7 +112,8 @@ def indicadores(request, client_slug):
     rows = []
     for i in ind.INDICATORS:
         instance = existing.get(i.key) or IndicadorConfig(
-            key=i.key, verde=i.verde, amarillo=i.amarillo, frecuencia=str(i.frecuencia))
+            key=i.key, verde=i.verde, amarillo=i.amarillo, frecuencia=str(i.frecuencia)
+        )
         rows.append((i, IndicadorConfigForm(instance=instance, indicator=i, prefix=i.key)))
     return render(request, "dashboard/indicadores.html", {"rows": rows})
 

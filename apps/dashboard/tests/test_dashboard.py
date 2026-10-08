@@ -36,8 +36,12 @@ def ctx(acme, **kw):
 
 
 def act(acme, equipo, frente, **kw):
-    data = {"titulo": "a", "frente": item("frente", frente), "registrado_por": equipo,
-            "fecha_planificada": datetime.date(2026, 10, 1)}
+    data = {
+        "titulo": "a",
+        "frente": item("frente", frente),
+        "registrado_por": equipo,
+        "fecha_planificada": datetime.date(2026, 10, 1),
+    }
     grupos = kw.pop("grupos", [])
     impactos = kw.pop("impactos", [])
     data.update(kw)
@@ -68,11 +72,18 @@ class TestRutaIndicators:
         with tenant_context(acme):
             norte = GrupoImpactado.objects.create(name="Norte")
             GrupoImpactado.objects.create(name="Sur")
-        act(acme, equipo, "comunicacion", estado="completado",
-            fecha_real=datetime.date(2026, 10, 1), grupos=[norte])     # on time
-        act(acme, equipo, "comunicacion", estado="completado",
-            fecha_real=datetime.date(2026, 10, 9))                     # late
-        act(acme, equipo, "comunicacion")                              # not done
+        act(
+            acme,
+            equipo,
+            "comunicacion",
+            estado="completado",
+            fecha_real=datetime.date(2026, 10, 1),
+            grupos=[norte],
+        )  # on time
+        act(
+            acme, equipo, "comunicacion", estado="completado", fecha_real=datetime.date(2026, 10, 9)
+        )  # late
+        act(acme, equipo, "comunicacion")  # not done
         act(acme, equipo, "comunicacion", fecha_planificada=datetime.date(2026, 12, 1))
         act(acme, equipo, "comunicacion", no_planificada=True, fecha_planificada=None)
         with tenant_context(acme):
@@ -90,9 +101,14 @@ class TestPeopleIndicators:
             for i in range(n):
                 p = Persona.objects.create(email=f"p{i}@x.com", grupo=g)
                 e = Enlace.objects.create(cuestionario=c, persona=p)
-                Respuesta.objects.create(enlace=e, intento=1, elecciones={},
-                                         puntos_por_pregunta={}, puntaje=D(90),
-                                         aprobado=i < passed)
+                Respuesta.objects.create(
+                    enlace=e,
+                    intento=1,
+                    elecciones={},
+                    puntos_por_pregunta={},
+                    puntaje=D(90),
+                    aprobado=i < passed,
+                )
         return g
 
     def test_verification_respects_minimum_group_size(self, acme, equipo):
@@ -114,33 +130,50 @@ class TestPeopleIndicators:
     def test_certification(self, acme, equipo, make_impacto):
         g = self.setup_people(acme, equipo, 5, 5)
         with tenant_context(acme):
-            lista = ListaObservacion.objects.create(impacto=make_impacto(grupo=g),
-                                                    titulo="l", creada_por=equipo)
+            lista = ListaObservacion.objects.create(
+                impacto=make_impacto(grupo=g), titulo="l", creada_por=equipo
+            )
             for i, p in enumerate(Persona.objects.all()):
-                Evaluacion.objects.create(lista=lista, persona=p, lider=equipo,
-                                          estado=EstadoCertificacion.CERTIFICADO if i < 4
-                                          else EstadoCertificacion.EN_REFUERZO)
+                Evaluacion.objects.create(
+                    lista=lista,
+                    persona=p,
+                    lider=equipo,
+                    estado=EstadoCertificacion.CERTIFICADO
+                    if i < 4
+                    else EstadoCertificacion.EN_REFUERZO,
+                )
             assert ind.for_certificacion(ctx(acme)).value == D(80)
 
     def test_tickets_per_100(self, acme, equipo):
         g = self.setup_people(acme, equipo, 0, 0)
         with tenant_context(acme):
             for _ in range(3):
-                Ticket.objects.create(titulo="t", descripcion="d", grupo=g,
-                                      categoria=item("categoria_ticket", "tecnico"),
-                                      registrado_por=equipo)
+                Ticket.objects.create(
+                    titulo="t",
+                    descripcion="d",
+                    grupo=g,
+                    categoria=item("categoria_ticket", "tecnico"),
+                    registrado_por=equipo,
+                )
             assert ind.mov_tickets(ctx(acme)).value == D("6.0")
 
 
 class TestTrafficLight:
     def tile(self, key, value, **cfg):
         i = ind.BY_KEY[key]
-        return ind.Tile(i, ind.Result(D(value)), verde=cfg.get("verde", i.verde),
-                        amarillo=cfg.get("amarillo", i.amarillo), responsable="",
-                        frecuencia="")
+        return ind.Tile(
+            i,
+            ind.Result(D(value)),
+            verde=cfg.get("verde", i.verde),
+            amarillo=cfg.get("amarillo", i.amarillo),
+            responsable="",
+            frecuencia="",
+        )
 
-    @pytest.mark.parametrize(("value", "status"), [(95, "good"), (90, "good"), (80, "warning"),
-                                                   (70, "warning"), (69, "critical")])
+    @pytest.mark.parametrize(
+        ("value", "status"),
+        [(95, "good"), (90, "good"), (80, "warning"), (70, "warning"), (69, "critical")],
+    )
     def test_higher_is_better(self, value, status):
         assert self.tile("imp_con_plan", value).status == status
 
@@ -159,8 +192,7 @@ class TestPages:
         client.force_login(user)
         assert client.get(URL).status_code == 403
 
-    def test_sponsor_sees_dashboard_without_loading_data(self, client, member, acme,
-                                                         make_impacto):
+    def test_sponsor_sees_dashboard_without_loading_data(self, client, member, acme, make_impacto):
         make_impacto(complete=True, magnitud=4, probabilidad=4, severidad=4)
         user, _ = member(Role.PATROCINADOR, client=acme, email="pmo@x.com")
         client.force_login(user)
@@ -173,16 +205,25 @@ class TestPages:
         with tenant_context(acme):
             g = GrupoImpactado.objects.create(name="Norte")
         client.force_login(equipo)
-        body = client.get(f"{URL}?grupo={g.pk}&tiempo={item('tiempo', 'cumbre').pk}") \
-            .content.decode()
+        body = client.get(
+            f"{URL}?grupo={g.pk}&tiempo={item('tiempo', 'cumbre').pk}"
+        ).content.decode()
         assert 'id="data-readiness"' in body and 'id="data-tickets"' in body
 
     def test_manual_values(self, client, equipo, acme):
         client.force_login(equipo)
-        client.post(f"{URL}datos/", {"key": "tr_usuarios_activos", "fecha": "2026-10-01",
-                                     "valor": "72", "nota": "Informe TI"})
-        client.post(f"{URL}datos/", {"key": "tr_usuarios_activos", "fecha": "2026-10-08",
-                                     "valor": "85"})
+        client.post(
+            f"{URL}datos/",
+            {
+                "key": "tr_usuarios_activos",
+                "fecha": "2026-10-01",
+                "valor": "72",
+                "nota": "Informe TI",
+            },
+        )
+        client.post(
+            f"{URL}datos/", {"key": "tr_usuarios_activos", "fecha": "2026-10-08", "valor": "85"}
+        )
         with tenant_context(acme):
             assert ind.manual(ctx(acme), "tr_usuarios_activos").value == D(85)
             assert ValorManual.objects.count() == 2
@@ -193,12 +234,20 @@ class TestPages:
         admin, _ = member(Role.ADMINISTRACION, client=acme, email="adm@x.com")
         client.force_login(admin)
         assert client.get(f"{URL}indicadores/").status_code == 200
-        client.post(f"{URL}indicadores/com_a_tiempo/",
-                    {"com_a_tiempo-verde": "95", "com_a_tiempo-amarillo": "85",
-                     "com_a_tiempo-responsable": "Comunicaciones",
-                     "com_a_tiempo-frecuencia": "Semanal", "com_a_tiempo-activo": "on"})
-        client.post(f"{URL}indicadores/tr_diagnostico/",
-                    {"tr_diagnostico-responsable": "", "tr_diagnostico-frecuencia": ""})
+        client.post(
+            f"{URL}indicadores/com_a_tiempo/",
+            {
+                "com_a_tiempo-verde": "95",
+                "com_a_tiempo-amarillo": "85",
+                "com_a_tiempo-responsable": "Comunicaciones",
+                "com_a_tiempo-frecuencia": "Semanal",
+                "com_a_tiempo-activo": "on",
+            },
+        )
+        client.post(
+            f"{URL}indicadores/tr_diagnostico/",
+            {"tr_diagnostico-responsable": "", "tr_diagnostico-frecuencia": ""},
+        )
         with tenant_context(acme):
             cfg = IndicadorConfig.objects.get(key="com_a_tiempo")
             assert (cfg.verde, cfg.amarillo, cfg.responsable) == (D(95), D(85), "Comunicaciones")
@@ -209,9 +258,15 @@ class TestPages:
     def test_inverted_thresholds_rejected(self, client, member, acme):
         admin, _ = member(Role.ADMINISTRACION, client=acme, email="adm@x.com")
         client.force_login(admin)
-        r = client.post(f"{URL}indicadores/com_a_tiempo/",
-                        {"com_a_tiempo-verde": "60", "com_a_tiempo-amarillo": "80",
-                         "com_a_tiempo-activo": "on"}, follow=True)
+        r = client.post(
+            f"{URL}indicadores/com_a_tiempo/",
+            {
+                "com_a_tiempo-verde": "60",
+                "com_a_tiempo-amarillo": "80",
+                "com_a_tiempo-activo": "on",
+            },
+            follow=True,
+        )
         assert "entre el umbral rojo y el verde" in r.content.decode()
 
     def test_only_administracion_configures(self, client, equipo):

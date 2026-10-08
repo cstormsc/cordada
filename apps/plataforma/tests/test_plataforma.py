@@ -31,9 +31,14 @@ def test_empty_platform_invites_creating_the_first_client(admin_client):
 
 
 def test_create_client_with_generated_slug_and_all_modules(admin_client, platform_admin):
-    response = admin_client.post("/plataforma/clientes/nuevo/", {
-        "name": "Banco Ñandú", "slug": "", "enabled_modules": list(Module.values),
-    })
+    response = admin_client.post(
+        "/plataforma/clientes/nuevo/",
+        {
+            "name": "Banco Ñandú",
+            "slug": "",
+            "enabled_modules": list(Module.values),
+        },
+    )
     client = Client.objects.get()
     assert response.url == "/plataforma/clientes/banco-nandu/"
     assert client.slug == "banco-nandu"
@@ -52,9 +57,14 @@ def test_reserved_and_duplicate_slugs_are_rejected(admin_client, make_client):
 
 def test_edit_modules_and_deactivate_without_changing_slug(admin_client, make_client):
     make_client("acme")
-    admin_client.post("/plataforma/clientes/acme/", {
-        "name": "Acme SA", "slug": "otro", "enabled_modules": ["matriz", "ruta"],
-    })
+    admin_client.post(
+        "/plataforma/clientes/acme/",
+        {
+            "name": "Acme SA",
+            "slug": "otro",
+            "enabled_modules": ["matriz", "ruta"],
+        },
+    )
     client = Client.objects.get()
     assert (client.name, client.slug, client.is_active) == ("Acme SA", "acme", False)
     assert client.enabled_modules == ["matriz", "ruta"]
@@ -63,17 +73,24 @@ def test_edit_modules_and_deactivate_without_changing_slug(admin_client, make_cl
 
 def test_invite_new_person_end_to_end(admin_client, make_client, client):
     make_client("acme")
-    admin_client.post("/plataforma/clientes/acme/invitar/",
-                      {"email": "Lucia@Example.com", "role": Role.EQUIPO_CAMBIO})
+    admin_client.post(
+        "/plataforma/clientes/acme/invitar/",
+        {"email": "Lucia@Example.com", "role": Role.EQUIPO_CAMBIO},
+    )
     assert mail.outbox[-1].to == ["lucia@example.com"]
     link = invite_link()
     assert Invitation.objects.get().token_hash not in link  # only the hash is stored
 
     client.logout()
-    response = client.post(link, {
-        "first_name": "Lucía", "last_name": "Pérez",
-        "password1": "una-clave-larga-9", "password2": "una-clave-larga-9",
-    })
+    response = client.post(
+        link,
+        {
+            "first_name": "Lucía",
+            "last_name": "Pérez",
+            "password1": "una-clave-larga-9",
+            "password2": "una-clave-larga-9",
+        },
+    )
     assert response.url == "/c/acme/"
     user = User.objects.get(email="lucia@example.com")
     assert user.memberships.get().role == Role.EQUIPO_CAMBIO
@@ -84,12 +101,12 @@ def test_invite_new_person_end_to_end(admin_client, make_client, client):
     assert client.get(link).status_code == 410
 
 
-def test_existing_account_must_log_in_as_the_invitee(admin_client, make_client, make_user,
-                                                     client):
+def test_existing_account_must_log_in_as_the_invitee(admin_client, make_client, make_user, client):
     make_client("acme")
     lucia = make_user("lucia@example.com")
-    admin_client.post("/plataforma/clientes/acme/invitar/",
-                      {"email": "lucia@example.com", "role": Role.GUIA})
+    admin_client.post(
+        "/plataforma/clientes/acme/invitar/", {"email": "lucia@example.com", "role": Role.GUIA}
+    )
     link = invite_link()
 
     client.logout()
@@ -106,15 +123,17 @@ def test_existing_account_must_log_in_as_the_invitee(admin_client, make_client, 
 def test_reinviting_replaces_the_pending_invitation(admin_client, make_client):
     make_client("acme")
     for role in (Role.GUIA, Role.CAPITAN):
-        admin_client.post("/plataforma/clientes/acme/invitar/",
-                          {"email": "a@example.com", "role": role})
+        admin_client.post(
+            "/plataforma/clientes/acme/invitar/", {"email": "a@example.com", "role": role}
+        )
     assert list(Invitation.objects.pending().values_list("role", flat=True)) == [Role.CAPITAN]
 
 
 def test_revoked_invitation_no_longer_works(admin_client, make_client, client):
     make_client("acme")
-    admin_client.post("/plataforma/clientes/acme/invitar/",
-                      {"email": "a@example.com", "role": Role.GUIA})
+    admin_client.post(
+        "/plataforma/clientes/acme/invitar/", {"email": "a@example.com", "role": Role.GUIA}
+    )
     link = invite_link()
     inv = Invitation.objects.get()
     admin_client.post(f"/plataforma/clientes/acme/invitaciones/{inv.pk}/anular/")
@@ -124,8 +143,9 @@ def test_revoked_invitation_no_longer_works(admin_client, make_client, client):
 
 def test_cannot_invite_an_existing_member(admin_client, member):
     member(Role.GUIA, email="ya@example.com")
-    response = admin_client.post("/plataforma/clientes/acme/invitar/",
-                                 {"email": "ya@example.com", "role": Role.CAPITAN})
+    response = admin_client.post(
+        "/plataforma/clientes/acme/invitar/", {"email": "ya@example.com", "role": Role.CAPITAN}
+    )
     assert response.status_code == 400
     assert not mail.outbox
 
@@ -165,8 +185,10 @@ class TestSystemCatalogAdmin:
         from apps.catalogs.models import SystemCatalogItem
 
         for _ in range(2):
-            admin_client.post("/plataforma/catalogos/origen/nuevo/",
-                              {"label": "Diagnóstico inicial", "order": 1, "is_active": "on"})
+            admin_client.post(
+                "/plataforma/catalogos/origen/nuevo/",
+                {"label": "Diagnóstico inicial", "order": 1, "is_active": "on"},
+            )
         codes = SystemCatalogItem.objects.of("origen").values_list("code", flat=True)
         assert sorted(codes) == ["diagnostico_inicial", "diagnostico_inicial_2"]
 
@@ -174,12 +196,21 @@ class TestSystemCatalogAdmin:
         from apps.catalogs.models import SystemCatalogItem
 
         item = SystemCatalogItem.objects.get(catalog="tipo_impacto", code="cultura")
-        admin_client.post(f"/plataforma/catalogos/tipo_impacto/{item.pk}/",
-                          {"label": "Cultura organizacional", "help_text": "Ayuda",
-                           "order": 5, "is_active": "on"})
+        admin_client.post(
+            f"/plataforma/catalogos/tipo_impacto/{item.pk}/",
+            {
+                "label": "Cultura organizacional",
+                "help_text": "Ayuda",
+                "order": 5,
+                "is_active": "on",
+            },
+        )
         item.refresh_from_db()
-        assert (item.code, item.label, item.help_text) == ("cultura", "Cultura organizacional",
-                                                           "Ayuda")
+        assert (item.code, item.label, item.help_text) == (
+            "cultura",
+            "Cultura organizacional",
+            "Ayuda",
+        )
 
     def test_unknown_catalog_is_404(self, admin_client):
         assert admin_client.get("/plataforma/catalogos/nada/nuevo/").status_code == 404
@@ -206,15 +237,19 @@ class TestSystemCatalogAdmin:
     def test_saving_a_pending_scale_empty_keeps_it_pending(self, admin_client):
         from apps.catalogs.models import Scale
 
-        admin_client.post("/plataforma/escalas/preparacion/",
-                          self.scale_post([""] * 4, name="Preparación del grupo"))
+        admin_client.post(
+            "/plataforma/escalas/preparacion/",
+            self.scale_post([""] * 4, name="Preparación del grupo"),
+        )
         assert not Scale.objects.get(code="preparacion").levels.exists()
 
     def test_add_definitions_to_magnitude(self, admin_client):
         from apps.catalogs.models import Scale
 
         defs = ["Ajuste menor", "Cambia tareas", "Cambia el rol", "Transforma el trabajo"]
-        admin_client.post("/plataforma/escalas/magnitud/", self.scale_post(
-            ["Leve", "Moderado", "Alto", "Profundo"], defs, name="Magnitud"))
+        admin_client.post(
+            "/plataforma/escalas/magnitud/",
+            self.scale_post(["Leve", "Moderado", "Alto", "Profundo"], defs, name="Magnitud"),
+        )
         scale = Scale.objects.get(code="magnitud")
         assert [lvl.definition for lvl in scale.levels.all()] == defs

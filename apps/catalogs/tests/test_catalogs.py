@@ -33,11 +33,14 @@ class TestSeededSystemCatalogs:
     def test_origin_is_still_to_be_defined(self):
         assert self.codes(SystemCatalog.ORIGEN) == []
 
-    @pytest.mark.parametrize(("code", "labels"), [
-        ("magnitud", ["Leve", "Moderado", "Alto", "Profundo"]),
-        ("probabilidad", ["Improbable", "Posible", "Probable", "Casi segura"]),
-        ("severidad", ["Menor", "Notable", "Mayor", "Extrema"]),
-    ])
+    @pytest.mark.parametrize(
+        ("code", "labels"),
+        [
+            ("magnitud", ["Leve", "Moderado", "Alto", "Profundo"]),
+            ("probabilidad", ["Improbable", "Posible", "Probable", "Casi segura"]),
+            ("severidad", ["Menor", "Notable", "Mayor", "Extrema"]),
+        ],
+    )
     def test_defined_scales(self, code, labels):
         scale = Scale.objects.get(code=code)
         assert [lvl.label for lvl in scale.levels.all()] == labels
@@ -52,8 +55,10 @@ class TestSeededSystemCatalogs:
 class TestSystemCatalogField:
     def test_rejects_items_from_another_catalog(self, make_client):
         with tenant_context(make_client()):
-            note = Note(text="x", tipo=SystemCatalogItem.objects.get(
-                catalog=SystemCatalog.TIEMPO, code="cumbre"))
+            note = Note(
+                text="x",
+                tipo=SystemCatalogItem.objects.get(catalog=SystemCatalog.TIEMPO, code="cumbre"),
+            )
             with pytest.raises(ValidationError):
                 note.full_clean(exclude=["client"])
 
@@ -117,7 +122,10 @@ class TestClientConfigViews:
         client.post(edit, {"toggle": "1"})
         grupo.refresh_from_db()
         assert (grupo.name, grupo.description, grupo.is_active) == (
-            "Cobranza", "Equipo de cobranza", False)
+            "Cobranza",
+            "Equipo de cobranza",
+            False,
+        )
         assert grupo.client == admin
 
     def test_duplicate_name_is_a_form_error(self, client, admin):

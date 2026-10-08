@@ -50,8 +50,7 @@ def test_technical_tickets_are_not_resolved_without_it(make_ticket, acme, equipo
         go(t, E.RESUELTO, equipo, GUIA)
 
 
-def test_severe_failure_goes_straight_to_it_and_is_validated_in_parallel(make_ticket, acme,
-                                                                         equipo):
+def test_severe_failure_goes_straight_to_it_and_is_validated_in_parallel(make_ticket, acme, equipo):
     t = make_ticket("tecnico", urgencia=Urgencia.GRAVE)
     with tenant_context(acme):
         go(t, E.DERIVADO_TI, equipo, CAPITAN)  # the captain who registered it
@@ -85,15 +84,18 @@ def test_reopen_clears_resolution(make_ticket, acme, equipo):
         assert t.resuelto_at is None
 
 
-@pytest.mark.parametrize(("estado", "actions", "expected"), [
-    (E.NUEVO, CAPITAN, [E.DERIVADO_TI]),
-    (E.NUEVO, GUIA, [E.EN_CLASIFICACION, E.DERIVADO_TI]),
-    (E.NUEVO, TECNICO, []),
-    (E.DERIVADO_TI, GUIA, []),
-    (E.DERIVADO_TI, TECNICO, [E.RESUELTO, E.EN_CLASIFICACION]),
-    (E.RESUELTO, TECNICO, []),
-    (E.CERRADO, GUIA, []),
-])
+@pytest.mark.parametrize(
+    ("estado", "actions", "expected"),
+    [
+        (E.NUEVO, CAPITAN, [E.DERIVADO_TI]),
+        (E.NUEVO, GUIA, [E.EN_CLASIFICACION, E.DERIVADO_TI]),
+        (E.NUEVO, TECNICO, []),
+        (E.DERIVADO_TI, GUIA, []),
+        (E.DERIVADO_TI, TECNICO, [E.RESUELTO, E.EN_CLASIFICACION]),
+        (E.RESUELTO, TECNICO, []),
+        (E.CERRADO, GUIA, []),
+    ],
+)
 def test_who_can_take_each_step(make_ticket, estado, actions, expected):
     t = make_ticket("tecnico", estado=estado)
     assert [s.target for s in workflow.available(t, actions)] == expected

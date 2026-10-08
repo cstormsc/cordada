@@ -25,7 +25,9 @@ class ClientCatalogForm(forms.ModelForm):
 
 def client_catalog_form(model, fields):
     form = forms.modelform_factory(
-        model, form=ClientCatalogForm, fields=fields,
+        model,
+        form=ClientCatalogForm,
+        fields=fields,
         widgets={"description": forms.Textarea(attrs={"rows": 2})},
     )
     form.unique_together_fields = ("name", "kind") if "kind" in fields else ("name",)
@@ -73,8 +75,9 @@ def scale_level_forms(scale, data=None):
     """Always four forms, one per value; unsaved levels are created on save."""
     existing = {lvl.value: lvl for lvl in scale.levels.all()}
     return [
-        ScaleLevelForm(data, prefix=f"nivel{v}",
-                       instance=existing.get(v) or ScaleLevel(scale=scale, value=v))
+        ScaleLevelForm(
+            data, prefix=f"nivel{v}", instance=existing.get(v) or ScaleLevel(scale=scale, value=v)
+        )
         for v in range(1, 5)
     ]
 

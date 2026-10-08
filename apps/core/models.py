@@ -41,8 +41,10 @@ class User(AbstractUser):
     is_platform_admin = models.BooleanField(
         _("administrador de plataforma"),
         default=False,
-        help_text=_("Puede crear y configurar clientes e invitar usuarios. "
-                    "No da acceso a los datos de los clientes."),
+        help_text=_(
+            "Puede crear y configurar clientes e invitar usuarios. "
+            "No da acceso a los datos de los clientes."
+        ),
     )
 
     USERNAME_FIELD = "email"
@@ -85,7 +87,9 @@ def all_modules():
 class Client(models.Model):
     name = models.CharField(_("nombre"), max_length=200)
     slug = models.SlugField(
-        _("identificador"), max_length=60, unique=True,
+        _("identificador"),
+        max_length=60,
+        unique=True,
         help_text=_("Se usa en la dirección web del espacio: /c/<identificador>/"),
     )
     is_active = models.BooleanField(_("activo"), default=True)
@@ -96,13 +100,19 @@ class Client(models.Model):
         blank=True,
     )
     tamano_minimo_grupo = models.PositiveSmallIntegerField(
-        _("tamaño mínimo de grupo"), default=5,
-        help_text=_("En las vistas agregadas, los grupos con menos respuestas que este número "
-                    "no muestran resultados, para que nadie pueda ser identificado."),
+        _("tamaño mínimo de grupo"),
+        default=5,
+        help_text=_(
+            "En las vistas agregadas, los grupos con menos respuestas que este número "
+            "no muestran resultados, para que nadie pueda ser identificado."
+        ),
     )
     created_at = models.DateTimeField(_("creado"), auto_now_add=True)
     created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="+",
     )
 
@@ -139,10 +149,13 @@ class Membership(models.Model):
     is_active = models.BooleanField(_("activa"), default=True)
     created_at = models.DateTimeField(_("creada"), auto_now_add=True)
     grupos = models.ManyToManyField(
-        "catalogs.GrupoImpactado", blank=True, related_name="miembros",
+        "catalogs.GrupoImpactado",
+        blank=True,
+        related_name="miembros",
         verbose_name=_("grupos"),
-        help_text=_("Grupos impactados que acompaña. Un capitán solo ve las actividades "
-                    "de sus grupos."),
+        help_text=_(
+            "Grupos impactados que acompaña. Un capitán solo ve las actividades de sus grupos."
+        ),
     )
 
     history = HistoricalRecords(m2m_fields=[grupos])
@@ -164,8 +177,9 @@ def _hash_token(token):
 
 class InvitationQuerySet(models.QuerySet):
     def pending(self):
-        return self.filter(accepted_at__isnull=True, revoked_at__isnull=True,
-                           expires_at__gt=timezone.now())
+        return self.filter(
+            accepted_at__isnull=True, revoked_at__isnull=True, expires_at__gt=timezone.now()
+        )
 
     def get_by_token(self, token):
         return self.get(token_hash=_hash_token(token))
@@ -212,5 +226,8 @@ class Invitation(models.Model):
 
     @property
     def is_pending(self):
-        return (self.accepted_at is None and self.revoked_at is None
-                and self.expires_at > timezone.now())
+        return (
+            self.accepted_at is None
+            and self.revoked_at is None
+            and self.expires_at > timezone.now()
+        )

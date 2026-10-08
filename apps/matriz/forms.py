@@ -67,7 +67,9 @@ class BaseImpactoForm(forms.ModelForm):
     # Tenant-scoped choices are declared here and filled in __init__, because the
     # generated fields would query before any client is active.
     grupo = forms.ModelChoiceField(
-        label=_("Grupo impactado"), queryset=GrupoImpactado.unscoped.none(), required=False,
+        label=_("Grupo impactado"),
+        queryset=GrupoImpactado.unscoped.none(),
+        required=False,
     )
 
     sections: list[tuple[str, list[str]]] = []
@@ -112,13 +114,23 @@ class ProposalForm(BaseImpactoForm):
     class Meta:
         model = Impacto
         fields = [
-            "titulo", "descripcion", "situacion_actual", "situacion_futura", "origen",
-            "tipo", "tiempo", "grupo", "grupo_sugerido", "personas_impactadas",
+            "titulo",
+            "descripcion",
+            "situacion_actual",
+            "situacion_futura",
+            "origen",
+            "tipo",
+            "tiempo",
+            "grupo",
+            "grupo_sugerido",
+            "personas_impactadas",
         ]
 
     sections = [
-        (_("Identificación"), ["titulo", "descripcion", "situacion_actual", "situacion_futura",
-                               "origen"]),
+        (
+            _("Identificación"),
+            ["titulo", "descripcion", "situacion_actual", "situacion_futura", "origen"],
+        ),
         (_("Clasificación"), ["tipo", "tiempo"]),
         (_("Quién"), ["grupo", "grupo_sugerido", "personas_impactadas"]),
     ]
@@ -131,28 +143,50 @@ class ProposalForm(BaseImpactoForm):
 
 
 IMPACTO_SECTIONS = [
-    (_("Identificación"), ["titulo", "descripcion", "situacion_actual", "situacion_futura",
-                           "origen"]),
+    (
+        _("Identificación"),
+        ["titulo", "descripcion", "situacion_actual", "situacion_futura", "origen"],
+    ),
     (_("Clasificación"), ["tipo", "tiempo"]),
     (_("Quién"), ["grupo", "personas_impactadas"]),
     (_("Evaluación"), ["magnitud", "resistencia", "preparacion"]),
     (_("Riesgo"), ["riesgo_descripcion", "probabilidad", "severidad"]),
-    (_("Derivación"), ["requiere_comunicacion", "requiere_movilizacion", "requiere_formacion",
-                       "tipo_cambio_conocimiento", "formacion_criticidad", "formacion_momento"]),
-    (_("Mitigación y acción"), ["medida", "responsable", "responsable_categoria",
-                                "fecha_compromiso"]),
-    (_("Criterio de cierre"), ["criterio_evidencia", "criterio_meta", "criterio_descripcion",
-                               "requiere_certificacion_lider"]),
+    (
+        _("Derivación"),
+        [
+            "requiere_comunicacion",
+            "requiere_movilizacion",
+            "requiere_formacion",
+            "tipo_cambio_conocimiento",
+            "formacion_criticidad",
+            "formacion_momento",
+        ],
+    ),
+    (
+        _("Mitigación y acción"),
+        ["medida", "responsable", "responsable_categoria", "fecha_compromiso"],
+    ),
+    (
+        _("Criterio de cierre"),
+        [
+            "criterio_evidencia",
+            "criterio_meta",
+            "criterio_descripcion",
+            "requiere_certificacion_lider",
+        ],
+    ),
 ]
 
 
 class ImpactoForm(BaseImpactoForm):
     """Full form, for roles that edit the matrix."""
 
-    responsable = MemberChoiceField(label=_("Responsable"), queryset=User.objects.none(),
-                                    required=False)
+    responsable = MemberChoiceField(
+        label=_("Responsable"), queryset=User.objects.none(), required=False
+    )
     responsable_categoria = forms.ModelChoiceField(
-        label=_("Categoría del responsable"), queryset=CategoriaResponsable.unscoped.none(),
+        label=_("Categoría del responsable"),
+        queryset=CategoriaResponsable.unscoped.none(),
         required=False,
     )
 
@@ -168,7 +202,8 @@ class ImpactoForm(BaseImpactoForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["responsable"].queryset = User.objects.filter(
-            memberships__client=self.client, memberships__is_active=True,
+            memberships__client=self.client,
+            memberships__is_active=True,
         ).order_by("first_name", "email")
         self.fields["responsable_categoria"].queryset = active_or_current(
             CategoriaResponsable.objects.all(), self.instance.responsable_categoria_id
@@ -193,8 +228,7 @@ class PriorityOverrideForm(forms.ModelForm):
         cleaned = super().clean()
         if cleaned.get("prioridad_ajustada"):
             if not (cleaned.get("prioridad_justificacion") or "").strip():
-                self.add_error("prioridad_justificacion",
-                               _("Justifica el ajuste de prioridad."))
+                self.add_error("prioridad_justificacion", _("Justifica el ajuste de prioridad."))
         else:
             cleaned["prioridad_justificacion"] = ""
         return cleaned
@@ -231,16 +265,23 @@ class FiltroForm(forms.Form):
     ]
 
     q = forms.CharField(label=_("Buscar"), required=False)
-    estado = forms.ChoiceField(label=_("Estado"), required=False,
-                               choices=[("", _("Todos")), *Estado.choices])
-    prioridad = forms.ChoiceField(label=_("Prioridad"), required=False,
-                                  choices=[("", _("Todas")),
-                                           *[(p.value, p.label) for p in rules.Priority]])
-    grupo = forms.ModelChoiceField(label=_("Grupo"), required=False,
-                                   queryset=GrupoImpactado.unscoped.none(),
-                                   empty_label=_("Todos"))
-    tiempo = forms.ModelChoiceField(label=_("Tiempo"), required=False, queryset=None,
-                                    empty_label=_("Todos"))
+    estado = forms.ChoiceField(
+        label=_("Estado"), required=False, choices=[("", _("Todos")), *Estado.choices]
+    )
+    prioridad = forms.ChoiceField(
+        label=_("Prioridad"),
+        required=False,
+        choices=[("", _("Todas")), *[(p.value, p.label) for p in rules.Priority]],
+    )
+    grupo = forms.ModelChoiceField(
+        label=_("Grupo"),
+        required=False,
+        queryset=GrupoImpactado.unscoped.none(),
+        empty_label=_("Todos"),
+    )
+    tiempo = forms.ModelChoiceField(
+        label=_("Tiempo"), required=False, queryset=None, empty_label=_("Todos")
+    )
     alerta = forms.ChoiceField(label=_("Alertas"), required=False, choices=ALERTAS)
 
     def __init__(self, *args, **kwargs):

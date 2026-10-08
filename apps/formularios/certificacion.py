@@ -53,8 +53,7 @@ def save_results(evaluacion, resultados, observaciones, criterio_ids):
     Complete → aplicado, waiting for the signed summary."""
     if evaluacion.estado not in EDITABLE:
         return False
-    evaluacion.resultados = {**evaluacion.resultados,
-                             **{str(k): v for k, v in resultados.items()}}
+    evaluacion.resultados = {**evaluacion.resultados, **{str(k): v for k, v in resultados.items()}}
     if observaciones is not None:
         evaluacion.observaciones = observaciones
     complete = all(str(cid) in evaluacion.resultados for cid in criterio_ids)
@@ -73,8 +72,7 @@ def register_signed_summary(lista, leader, form, *, notify_request=None):
     acta = form.save_for(leader, lista=lista, lider=leader)
     criterio_ids = list(lista.criterios.values_list("pk", flat=True))
     refuerzo = []
-    for ev in lista.evaluaciones.filter(lider=leader, estado=E.APLICADO).select_related(
-            "persona"):
+    for ev in lista.evaluaciones.filter(lider=leader, estado=E.APLICADO).select_related("persona"):
         ev.estado = E.CERTIFICADO if ev.cumple_todo(criterio_ids) else E.EN_REFUERZO
         ev.acta = acta
         ev.save()
@@ -90,15 +88,22 @@ def notify_guides(request, lista, personas):
     grupos = {p.grupo_id for p in personas if p.grupo_id}
     guides = Membership.objects.filter(client=lista.client, role=Role.GUIA, is_active=True)
     targeted = guides.filter(grupos__in=grupos).distinct() if grupos else guides.none()
-    emails = sorted({m.user.email for m in (targeted if targeted.exists() else guides)
-                     .select_related("user")})
+    emails = sorted(
+        {m.user.email for m in (targeted if targeted.exists() else guides).select_related("user")}
+    )
     if not emails:
         return
-    body = render_to_string("formularios/email/refuerzo.txt", {
-        "lista": lista, "personas": personas, "client": lista.client,
-        "url": request.build_absolute_uri(f"/c/{lista.client.slug}/formularios/listas/"
-                                          f"{lista.pk}/seguimiento/"),
-    })
+    body = render_to_string(
+        "formularios/email/refuerzo.txt",
+        {
+            "lista": lista,
+            "personas": personas,
+            "client": lista.client,
+            "url": request.build_absolute_uri(
+                f"/c/{lista.client.slug}/formularios/listas/{lista.pk}/seguimiento/"
+            ),
+        },
+    )
     send_mail(f"Refuerzo · {lista.impacto.codigo} · {lista.client.name}", body, None, emails)
 
 
@@ -108,4 +113,3 @@ def summary(lista):
         counts[estado] += 1
     counts["evaluados"] = counts[E.CERTIFICADO] + counts[E.EN_REFUERZO]
     return counts
-

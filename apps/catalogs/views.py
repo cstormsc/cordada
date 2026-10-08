@@ -21,8 +21,10 @@ CLIENT_CATALOGS = {
     "grupos": (
         GrupoImpactado,
         client_catalog_form(GrupoImpactado, ["name", "description", "personas", "order"]),
-        gettext_lazy("Grupos de personas a los que afecta el cambio. Agrupan impactos, "
-                     "actividades, tickets y resultados."),
+        gettext_lazy(
+            "Grupos de personas a los que afecta el cambio. Agrupan impactos, "
+            "actividades, tickets y resultados."
+        ),
     ),
     "unidades": (
         UnidadOrganizacional,
@@ -30,16 +32,21 @@ CLIENT_CATALOGS = {
         gettext_lazy("Áreas, oficinas, sucursales y departamentos del cliente."),
     ),
     "cargos": (
-        Cargo, client_catalog_form(Cargo, BASE_FIELDS),
+        Cargo,
+        client_catalog_form(Cargo, BASE_FIELDS),
         gettext_lazy("Cargos de las personas, para agrupar resultados."),
     ),
     "canales": (
-        Canal, client_catalog_form(Canal, BASE_FIELDS),
-        gettext_lazy("Canales y formatos de las actividades de la Ruta: intranet, reunión de "
-                     "equipo, correo del gerente, taller…"),
+        Canal,
+        client_catalog_form(Canal, BASE_FIELDS),
+        gettext_lazy(
+            "Canales y formatos de las actividades de la Ruta: intranet, reunión de "
+            "equipo, correo del gerente, taller…"
+        ),
     ),
     "categorias-responsable": (
-        CategoriaResponsable, client_catalog_form(CategoriaResponsable, BASE_FIELDS),
+        CategoriaResponsable,
+        client_catalog_form(CategoriaResponsable, BASE_FIELDS),
         gettext_lazy("Por ejemplo: equipo técnico, PMO, gerencia."),
     ),
 }
@@ -55,8 +62,12 @@ def _catalog(key):
 @client_admin_required
 def config_index(request, client_slug):
     catalogs = [
-        {"key": key, "name": model._meta.verbose_name_plural, "help": help_text,
-         "count": model.objects.filter(is_active=True).count()}
+        {
+            "key": key,
+            "name": model._meta.verbose_name_plural,
+            "help": help_text,
+            "count": model.objects.filter(is_active=True).count(),
+        }
         for key, (model, _form, help_text) in CLIENT_CATALOGS.items()
     ]
     return render(request, "catalogs/config_index.html", {"catalogs": catalogs})
@@ -70,14 +81,18 @@ def catalog_list(request, client_slug, catalog):
         item = form.save()
         messages.success(request, _("«%(name)s» agregado.") % {"name": item.name})
         return redirect("catalogs:list", client_slug=client_slug, catalog=catalog)
-    return render(request, "catalogs/config_list.html", {
-        "catalog": catalog,
-        "name": model._meta.verbose_name_plural,
-        "help": help_text,
-        "items": model.objects.all(),
-        "has_kind": "kind" in form_class.base_fields,
-        "form": form,
-    })
+    return render(
+        request,
+        "catalogs/config_list.html",
+        {
+            "catalog": catalog,
+            "name": model._meta.verbose_name_plural,
+            "help": help_text,
+            "items": model.objects.all(),
+            "has_kind": "kind" in form_class.base_fields,
+            "form": form,
+        },
+    )
 
 
 @client_admin_required
@@ -94,16 +109,24 @@ def catalog_edit(request, client_slug, catalog, pk):
             form.save()
             messages.success(request, _("Cambios guardados."))
             return redirect("catalogs:list", client_slug=client_slug, catalog=catalog)
-    return render(request, "catalogs/config_edit.html", {
-        "catalog": catalog, "name": model._meta.verbose_name_plural,
-        "item": item, "form": form,
-    })
+    return render(
+        request,
+        "catalogs/config_edit.html",
+        {
+            "catalog": catalog,
+            "name": model._meta.verbose_name_plural,
+            "item": item,
+            "form": form,
+        },
+    )
 
 
 class MemberGroupsForm(forms.ModelForm):
     # Declared explicitly: a generated field would query groups before any client is active.
     grupos = forms.ModelMultipleChoiceField(
-        label=gettext_lazy("Grupos"), queryset=GrupoImpactado.unscoped.none(), required=False,
+        label=gettext_lazy("Grupos"),
+        queryset=GrupoImpactado.unscoped.none(),
+        required=False,
         widget=forms.CheckboxSelectMultiple,
     )
 
@@ -120,11 +143,17 @@ class MemberGroupsForm(forms.ModelForm):
 def personas(request, client_slug):
     memberships = (
         Membership.objects.filter(client=request.client, is_active=True)
-        .select_related("user").prefetch_related("grupos").order_by("role", "user__email")
+        .select_related("user")
+        .prefetch_related("grupos")
+        .order_by("role", "user__email")
     )
-    return render(request, "catalogs/personas.html", {
-        "rows": [(m, MemberGroupsForm(instance=m, prefix=f"m{m.pk}")) for m in memberships],
-    })
+    return render(
+        request,
+        "catalogs/personas.html",
+        {
+            "rows": [(m, MemberGroupsForm(instance=m, prefix=f"m{m.pk}")) for m in memberships],
+        },
+    )
 
 
 @client_admin_required
@@ -134,6 +163,7 @@ def persona_grupos(request, client_slug, pk):
     form = MemberGroupsForm(request.POST, instance=membership, prefix=f"m{pk}")
     if form.is_valid():
         form.save()
-        messages.success(request, _("Grupos de %(user)s actualizados.")
-                         % {"user": membership.user.display_name})
+        messages.success(
+            request, _("Grupos de %(user)s actualizados.") % {"user": membership.user.display_name}
+        )
     return redirect("catalogs:personas", client_slug=client_slug)

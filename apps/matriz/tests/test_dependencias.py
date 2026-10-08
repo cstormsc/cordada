@@ -26,19 +26,27 @@ class TestRules:
             dependencias.add(a, c, user=equipo)  # a shortcut is not a cycle
             assert Dependencia.objects.count() == 3
 
-    @pytest.mark.parametrize(("estado", "blocks"), [
-        (Estado.PROPUESTO, True), (Estado.EVALUADO, True), (Estado.EN_ATENCION, True),
-        (Estado.REABIERTO, True), (Estado.ATENDIDO, False), (Estado.CERRADO, False),
-        (Estado.DESCARTADO, False),
-    ])
+    @pytest.mark.parametrize(
+        ("estado", "blocks"),
+        [
+            (Estado.PROPUESTO, True),
+            (Estado.EVALUADO, True),
+            (Estado.EN_ATENCION, True),
+            (Estado.REABIERTO, True),
+            (Estado.ATENDIDO, False),
+            (Estado.CERRADO, False),
+            (Estado.DESCARTADO, False),
+        ],
+    )
     def test_which_prerequisite_states_block(self, abc, acme, equipo, estado, blocks):
         a, b, _ = abc
         with tenant_context(acme):
             dependencias.add(a, b, user=equipo)
             Impacto.objects.filter(pk=b.pk).update(estado=estado)
             assert dependencias.open_prerequisites(a).exists() is blocks
-            assert dependencias.with_blocked(Impacto.objects.filter(pk=a.pk)).get().n_bloqueos \
-                == int(blocks)
+            assert dependencias.with_blocked(
+                Impacto.objects.filter(pk=a.pk)
+            ).get().n_bloqueos == int(blocks)
 
     def test_dependencies_never_block_the_lifecycle(self, make_impacto, acme, equipo):
         a = make_impacto(complete=True, estado=Estado.EN_ATENCION)
@@ -102,8 +110,9 @@ class TestViews:
         with tenant_context(make_client("globex")):
             ajeno = Impacto.objects.create(titulo="x", descripcion="y", registrado_por=equipo)
         client.force_login(equipo)
-        assert client.post(self.url(a, "dependencias/"),
-                           {"depende_de": ajeno.pk}).status_code == 404
+        assert (
+            client.post(self.url(a, "dependencias/"), {"depende_de": ajeno.pk}).status_code == 404
+        )
 
     def test_state_change_warns_but_proceeds(self, client, equipo, make_impacto, acme):
         a = make_impacto(complete=True, estado=Estado.EN_ATENCION)
@@ -111,8 +120,9 @@ class TestViews:
         with tenant_context(acme):
             dependencias.add(a, b, user=equipo)
         client.force_login(equipo)
-        body = client.post(self.url(a, "estado/"), {"hacia": "atendido"},
-                           follow=True).content.decode()
+        body = client.post(
+            self.url(a, "estado/"), {"hacia": "atendido"}, follow=True
+        ).content.decode()
         assert "Estado: Atendido" in body and "depende de impactos aún abiertos" in body
 
     def test_board_move_returns_warning_and_card_flag(self, client, equipo, make_impacto, acme):

@@ -9,13 +9,16 @@ from apps.formularios.models import Opcion, Pregunta, TipoPregunta
 D = Decimal
 
 
-@pytest.mark.parametrize(("n", "expected"), [
-    (1, ["100.00"]),
-    (3, ["33.34", "33.33", "33.33"]),
-    (4, ["25.00"] * 4),
-    (6, ["16.67", "16.67", "16.67", "16.67", "16.66", "16.66"]),
-    (7, ["14.29", "14.29", "14.29", "14.29", "14.28", "14.28", "14.28"]),
-])
+@pytest.mark.parametrize(
+    ("n", "expected"),
+    [
+        (1, ["100.00"]),
+        (3, ["33.34", "33.33", "33.33"]),
+        (4, ["25.00"] * 4),
+        (6, ["16.67", "16.67", "16.67", "16.67", "16.66", "16.66"]),
+        (7, ["14.29", "14.29", "14.29", "14.29", "14.28", "14.28", "14.28"]),
+    ],
+)
 def test_equal_split_always_totals_100(n, expected):
     split = scoring.equal_split(n)
     assert split == [D(x) for x in expected]
@@ -46,8 +49,9 @@ class TestPublishChecks:
             simple = Pregunta.objects.create(cuestionario=c, texto="s", puntos=D("50"))
             Opcion.objects.create(pregunta=simple, texto="a", correcta=True)
             Opcion.objects.create(pregunta=simple, texto="b", correcta=True)
-            multiple = Pregunta.objects.create(cuestionario=c, texto="m", puntos=D("50"),
-                                               tipo=TipoPregunta.MULTIPLE)
+            multiple = Pregunta.objects.create(
+                cuestionario=c, texto="m", puntos=D("50"), tipo=TipoPregunta.MULTIPLE
+            )
             for t in "abcdef":
                 Opcion.objects.create(pregunta=multiple, texto=t)
             errors = " ".join(scoring.publish_errors(c))
@@ -67,8 +71,9 @@ def test_grading_multiple_is_all_or_nothing(make_cuestionario, acme):
         p1 = Pregunta.objects.create(cuestionario=c, texto="simple", puntos=D("40"))
         a = Opcion.objects.create(pregunta=p1, texto="a", correcta=True)
         Opcion.objects.create(pregunta=p1, texto="b")
-        p2 = Pregunta.objects.create(cuestionario=c, texto="multi", puntos=D("60"),
-                                     tipo=TipoPregunta.MULTIPLE)
+        p2 = Pregunta.objects.create(
+            cuestionario=c, texto="multi", puntos=D("60"), tipo=TipoPregunta.MULTIPLE
+        )
         x = Opcion.objects.create(pregunta=p2, texto="x", correcta=True)
         y = Opcion.objects.create(pregunta=p2, texto="y", correcta=True)
         z = Opcion.objects.create(pregunta=p2, texto="z")

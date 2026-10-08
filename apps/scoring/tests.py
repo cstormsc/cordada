@@ -29,9 +29,20 @@ def test_risk_level_table(probability, severity):
     assert risk_level(probability, severity) == RISK_TABLE[probability - 1][severity - 1]
 
 
-@pytest.mark.parametrize(("score", "band"), [
-    (1, B), (2, B), (3, B), (4, M), (6, M), (8, A), (9, A), (12, C), (16, C),
-])
+@pytest.mark.parametrize(
+    ("score", "band"),
+    [
+        (1, B),
+        (2, B),
+        (3, B),
+        (4, M),
+        (6, M),
+        (8, A),
+        (9, A),
+        (12, C),
+        (16, C),
+    ],
+)
 def test_band_limits(score, band):
     assert risk_band(score) == band
 
@@ -71,9 +82,18 @@ def test_priority_table(band, magnitude):
     assert priority(magnitude, band) == PRIORITY_TABLE[band][magnitude - 1]
 
 
-@pytest.mark.parametrize(("total", "expected"), [
-    (2, P4), (3, P4), (4, P3), (5, P2), (6, P2), (7, P1), (8, P1),
-])
+@pytest.mark.parametrize(
+    ("total", "expected"),
+    [
+        (2, P4),
+        (3, P4),
+        (4, P3),
+        (5, P2),
+        (6, P2),
+        (7, P1),
+        (8, P1),
+    ],
+)
 def test_priority_sums(total, expected):
     magnitude = min(4, total - 1)
     band = RiskBand(total - magnitude)

@@ -107,12 +107,11 @@ class Scale(models.Model):
 
 class ScaleLevel(models.Model):
     scale = models.ForeignKey(Scale, on_delete=models.CASCADE, related_name="levels")
-    value = models.PositiveSmallIntegerField(
-        _("valor"), choices=[(i, str(i)) for i in range(1, 5)]
-    )
+    value = models.PositiveSmallIntegerField(_("valor"), choices=[(i, str(i)) for i in range(1, 5)])
     label = models.CharField(_("nombre"), max_length=60)
     definition = models.TextField(
-        _("definición"), blank=True,
+        _("definición"),
+        blank=True,
         help_text=_("Se muestra al elegir este nivel."),
     )
 
@@ -146,7 +145,8 @@ class ClientCatalogItem(TenantScopedModel):
         ordering = ["order", "name"]
         constraints = [
             models.UniqueConstraint(
-                "client", models.functions.Lower("name"),
+                "client",
+                models.functions.Lower("name"),
                 name="%(app_label)s_%(class)s_unique_name",
             ),
         ]
@@ -157,7 +157,9 @@ class ClientCatalogItem(TenantScopedModel):
 
 class GrupoImpactado(ClientCatalogItem):
     personas = models.PositiveIntegerField(
-        _("número de personas"), null=True, blank=True,
+        _("número de personas"),
+        null=True,
+        blank=True,
         help_text=_("Opcional. Permite calcular indicadores por cada 100 personas."),
     )
 
@@ -199,7 +201,9 @@ class UnidadOrganizacional(ClientCatalogItem):
         ordering = ["kind", "order", "name"]
         constraints = [
             models.UniqueConstraint(
-                "client", "kind", models.functions.Lower("name"),
+                "client",
+                "kind",
+                models.functions.Lower("name"),
                 name="catalogs_unidadorganizacional_unique_name",
             ),
         ]

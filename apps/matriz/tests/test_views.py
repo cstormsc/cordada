@@ -34,10 +34,14 @@ def as_equipo(client, equipo):
 
 def full_post(**overrides):
     data = {
-        "titulo": "Nuevo flujo", "descripcion": "Cambia el proceso",
-        "tipo": item("tipo_impacto", "proceso").pk, "magnitud": "2",
-        "probabilidad": "3", "severidad": "2",
-        "requiere_comunicacion": "true", "requiere_movilizacion": "false",
+        "titulo": "Nuevo flujo",
+        "descripcion": "Cambia el proceso",
+        "tipo": item("tipo_impacto", "proceso").pk,
+        "magnitud": "2",
+        "probabilidad": "3",
+        "severidad": "2",
+        "requiere_comunicacion": "true",
+        "requiere_movilizacion": "false",
         "requiere_formacion": "unknown",
     }
     data.update(overrides)
@@ -83,8 +87,11 @@ class TestCreateAndEdit:
             impacto = Impacto.objects.get()
         assert impacto.estado == Estado.PROPUESTO
         assert impacto.registrado_por == as_equipo
-        assert (impacto.requiere_comunicacion, impacto.requiere_movilizacion,
-                impacto.requiere_formacion) == (True, False, None)
+        assert (
+            impacto.requiere_comunicacion,
+            impacto.requiere_movilizacion,
+            impacto.requiere_formacion,
+        ) == (True, False, None)
         assert impacto.prioridad == 3  # magnitud 2 + Medio (3×2=6) 2 = 4 -> P3
 
     def test_cannot_pick_another_clients_group(self, client, as_equipo, make_client, acme):
@@ -116,8 +123,10 @@ class TestProposals:
         captain = as_role(Role.CAPITAN)
         body = client.get(f"{BASE}nuevo/").content.decode()
         assert "Nuevo grupo" not in body and 'name="magnitud"' not in body
-        client.post(f"{BASE}nuevo/", {"titulo": "Turnos", "descripcion": "Cambian turnos",
-                                       "grupo_sugerido": "Call center"})
+        client.post(
+            f"{BASE}nuevo/",
+            {"titulo": "Turnos", "descripcion": "Cambian turnos", "grupo_sugerido": "Call center"},
+        )
         with tenant_context(acme):
             impacto = Impacto.objects.get()
         assert impacto.registrado_por == captain
@@ -146,8 +155,9 @@ class TestProposals:
         impacto.refresh_from_db()
         assert (impacto.grupo.name, impacto.grupo_sugerido) == ("Call Center", "")
 
-    def test_change_team_maps_suggestion_to_existing_group(self, client, as_equipo,
-                                                           make_impacto, grupo):
+    def test_change_team_maps_suggestion_to_existing_group(
+        self, client, as_equipo, make_impacto, grupo
+    ):
         impacto = make_impacto(grupo_sugerido="cobranza")
         client.post(f"{BASE}{impacto.numero}/grupo-sugerido/", {"grupo": grupo.pk})
         impacto.refresh_from_db()
@@ -158,8 +168,9 @@ class TestInlineGroup:
     url = f"{BASE}grupos/nuevo/"
 
     def test_creates_and_selects(self, client, as_equipo, acme):
-        response = client.post(self.url, {"nuevo_grupo": "  Mesa   de ayuda "},
-                               HTTP_HX_REQUEST="true")
+        response = client.post(
+            self.url, {"nuevo_grupo": "  Mesa   de ayuda "}, HTTP_HX_REQUEST="true"
+        )
         with tenant_context(acme):
             grupo = GrupoImpactado.objects.get()
         assert grupo.name == "Mesa de ayuda"
@@ -188,8 +199,9 @@ class TestInlineGroup:
 class TestDetailActions:
     def test_state_change_shows_missing_fields(self, client, as_equipo, make_impacto):
         impacto = make_impacto()
-        response = client.post(f"{BASE}{impacto.numero}/estado/", {"hacia": "evaluado"},
-                               follow=True)
+        response = client.post(
+            f"{BASE}{impacto.numero}/estado/", {"hacia": "evaluado"}, follow=True
+        )
         assert "Faltan campos" in response.content.decode()
 
     def test_evaluate_complete_impact(self, client, as_equipo, make_impacto):
@@ -216,8 +228,9 @@ class TestDetailActions:
         assert "Revisar con TI" in body
         assert "título" in body  # changed field listed in the history
 
-    def test_attachments_upload_and_protected_download(self, client, as_equipo, make_impacto,
-                                                       member, acme, make_client):
+    def test_attachments_upload_and_protected_download(
+        self, client, as_equipo, make_impacto, member, acme, make_client
+    ):
         impacto = make_impacto()
         url = f"{BASE}{impacto.numero}/adjuntos/"
         client.post(url, {"archivo": SimpleUploadedFile("plan.pdf", b"%PDF-1.4 test")})
@@ -233,8 +246,9 @@ class TestDetailActions:
         response = client.get(download)
         assert b"".join(response.streaming_content) == b"%PDF-1.4 test"
 
-        outsider, _ = member(Role.EQUIPO_CAMBIO, client=make_client("globex"),
-                             email="fuera@example.com")
+        outsider, _ = member(
+            Role.EQUIPO_CAMBIO, client=make_client("globex"), email="fuera@example.com"
+        )
         client.force_login(outsider)
         assert client.get(download).status_code == 404
         client.logout()
@@ -251,7 +265,7 @@ class TestListsAndExports:
         assert "Completo" in body and "Sin criterio P1" not in body
 
     def test_excel_export(self, client, as_equipo, make_impacto):
-        make_impacto(complete=True, titulo="=HYPERLINK(\"x\")")
+        make_impacto(complete=True, titulo='=HYPERLINK("x")')
         response = client.get(f"{BASE}exportar/")
         ws = load_workbook(io.BytesIO(response.content)).active
         headers = [c.value for c in ws[2]]
@@ -269,8 +283,9 @@ class TestListsAndExports:
             # Later edits do not change the snapshot.
             Impacto.objects.update(titulo="Cambiado")
         assert foto.datos[0]["titulo"] == "Nuevo flujo de cobranza"
-        ws = load_workbook(io.BytesIO(
-            client.get(f"{BASE}fotos/{foto.pk}/exportar/").content)).active
+        ws = load_workbook(
+            io.BytesIO(client.get(f"{BASE}fotos/{foto.pk}/exportar/").content)
+        ).active
         assert ws.cell(3, 2).value == "Nuevo flujo de cobranza"
 
     def test_sponsor_cannot_take_snapshots(self, client, as_role):

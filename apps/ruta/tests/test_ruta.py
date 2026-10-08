@@ -25,8 +25,12 @@ def frente(code):
 @pytest.fixture
 def make_actividad(acme, equipo):
     def make(grupos=(), impactos=(), **kwargs):
-        data = {"titulo": "Reunión de equipo", "frente": frente("comunicacion"),
-                "fecha_planificada": D(2026, 10, 1), "registrado_por": equipo}
+        data = {
+            "titulo": "Reunión de equipo",
+            "frente": frente("comunicacion"),
+            "fecha_planificada": D(2026, 10, 1),
+            "registrado_por": equipo,
+        }
         data.update(kwargs)
         with tenant_context(acme):
             actividad = Actividad.objects.create(**data)
@@ -51,12 +55,22 @@ class TestCumplimiento:
     ]
 
     @pytest.mark.parametrize(("no_plan", "estado", "plan", "real", "expected"), CASES)
-    def test_python_and_database_agree(self, make_actividad, acme, no_plan, estado, plan,
-                                       real, expected):
-        assert cumplimiento(no_planificada=no_plan, estado=estado, fecha_planificada=plan,
-                            fecha_real=real, today=TODAY) == expected
-        a = make_actividad(no_planificada=no_plan, estado=estado, fecha_planificada=plan,
-                           fecha_real=real)
+    def test_python_and_database_agree(
+        self, make_actividad, acme, no_plan, estado, plan, real, expected
+    ):
+        assert (
+            cumplimiento(
+                no_planificada=no_plan,
+                estado=estado,
+                fecha_planificada=plan,
+                fecha_real=real,
+                today=TODAY,
+            )
+            == expected
+        )
+        a = make_actividad(
+            no_planificada=no_plan, estado=estado, fecha_planificada=plan, fecha_real=real
+        )
         with tenant_context(acme):
             annotated = Actividad.objects.with_cumplimiento(TODAY).get(pk=a.pk)
         assert annotated.cumplimiento == expected
@@ -79,17 +93,27 @@ class TestCoherence:
 
 class TestReport:
     def test_counts_and_percentages(self, make_actividad, acme):
-        make_actividad(estado="completado", fecha_real=D(2026, 10, 1))           # a tiempo
-        make_actividad(estado="completado", fecha_real=D(2026, 10, 4))           # retraso
-        make_actividad(estado="en_curso")                                        # no realizada
-        make_actividad(fecha_planificada=D(2026, 11, 2))                         # pendiente
-        make_actividad(no_planificada=True, fecha_planificada=None, estado="completado",
-                       fecha_real=D(2026, 10, 6), frente=frente("movilizacion"))
+        make_actividad(estado="completado", fecha_real=D(2026, 10, 1))  # a tiempo
+        make_actividad(estado="completado", fecha_real=D(2026, 10, 4))  # retraso
+        make_actividad(estado="en_curso")  # no realizada
+        make_actividad(fecha_planificada=D(2026, 11, 2))  # pendiente
+        make_actividad(
+            no_planificada=True,
+            fecha_planificada=None,
+            estado="completado",
+            fecha_real=D(2026, 10, 6),
+            frente=frente("movilizacion"),
+        )
         with tenant_context(acme):
             data = reports.informe(Actividad.objects.all(), today=TODAY)
         com = next(r for r in data["rows"] if r["frente"].code == "comunicacion")
-        assert (com["a_tiempo"], com["con_retraso"], com["no_realizada"], com["pendiente"],
-                com["planificadas"]) == (1, 1, 1, 1, 4)
+        assert (
+            com["a_tiempo"],
+            com["con_retraso"],
+            com["no_realizada"],
+            com["pendiente"],
+            com["planificadas"],
+        ) == (1, 1, 1, 1, 4)
         assert (com["pct_a_tiempo"], com["pct_realizadas"]) == (33, 67)
         assert data["total"]["no_planificada"] == 1
         assert data["total"]["pct_a_tiempo"] == 33
@@ -97,8 +121,12 @@ class TestReport:
     def test_month_filter_uses_planned_or_real_date(self, make_actividad, acme):
         make_actividad(fecha_planificada=D(2026, 9, 30))
         make_actividad(fecha_planificada=D(2026, 10, 31))
-        make_actividad(no_planificada=True, fecha_planificada=None, estado="completado",
-                       fecha_real=D(2026, 10, 2))
+        make_actividad(
+            no_planificada=True,
+            fecha_planificada=None,
+            estado="completado",
+            fecha_real=D(2026, 10, 2),
+        )
         with tenant_context(acme):
             data = reports.informe(Actividad.objects.all(), mes=D(2026, 10, 1), today=TODAY)
         assert data["total"]["planificadas"] == 1
@@ -118,15 +146,23 @@ def as_role(client, member, acme):
 class TestViews:
     def test_create_from_impact_prefills_links(self, client, equipo, make_impacto, acme):
         client.force_login(equipo)
-        impacto = make_impacto(complete=True, tiempo=SystemCatalogItem.objects.get(
-            catalog="tiempo", code="travesia"))
+        impacto = make_impacto(
+            complete=True, tiempo=SystemCatalogItem.objects.get(catalog="tiempo", code="travesia")
+        )
         body = client.get(f"{BASE}nueva/?impacto={impacto.numero}").content.decode()
         assert f'value="{impacto.pk}" selected' in body
-        response = client.post(f"{BASE}nueva/", {
-            "titulo": "Taller", "frente": frente("formacion").pk, "impactos": [impacto.pk],
-            "grupos": [impacto.grupo_id], "fecha_planificada": "2026-11-10",
-            "estado": "no_iniciado", "vocero": "Gerente",
-        })
+        response = client.post(
+            f"{BASE}nueva/",
+            {
+                "titulo": "Taller",
+                "frente": frente("formacion").pk,
+                "impactos": [impacto.pk],
+                "grupos": [impacto.grupo_id],
+                "fecha_planificada": "2026-11-10",
+                "estado": "no_iniciado",
+                "vocero": "Gerente",
+            },
+        )
         assert response.url == f"{BASE}1/"
         with tenant_context(acme):
             a = Actividad.objects.get()
@@ -134,16 +170,26 @@ class TestViews:
         assert a.vocero == ""  # only kept for communications
         assert "ACT-001" in client.get(f"/c/acme/matriz/{impacto.numero}/").content.decode()
 
-    @pytest.mark.parametrize(("data", "error"), [
-        ({"estado": "no_iniciado"}, "Indica la fecha planificada"),
-        ({"fecha_planificada": "2026-10-01", "estado": "completado"}, "Indica cuándo se hizo"),
-        ({"fecha_planificada": "2026-10-01", "estado": "completado",
-          "fecha_real": "2099-01-01"}, "no puede ser futura"),
-    ])
+    @pytest.mark.parametrize(
+        ("data", "error"),
+        [
+            ({"estado": "no_iniciado"}, "Indica la fecha planificada"),
+            ({"fecha_planificada": "2026-10-01", "estado": "completado"}, "Indica cuándo se hizo"),
+            (
+                {
+                    "fecha_planificada": "2026-10-01",
+                    "estado": "completado",
+                    "fecha_real": "2099-01-01",
+                },
+                "no puede ser futura",
+            ),
+        ],
+    )
     def test_validation(self, client, equipo, data, error):
         client.force_login(equipo)
-        response = client.post(f"{BASE}nueva/", {"titulo": "X", "frente": frente("impactos").pk,
-                                                  **data})
+        response = client.post(
+            f"{BASE}nueva/", {"titulo": "X", "frente": frente("impactos").pk, **data}
+        )
         assert error in response.content.decode()
 
     def test_captain_sees_only_their_groups(self, client, as_role, make_actividad, acme):
@@ -177,8 +223,9 @@ class TestViews:
         assert client.get(f"{BASE}nueva/").status_code == 403
 
     def test_excel_export(self, client, equipo, make_actividad):
-        make_actividad(titulo="@SUM(1)", estado=EstadoActividad.COMPLETADO,
-                       fecha_real=D(2026, 10, 1))
+        make_actividad(
+            titulo="@SUM(1)", estado=EstadoActividad.COMPLETADO, fecha_real=D(2026, 10, 1)
+        )
         client.force_login(equipo)
         ws = load_workbook(io.BytesIO(client.get(f"{BASE}exportar/").content)).active
         assert ws.cell(2, 1).value == "ACT-001"
@@ -211,8 +258,7 @@ class TestPersonas:
         with tenant_context(acme):
             assert list(m.grupos.all()) == [norte]
 
-    def test_cannot_assign_another_clients_group(self, client, as_role, member, acme,
-                                                 make_client):
+    def test_cannot_assign_another_clients_group(self, client, as_role, member, acme, make_client):
         with tenant_context(make_client("globex")):
             ajeno = GrupoImpactado.objects.create(name="Ajeno")
         captain, _ = member(Role.CAPITAN, client=acme, email="cap@example.com")

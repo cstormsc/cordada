@@ -25,7 +25,10 @@ class Priority(IntEnum):
     @property
     def label(self):
         return {
-            1: "P1 Inmediata", 2: "P2 Prioritaria", 3: "P3 Planificada", 4: "P4 De seguimiento",
+            1: "P1 Inmediata",
+            2: "P2 Prioritaria",
+            3: "P3 Planificada",
+            4: "P4 De seguimiento",
         }[self]
 
 

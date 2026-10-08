@@ -43,8 +43,9 @@ def test_manual_override_wins_and_can_be_cleared(make_impacto, acme):
 def test_alerts(make_impacto):
     assert make_impacto(severidad=4).alerta_severidad
     assert make_impacto(magnitud=4, probabilidad=4, severidad=4).alerta_p1_sin_criterio
-    assert not make_impacto(complete=True, magnitud=4, probabilidad=4,
-                            severidad=4).alerta_p1_sin_criterio
+    assert not make_impacto(
+        complete=True, magnitud=4, probabilidad=4, severidad=4
+    ).alerta_p1_sin_criterio
 
 
 class TestWorkflow:

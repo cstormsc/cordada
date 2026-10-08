@@ -26,13 +26,16 @@ class AbstractAdjunto(TenantScopedModel):
     UPLOAD_DIR = "adjuntos"
 
     archivo = models.FileField(
-        _("archivo"), upload_to=attachment_path, blank=True,
+        _("archivo"),
+        upload_to=attachment_path,
+        blank=True,
         validators=[FileExtensionValidator(ALLOWED_EXTENSIONS)],
     )
     nombre = models.CharField(_("nombre"), max_length=200, blank=True)
     url = models.URLField(_("enlace"), blank=True)
-    subido_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
-                                   related_name="+")
+    subido_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
+    )
     fecha = models.DateTimeField(auto_now_add=True)
 
     class Meta(TenantScopedModel.Meta):
@@ -91,5 +94,8 @@ class AdjuntoForm(forms.ModelForm):
 def file_response(adjunto):
     if not adjunto.archivo:
         raise Http404  # links are shown directly on the page
-    return FileResponse(adjunto.archivo.open("rb"), as_attachment=True,
-                        filename=adjunto.nombre or adjunto.archivo.name)
+    return FileResponse(
+        adjunto.archivo.open("rb"),
+        as_attachment=True,
+        filename=adjunto.nombre or adjunto.archivo.name,
+    )

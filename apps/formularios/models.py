@@ -25,12 +25,18 @@ class Persona(TenantScopedModel):
     oficina = models.CharField(_("oficina"), max_length=150, blank=True)
     sucursal = models.CharField(_("sucursal"), max_length=150, blank=True)
     departamento = models.CharField(_("departamento"), max_length=150, blank=True)
-    supervisor = models.CharField(_("supervisor"), max_length=200, blank=True,
-                                  help_text=_("Correo del líder directo."))
+    supervisor = models.CharField(
+        _("supervisor"), max_length=200, blank=True, help_text=_("Correo del líder directo.")
+    )
     cargo = models.CharField(_("cargo"), max_length=150, blank=True)
-    grupo = models.ForeignKey(GrupoImpactado, on_delete=models.SET_NULL, null=True, blank=True,
-                              related_name="personas_cargadas",
-                              verbose_name=_("grupo impactado"))
+    grupo = models.ForeignKey(
+        GrupoImpactado,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="personas_cargadas",
+        verbose_name=_("grupo impactado"),
+    )
     is_active = models.BooleanField(_("activa"), default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -42,8 +48,9 @@ class Persona(TenantScopedModel):
         verbose_name_plural = _("personas")
         ordering = ["nombre", "email"]
         constraints = [
-            models.UniqueConstraint("client", models.functions.Lower("email"),
-                                    name="unique_persona_email"),
+            models.UniqueConstraint(
+                "client", models.functions.Lower("email"), name="unique_persona_email"
+            ),
         ]
 
     def __str__(self):
@@ -64,8 +71,9 @@ class Carga(TenantScopedModel):
     creadas = models.PositiveIntegerField(default=0)
     actualizadas = models.PositiveIntegerField(default=0)
     errores = models.JSONField(default=list)
-    creada_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
-                                   related_name="+")
+    creada_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
+    )
     fecha = models.DateTimeField(auto_now_add=True)
 
     class Meta(TenantScopedModel.Meta):
@@ -82,29 +90,49 @@ class Cuestionario(TenantScopedModel):
     numero = models.PositiveIntegerField(_("ID"), editable=False)
     titulo = models.CharField(_("título"), max_length=200)
     instrucciones = models.TextField(
-        _("instrucciones"), blank=True,
+        _("instrucciones"),
+        blank=True,
         help_text=_("Lo que ve la persona antes de responder."),
     )
-    impacto = models.ForeignKey(Impacto, on_delete=models.PROTECT, null=True, blank=True,
-                                related_name="cuestionarios",
-                                verbose_name=_("impacto que verifica"))
+    impacto = models.ForeignKey(
+        Impacto,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="cuestionarios",
+        verbose_name=_("impacto que verifica"),
+    )
     nota_minima = models.DecimalField(
-        _("nota mínima para aprobar"), max_digits=5, decimal_places=2, default=Decimal("80"),
+        _("nota mínima para aprobar"),
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("80"),
         validators=[MinValueValidator(0), MaxValueValidator(100)],
         help_text=_("Sobre 100 puntos."),
     )
     intentos = models.PositiveSmallIntegerField(
-        _("intentos permitidos"), default=1, validators=[MinValueValidator(1)],
+        _("intentos permitidos"),
+        default=1,
+        validators=[MinValueValidator(1)],
     )
-    vence = models.DateField(_("vence"), null=True, blank=True,
-                             help_text=_("Opcional. Después de esta fecha los enlaces no "
-                                         "aceptan respuestas."))
+    vence = models.DateField(
+        _("vence"),
+        null=True,
+        blank=True,
+        help_text=_("Opcional. Después de esta fecha los enlaces no aceptan respuestas."),
+    )
     puntos_manuales = models.BooleanField(default=False, editable=False)
-    estado = models.CharField(_("estado"), max_length=20, choices=EstadoCuestionario.choices,
-                              default=EstadoCuestionario.BORRADOR, editable=False)
+    estado = models.CharField(
+        _("estado"),
+        max_length=20,
+        choices=EstadoCuestionario.choices,
+        default=EstadoCuestionario.BORRADOR,
+        editable=False,
+    )
     publicado_at = models.DateTimeField(null=True, editable=False)
-    creado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
-                                   related_name="+", editable=False)
+    creado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+", editable=False
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     history = HistoricalRecords()
@@ -114,8 +142,7 @@ class Cuestionario(TenantScopedModel):
         verbose_name_plural = _("cuestionarios")
         ordering = ["-numero"]
         constraints = [
-            models.UniqueConstraint(fields=["client", "numero"],
-                                    name="unique_cuestionario_numero"),
+            models.UniqueConstraint(fields=["client", "numero"], name="unique_cuestionario_numero"),
         ]
 
     def __str__(self):
@@ -131,8 +158,9 @@ class Cuestionario(TenantScopedModel):
 
     @property
     def is_open(self):
-        return (self.estado == EstadoCuestionario.PUBLICADO
-                and (self.vence is None or self.vence >= timezone.localdate()))
+        return self.estado == EstadoCuestionario.PUBLICADO and (
+            self.vence is None or self.vence >= timezone.localdate()
+        )
 
     def total_puntos(self):
         return sum((p.puntos for p in self.preguntas.all()), Decimal("0"))
@@ -150,15 +178,21 @@ class TipoPregunta(models.TextChoices):
 
 
 class Pregunta(TenantScopedModel):
-    cuestionario = models.ForeignKey(Cuestionario, on_delete=models.CASCADE,
-                                     related_name="preguntas")
+    cuestionario = models.ForeignKey(
+        Cuestionario, on_delete=models.CASCADE, related_name="preguntas"
+    )
     orden = models.PositiveSmallIntegerField(default=0)
     texto = models.TextField(_("pregunta"))
-    tipo = models.CharField(_("tipo"), max_length=10, choices=TipoPregunta.choices,
-                            default=TipoPregunta.SIMPLE)
-    puntos = models.DecimalField(_("puntos"), max_digits=5, decimal_places=2,
-                                 default=Decimal("0"),
-                                 validators=[MinValueValidator(0), MaxValueValidator(100)])
+    tipo = models.CharField(
+        _("tipo"), max_length=10, choices=TipoPregunta.choices, default=TipoPregunta.SIMPLE
+    )
+    puntos = models.DecimalField(
+        _("puntos"),
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("0"),
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
 
     class Meta(TenantScopedModel.Meta):
         ordering = ["orden", "pk"]
@@ -186,8 +220,7 @@ class Enlace(TenantScopedModel):
 
     SALT = "formularios.enlace"
 
-    cuestionario = models.ForeignKey(Cuestionario, on_delete=models.CASCADE,
-                                     related_name="enlaces")
+    cuestionario = models.ForeignKey(Cuestionario, on_delete=models.CASCADE, related_name="enlaces")
     persona = models.ForeignKey(Persona, on_delete=models.CASCADE, related_name="enlaces")
     version = models.PositiveIntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -208,8 +241,11 @@ class Enlace(TenantScopedModel):
             data = signing.loads(token, salt=cls.SALT)
         except signing.BadSignature:
             return None
-        enlace = cls.unscoped.select_related("client", "cuestionario", "persona").filter(
-            pk=data.get("e")).first()
+        enlace = (
+            cls.unscoped.select_related("client", "cuestionario", "persona")
+            .filter(pk=data.get("e"))
+            .first()
+        )
         if enlace is None or enlace.version != data.get("v"):
             return None
         return enlace
@@ -247,15 +283,20 @@ class EstadoLista(models.TextChoices):
 class ListaObservacion(TenantScopedModel):
     """Observation checklist for one impact. Each criterion: cumple / no cumple."""
 
-    impacto = models.OneToOneField(Impacto, on_delete=models.PROTECT,
-                                   related_name="lista_observacion",
-                                   verbose_name=_("impacto"))
+    impacto = models.OneToOneField(
+        Impacto,
+        on_delete=models.PROTECT,
+        related_name="lista_observacion",
+        verbose_name=_("impacto"),
+    )
     titulo = models.CharField(_("título"), max_length=200)
     instrucciones = models.TextField(_("instrucciones para el líder"), blank=True)
-    estado = models.CharField(max_length=20, choices=EstadoLista.choices,
-                              default=EstadoLista.BORRADOR, editable=False)
-    creada_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
-                                   related_name="+", editable=False)
+    estado = models.CharField(
+        max_length=20, choices=EstadoLista.choices, default=EstadoLista.BORRADOR, editable=False
+    )
+    creada_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+", editable=False
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     history = HistoricalRecords()
@@ -274,11 +315,11 @@ class ListaObservacion(TenantScopedModel):
 
 
 class Criterio(TenantScopedModel):
-    lista = models.ForeignKey(ListaObservacion, on_delete=models.CASCADE,
-                              related_name="criterios")
+    lista = models.ForeignKey(ListaObservacion, on_delete=models.CASCADE, related_name="criterios")
     orden = models.PositiveSmallIntegerField(default=0)
-    texto = models.CharField(_("criterio"), max_length=300,
-                             help_text=_("Una conducta observable: qué debe hacer bien."))
+    texto = models.CharField(
+        _("criterio"), max_length=300, help_text=_("Una conducta observable: qué debe hacer bien.")
+    )
 
     class Meta(TenantScopedModel.Meta):
         ordering = ["orden", "pk"]
@@ -297,18 +338,20 @@ class EstadoCertificacion(models.TextChoices):
 class Evaluacion(TenantScopedModel):
     """One person's practical evaluation by their leader."""
 
-    lista = models.ForeignKey(ListaObservacion, on_delete=models.CASCADE,
-                              related_name="evaluaciones")
+    lista = models.ForeignKey(
+        ListaObservacion, on_delete=models.CASCADE, related_name="evaluaciones"
+    )
     persona = models.ForeignKey(Persona, on_delete=models.CASCADE, related_name="evaluaciones")
-    lider = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
-                              related_name="+")
+    lider = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
     resultados = models.JSONField(default=dict)  # {criterio_id: true/false}
     observaciones = models.TextField(_("observaciones"), blank=True)
-    estado = models.CharField(max_length=20, choices=EstadoCertificacion.choices,
-                              default=EstadoCertificacion.PENDIENTE)
+    estado = models.CharField(
+        max_length=20, choices=EstadoCertificacion.choices, default=EstadoCertificacion.PENDIENTE
+    )
     aplicada_at = models.DateTimeField(null=True, blank=True)
-    acta = models.ForeignKey("Acta", on_delete=models.SET_NULL, null=True, blank=True,
-                             related_name="evaluaciones")
+    acta = models.ForeignKey(
+        "Acta", on_delete=models.SET_NULL, null=True, blank=True, related_name="evaluaciones"
+    )
 
     history = HistoricalRecords()
 
@@ -327,8 +370,7 @@ class Acta(AbstractAdjunto):
     UPLOAD_DIR = "actas"
 
     lista = models.ForeignKey(ListaObservacion, on_delete=models.CASCADE, related_name="actas")
-    lider = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
-                              related_name="+")
+    lider = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
 
     class Meta(AbstractAdjunto.Meta):
         ordering = ["-fecha"]

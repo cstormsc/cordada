@@ -10,17 +10,17 @@ from .models import Membership, Module, Role
 
 
 class Action(StrEnum):
-    VIEW = "view"                      # V
-    EDIT = "edit"                      # E
-    PROPOSE = "propose"                # P: suggest impacts for the change team to validate
-    REGISTER = "register"              # R: log tickets
+    VIEW = "view"  # V
+    EDIT = "edit"  # E
+    PROPOSE = "propose"  # P: suggest impacts for the change team to validate
+    REGISTER = "register"  # R: log tickets
     VIEW_OWN_GROUP = "view_own_group"  # Ruta, captains: only their group
-    CLASSIFY = "classify"              # Bitácora: validate technical vs knowledge
-    EDIT_DERIVED = "edit_derived"      # Bitácora, technical team: tickets sent to IT
-    DESIGN = "design"                  # Formularios, guides: build instruments
+    CLASSIFY = "classify"  # Bitácora: validate technical vs knowledge
+    EDIT_DERIVED = "edit_derived"  # Bitácora, technical team: tickets sent to IT
+    DESIGN = "design"  # Formularios, guides: build instruments
     VIEW_INDIVIDUAL = "view_individual"  # Formularios: individual results (§7.4)
-    LEADER_EVAL = "leader_eval"        # Formularios: leader's practical evaluation
-    LINK = "link"                      # Matriz: create and remove impact dependencies
+    LEADER_EVAL = "leader_eval"  # Formularios: leader's practical evaluation
+    LINK = "link"  # Matriz: create and remove impact dependencies
 
 
 A = Action
@@ -97,10 +97,7 @@ def role_actions(role, module) -> frozenset[Action]:
 def get_membership(user, client):
     if not user.is_authenticated or not client.is_active:
         return None
-    return (
-        Membership.objects.filter(user=user, client=client, is_active=True)
-        .only("role").first()
-    )
+    return Membership.objects.filter(user=user, client=client, is_active=True).only("role").first()
 
 
 def can(user, client, module, action, membership=None) -> bool:
@@ -115,8 +112,7 @@ def can(user, client, module, action, membership=None) -> bool:
 def visible_modules(membership):
     """Modules the member can open at all, in menu order."""
     return [
-        m for m in Module
-        if membership.client.has_module(m) and role_actions(membership.role, m)
+        m for m in Module if membership.client.has_module(m) and role_actions(membership.role, m)
     ]
 
 

@@ -23,8 +23,13 @@ def alert_chip(count):
 def status_chip(status, label=None):
     icon, default = STATUS[status]
     label = label or default
-    return format_html('<span class="status status-{}"><span class="status-icon" '
-                       'aria-hidden="true">{}</span>{}</span>', status, icon, _(label))
+    return format_html(
+        '<span class="status status-{}"><span class="status-icon" '
+        'aria-hidden="true">{}</span>{}</span>',
+        status,
+        icon,
+        _(label),
+    )
 
 
 @register.simple_tag

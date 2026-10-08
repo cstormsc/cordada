@@ -8,10 +8,15 @@ from .models import IndicadorConfig, ValorManual
 
 
 class FiltroForm(forms.Form):
-    tiempo = forms.ModelChoiceField(label=_("Tiempo del marco"), queryset=None, required=False,
-                                    empty_label=_("Todos"))
-    grupo = forms.ModelChoiceField(label=_("Grupo"), queryset=GrupoImpactado.unscoped.none(),
-                                   required=False, empty_label=_("Todos"))
+    tiempo = forms.ModelChoiceField(
+        label=_("Tiempo del marco"), queryset=None, required=False, empty_label=_("Todos")
+    )
+    grupo = forms.ModelChoiceField(
+        label=_("Grupo"),
+        queryset=GrupoImpactado.unscoped.none(),
+        required=False,
+        empty_label=_("Todos"),
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -20,10 +25,15 @@ class FiltroForm(forms.Form):
 
 
 class ValorManualForm(forms.ModelForm):
-    key = forms.ChoiceField(label=_("Indicador"),
-                            choices=[(i.key, i.nombre) for i in INDICATORS if i.manual])
-    grupo = forms.ModelChoiceField(label=_("Grupo"), queryset=GrupoImpactado.unscoped.none(),
-                                   required=False, empty_label=_("Toda la organización"))
+    key = forms.ChoiceField(
+        label=_("Indicador"), choices=[(i.key, i.nombre) for i in INDICATORS if i.manual]
+    )
+    grupo = forms.ModelChoiceField(
+        label=_("Grupo"),
+        queryset=GrupoImpactado.unscoped.none(),
+        required=False,
+        empty_label=_("Toda la organización"),
+    )
 
     class Meta:
         model = ValorManual

@@ -23,16 +23,23 @@ GROUP_SOURCE_CHOICES = [("", _("Ninguna"))] + [(f, _(f.capitalize())) for f in G
 
 
 class CargaForm(forms.Form):
-    archivo = forms.FileField(label=_("Archivo CSV o Excel"),
-                              help_text=_("Columnas: correo (obligatoria), nombre, oficina, "
-                                          "sucursal, departamento, supervisor y cargo."))
+    archivo = forms.FileField(
+        label=_("Archivo CSV o Excel"),
+        help_text=_(
+            "Columnas: correo (obligatoria), nombre, oficina, "
+            "sucursal, departamento, supervisor y cargo."
+        ),
+    )
     columna_grupo = forms.ChoiceField(
-        label=_("Columna que define el grupo impactado"), choices=GROUP_SOURCE_CHOICES,
-        required=False, initial="departamento",
+        label=_("Columna que define el grupo impactado"),
+        choices=GROUP_SOURCE_CHOICES,
+        required=False,
+        initial="departamento",
         help_text=_("Sus valores se asignan a los grupos impactados con el mismo nombre."),
     )
     crear_grupos = forms.BooleanField(
-        label=_("Crear los grupos que no existan"), required=False,
+        label=_("Crear los grupos que no existan"),
+        required=False,
     )
 
 
@@ -42,8 +49,9 @@ class ImpactoChoiceField(forms.ModelChoiceField):
 
 
 class CuestionarioForm(forms.ModelForm):
-    impacto = ImpactoChoiceField(label=_("Impacto que verifica"),
-                                 queryset=Impacto.unscoped.none(), required=False)
+    impacto = ImpactoChoiceField(
+        label=_("Impacto que verifica"), queryset=Impacto.unscoped.none(), required=False
+    )
 
     class Meta:
         model = Cuestionario
@@ -56,7 +64,8 @@ class CuestionarioForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["impacto"].queryset = Impacto.objects.exclude(
-            estado=Estado.DESCARTADO).order_by("numero")
+            estado=Estado.DESCARTADO
+        ).order_by("numero")
         if self.instance.pk and not self.instance.is_draft:
             # Once published, only the closing date can change.
             for name in ("titulo", "instrucciones", "impacto", "nota_minima", "intentos"):
@@ -77,16 +86,24 @@ class OpcionForm(forms.ModelForm):
 
 
 OpcionFormSet = forms.inlineformset_factory(
-    Pregunta, Opcion, form=OpcionForm, extra=MAX_OPTIONS, max_num=MAX_OPTIONS,
-    validate_max=True, can_delete=True,
+    Pregunta,
+    Opcion,
+    form=OpcionForm,
+    extra=MAX_OPTIONS,
+    max_num=MAX_OPTIONS,
+    validate_max=True,
+    can_delete=True,
 )
 
 
 def opcion_formset(pregunta, data=None):
     existing = pregunta.opciones.count() if pregunta.pk else 0
-    formset = OpcionFormSet(data, instance=pregunta, prefix="op",
-                            queryset=pregunta.opciones.all() if pregunta.pk
-                            else Opcion.unscoped.none())
+    formset = OpcionFormSet(
+        data,
+        instance=pregunta,
+        prefix="op",
+        queryset=pregunta.opciones.all() if pregunta.pk else Opcion.unscoped.none(),
+    )
     formset.extra = MAX_OPTIONS - existing
     return formset
 
@@ -108,7 +125,9 @@ def parse_points(data, preguntas):
 
 class EnlacesForm(forms.Form):
     grupos = forms.ModelMultipleChoiceField(
-        label=_("Grupos"), queryset=GrupoImpactado.unscoped.none(), required=False,
+        label=_("Grupos"),
+        queryset=GrupoImpactado.unscoped.none(),
+        required=False,
         widget=forms.CheckboxSelectMultiple,
         help_text=_("Vacío: todas las personas activas."),
     )
@@ -119,8 +138,11 @@ class EnlacesForm(forms.Form):
 
 
 DIMENSIONS = [
-    ("grupo", _("Grupo impactado")), ("departamento", _("Departamento")),
-    ("oficina", _("Oficina")), ("sucursal", _("Sucursal")), ("cargo", _("Cargo")),
+    ("grupo", _("Grupo impactado")),
+    ("departamento", _("Departamento")),
+    ("oficina", _("Oficina")),
+    ("sucursal", _("Sucursal")),
+    ("cargo", _("Cargo")),
 ]
 
 
@@ -131,8 +153,9 @@ class ResultadosForm(forms.Form):
 TIPO_HELP = {
     TipoPregunta.SIMPLE: _("Una sola respuesta correcta."),
     TipoPregunta.SI_NO: _("Opciones Sí y No; marca la correcta."),
-    TipoPregunta.MULTIPLE: _("Hasta 5 opciones; puntaje completo solo si marca todas las "
-                             "correctas y ninguna incorrecta."),
+    TipoPregunta.MULTIPLE: _(
+        "Hasta 5 opciones; puntaje completo solo si marca todas las correctas y ninguna incorrecta."
+    ),
 }
 
 

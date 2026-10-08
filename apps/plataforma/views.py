@@ -49,12 +49,16 @@ def client_detail(request, slug):
         form.save()
         messages.success(request, _("Cambios guardados."))
         return redirect("plataforma:client_detail", slug=client.slug)
-    return render(request, "plataforma/client_detail.html", {
-        "client": client,
-        "form": form,
-        "invite_form": InviteForm(client=client),
-        **_members_context(client),
-    })
+    return render(
+        request,
+        "plataforma/client_detail.html",
+        {
+            "client": client,
+            "form": form,
+            "invite_form": InviteForm(client=client),
+            **_members_context(client),
+        },
+    )
 
 
 def _members_context(client):
@@ -74,18 +78,26 @@ def invite(request, slug):
     form = InviteForm(request.POST, client=client)
     if form.is_valid():
         invitation = invitations.invite(
-            request=request, client=client,
-            email=form.cleaned_data["email"], role=form.cleaned_data["role"],
+            request=request,
+            client=client,
+            email=form.cleaned_data["email"],
+            role=form.cleaned_data["role"],
         )
-        messages.success(request,
-                         _("Invitación enviada a %(email)s.") % {"email": invitation.email})
+        messages.success(
+            request, _("Invitación enviada a %(email)s.") % {"email": invitation.email}
+        )
         return redirect("plataforma:client_detail", slug=client.slug)
-    return render(request, "plataforma/client_detail.html", {
-        "client": client,
-        "form": ClientForm(instance=client),
-        "invite_form": form,
-        **_members_context(client),
-    }, status=400)
+    return render(
+        request,
+        "plataforma/client_detail.html",
+        {
+            "client": client,
+            "form": ClientForm(instance=client),
+            "invite_form": form,
+            **_members_context(client),
+        },
+        status=400,
+    )
 
 
 @platform_admin_required
@@ -126,25 +138,39 @@ def catalog_index(request):
     scales = list(Scale.objects.prefetch_related("levels"))
     for scale in scales:
         scale.missing_definitions = any(not lvl.definition for lvl in scale.levels.all())
-    return render(request, "plataforma/catalog_index.html", {
-        "catalogs": catalogs, "scales": scales,
-    })
+    return render(
+        request,
+        "plataforma/catalog_index.html",
+        {
+            "catalogs": catalogs,
+            "scales": scales,
+        },
+    )
 
 
 @platform_admin_required
 def catalog_item(request, catalog, pk=None):
     if catalog not in SystemCatalog.values:
         raise Http404
-    item = (get_object_or_404(SystemCatalogItem, catalog=catalog, pk=pk) if pk
-            else SystemCatalogItem(catalog=catalog))
+    item = (
+        get_object_or_404(SystemCatalogItem, catalog=catalog, pk=pk)
+        if pk
+        else SystemCatalogItem(catalog=catalog)
+    )
     form = SystemCatalogItemForm(request.POST or None, instance=item)
     if request.method == "POST" and form.is_valid():
         form.save()
         messages.success(request, _("Catálogo actualizado."))
         return redirect("plataforma:catalog_index")
-    return render(request, "plataforma/catalog_item.html", {
-        "form": form, "item": item, "catalog_name": SystemCatalog(catalog).label,
-    })
+    return render(
+        request,
+        "plataforma/catalog_item.html",
+        {
+            "form": form,
+            "item": item,
+            "catalog_name": SystemCatalog(catalog).label,
+        },
+    )
 
 
 @platform_admin_required
@@ -161,6 +187,12 @@ def scale_edit(request, code):
                 messages.success(request, _("Escala actualizada."))
                 return redirect("plataforma:catalog_index")
         messages.error(request, error)
-    return render(request, "plataforma/scale_edit.html", {
-        "scale": scale, "form": form, "level_forms": level_forms,
-    })
+    return render(
+        request,
+        "plataforma/scale_edit.html",
+        {
+            "scale": scale,
+            "form": form,
+            "level_forms": level_forms,
+        },
+    )

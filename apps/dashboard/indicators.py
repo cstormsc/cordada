@@ -35,8 +35,12 @@ FRENTES = [
     ("formacion", _("Formación")),
     ("transversal", _("Transversales")),
 ]
-NIVELES = {"ejecucion": _("Ejecución"), "respuesta": _("Respuesta"),
-           "adopcion": _("Adopción"), "resultados": _("Resultados")}
+NIVELES = {
+    "ejecucion": _("Ejecución"),
+    "respuesta": _("Respuesta"),
+    "adopcion": _("Adopción"),
+    "resultados": _("Resultados"),
+}
 
 # Impacts that have been validated (no longer just proposals) and were not discarded.
 WORKED_STATES = (*ACTIVE_STATES, Estado.ATENDIDO, Estado.CERRADO)
@@ -106,8 +110,8 @@ class Indicator:
     nombre: str
     formula: str
     fuente: str
-    unit: str = "%"          # "%", "n" or "pts"
-    higher_is_better: bool | None = True   # None: informative, no traffic light
+    unit: str = "%"  # "%", "n" or "pts"
+    higher_is_better: bool | None = True  # None: informative, no traffic light
     verde: Decimal | None = None
     amarillo: Decimal | None = None
     frecuencia: str = _("Semanal")
@@ -119,6 +123,7 @@ class Indicator:
 
 # --- calculations ---
 
+
 def imp_con_plan(ctx):
     base = ctx.impactos().filter(estado__in=WORKED_STATES)
     total = base.count()
@@ -127,13 +132,15 @@ def imp_con_plan(ctx):
 
 
 def imp_criticos(ctx):
-    criticos = ctx.impactos().filter(riesgo_nivel=RiskBand.CRITICO).exclude(
-        estado=Estado.DESCARTADO)
+    criticos = (
+        ctx.impactos().filter(riesgo_nivel=RiskBand.CRITICO).exclude(estado=Estado.DESCARTADO)
+    )
     total = criticos.count()
     mitigados = criticos.filter(estado__in=DONE_IMPACT_STATES).count()
-    return Result(_pct(mitigados, total),
-                  _("%(a)s abiertos · %(m)s mitigados") % {"a": total - mitigados,
-                                                         "m": mitigados})
+    return Result(
+        _pct(mitigados, total),
+        _("%(a)s abiertos · %(m)s mitigados") % {"a": total - mitigados, "m": mitigados},
+    )
 
 
 def imp_no_anticipados(ctx):
@@ -145,8 +152,10 @@ def imp_no_anticipados(ctx):
 
 def _cumplimiento(ctx, frente):
     acts = ctx.actividades(frente)
-    counts = {r["cumplimiento"]: r["n"] for r in acts.values("cumplimiento").annotate(
-        n=Count("id", distinct=True))}
+    counts = {
+        r["cumplimiento"]: r["n"]
+        for r in acts.values("cumplimiento").annotate(n=Count("id", distinct=True))
+    }
     a = counts.get(Cumplimiento.A_TIEMPO, 0)
     r = counts.get(Cumplimiento.CON_RETRASO, 0)
     nr = counts.get(Cumplimiento.NO_REALIZADA, 0)
@@ -156,8 +165,11 @@ def _cumplimiento(ctx, frente):
 def com_a_tiempo(ctx):
     a, r, nr = _cumplimiento(ctx, "comunicacion")
     due = a + r + nr
-    return Result(_pct(a, due), _("%(a)s de %(d)s vencidos · %(r)s con retraso · %(nr)s no "
-                                  "realizados") % {"a": a, "d": due, "r": r, "nr": nr})
+    return Result(
+        _pct(a, due),
+        _("%(a)s de %(d)s vencidos · %(r)s con retraso · %(nr)s no realizados")
+        % {"a": a, "d": due, "r": r, "nr": nr},
+    )
 
 
 def com_cobertura(ctx):
@@ -165,9 +177,10 @@ def com_cobertura(ctx):
     total = grupos.count()
     done = ctx.actividades("comunicacion").filter(estado__in=DONE)
     cubiertos = grupos.filter(actividades__in=done).distinct().count()
-    return Result(_pct(cubiertos, total),
-                  _("%(c)s de %(n)s grupos con una comunicación realizada")
-                  % {"c": cubiertos, "n": total})
+    return Result(
+        _pct(cubiertos, total),
+        _("%(c)s de %(n)s grupos con una comunicación realizada") % {"c": cubiertos, "n": total},
+    )
 
 
 def com_iniciativa(ctx):
@@ -178,8 +191,10 @@ def com_iniciativa(ctx):
 def mov_participacion(ctx):
     a, r, nr = _cumplimiento(ctx, "movilizacion")
     due = a + r + nr
-    return Result(_pct(a + r, due), _("%(h)s de %(d)s actividades vencidas realizadas")
-                  % {"h": a + r, "d": due})
+    return Result(
+        _pct(a + r, due),
+        _("%(h)s de %(d)s actividades vencidas realizadas") % {"h": a + r, "d": due},
+    )
 
 
 def mov_tickets(ctx):
@@ -189,16 +204,20 @@ def mov_tickets(ctx):
         return Result(None, _("Indica el número de personas de cada grupo en Configuración."))
     n = tickets.filter(grupo__in=ctx.grupos().filter(personas__isnull=False)).count()
     abiertos = tickets.exclude(estado__in=["resuelto", "cerrado"]).count()
-    return Result(Decimal(round(100 * n / personas, 1)),
-                  _("%(n)s tickets · %(a)s abiertos") % {"n": n, "a": abiertos})
+    return Result(
+        Decimal(round(100 * n / personas, 1)),
+        _("%(n)s tickets · %(a)s abiertos") % {"n": n, "a": abiertos},
+    )
 
 
 def for_asignada(ctx):
     base = ctx.impactos().filter(requiere_formacion=True, estado__in=WORKED_STATES)
     total = base.count()
     ok = base.filter(actividades__frente__code="formacion").distinct().count()
-    return Result(_pct(ok, total), _("%(ok)s de %(n)s impactos que requieren formación")
-                  % {"ok": ok, "n": total})
+    return Result(
+        _pct(ok, total),
+        _("%(ok)s de %(n)s impactos que requieren formación") % {"ok": ok, "n": total},
+    )
 
 
 def _verification(ctx, grupo_ids=None):
@@ -214,8 +233,10 @@ def _verification(ctx, grupo_ids=None):
     if ctx.grupo:
         enlaces = enlaces.filter(persona__grupo=ctx.grupo)
     return enlaces.values("persona__grupo").annotate(
-        invitados=Count("id"), respondieron=Count("id", filter=Q(respondio=True)),
-        aprobados=Count("id", filter=Q(aprobo=True)))
+        invitados=Count("id"),
+        respondieron=Count("id", filter=Q(respondio=True)),
+        aprobados=Count("id", filter=Q(aprobo=True)),
+    )
 
 
 def for_verificacion(ctx):
@@ -224,22 +245,29 @@ def for_verificacion(ctx):
     resp = sum(r["respondieron"] for r in rows)
     apr = sum(r["aprobados"] for r in rows)
     if resp < ctx.min_size:
-        return Result(None, _("%(r)s respuestas: menos de %(m)s, no se muestra")
-                      % {"r": resp, "m": ctx.min_size})
-    return Result(_pct(apr, inv), _("%(a)s aprobados de %(i)s con enlace · %(r)s respondieron")
-                  % {"a": apr, "i": inv, "r": resp})
+        return Result(
+            None,
+            _("%(r)s respuestas: menos de %(m)s, no se muestra") % {"r": resp, "m": ctx.min_size},
+        )
+    return Result(
+        _pct(apr, inv),
+        _("%(a)s aprobados de %(i)s con enlace · %(r)s respondieron")
+        % {"a": apr, "i": inv, "r": resp},
+    )
 
 
 def _certification(ctx):
-    evs = Evaluacion.objects.filter(estado__in=[EstadoCertificacion.CERTIFICADO,
-                                                EstadoCertificacion.EN_REFUERZO])
+    evs = Evaluacion.objects.filter(
+        estado__in=[EstadoCertificacion.CERTIFICADO, EstadoCertificacion.EN_REFUERZO]
+    )
     if ctx.tiempo:
         evs = evs.filter(lista__impacto__tiempo=ctx.tiempo)
     if ctx.grupo:
         evs = evs.filter(persona__grupo=ctx.grupo)
     return evs.values("persona__grupo").annotate(
         evaluados=Count("id"),
-        certificados=Count("id", filter=Q(estado=EstadoCertificacion.CERTIFICADO)))
+        certificados=Count("id", filter=Q(estado=EstadoCertificacion.CERTIFICADO)),
+    )
 
 
 def for_certificacion(ctx):
@@ -247,18 +275,26 @@ def for_certificacion(ctx):
     ev = sum(r["evaluados"] for r in rows)
     cert = sum(r["certificados"] for r in rows)
     if ev < ctx.min_size:
-        return Result(None, _("%(e)s evaluados: menos de %(m)s, no se muestra")
-                      % {"e": ev, "m": ctx.min_size})
-    return Result(_pct(cert, ev), _("%(c)s certificados de %(e)s evaluados · %(r)s en refuerzo")
-                  % {"c": cert, "e": ev, "r": ev - cert})
+        return Result(
+            None, _("%(e)s evaluados: menos de %(m)s, no se muestra") % {"e": ev, "m": ctx.min_size}
+        )
+    return Result(
+        _pct(cert, ev),
+        _("%(c)s certificados de %(e)s evaluados · %(r)s en refuerzo")
+        % {"c": cert, "e": ev, "r": ev - cert},
+    )
 
 
 def readiness_by_group(ctx):
     """Provisional readiness index per group: average of the components with data.
     Its real definition is pending (§13.2-13.3)."""
-    imp = {r["grupo"]: r for r in ctx.impactos().filter(estado__in=WORKED_STATES)
-           .values("grupo").annotate(total=Count("id"),
-                                     hechos=Count("id", filter=Q(estado__in=DONE_IMPACT_STATES)))}
+    imp = {
+        r["grupo"]: r
+        for r in ctx.impactos()
+        .filter(estado__in=WORKED_STATES)
+        .values("grupo")
+        .annotate(total=Count("id"), hechos=Count("id", filter=Q(estado__in=DONE_IMPACT_STATES)))
+    }
     ver = {r["persona__grupo"]: r for r in _verification(ctx)}
     cert = {r["persona__grupo"]: r for r in _certification(ctx)}
     rows = []
@@ -297,72 +333,242 @@ PLAT = _("Plataforma")
 MANUAL = _("Carga manual")
 
 INDICATORS = [
-    Indicator("imp_con_plan", "impactos", "ejecucion", _("Impactos con plan y responsable"),
-              _("Impactos validados (no propuestos ni descartados) con responsable y al menos una "
-                "actividad en la Ruta ÷ impactos validados."), _("Matriz y Ruta"),
-              verde=D(90), amarillo=D(70), compute=imp_con_plan),
-    Indicator("imp_criticos", "impactos", "resultados", _("Críticos mitigados"),
-              _("Impactos con nivel de riesgo Crítico atendidos o cerrados ÷ impactos críticos no "
-                "descartados."), _("Matriz"), verde=D(80), amarillo=D(50), compute=imp_criticos),
-    Indicator("imp_no_anticipados", "impactos", "respuesta", _("Impactos no anticipados"),
-              _("Tickets de la Bitácora con categoría «impacto no anticipado»."), _("Bitácora"),
-              unit="n", higher_is_better=None, compute=imp_no_anticipados),
-    Indicator("com_a_tiempo", "comunicacion", "ejecucion", _("Mensajes a tiempo"),
-              _("Comunicaciones hechas a tiempo ÷ comunicaciones planificadas cuya fecha ya pasó."),
-              _("Ruta"), verde=D(90), amarillo=D(75), compute=com_a_tiempo),
-    Indicator("com_cobertura", "comunicacion", "ejecucion", _("Cobertura de grupos"),
-              _("Grupos con al menos una comunicación completada ÷ grupos activos."), _("Ruta"),
-              verde=D(90), amarillo=D(70), compute=com_cobertura),
-    Indicator("com_iniciativa", "comunicacion", "respuesta",
-              _("Eventos detectados por iniciativa propia"),
-              _("Comunicaciones registradas como no planificadas (surgieron sobre la marcha)."),
-              _("Ruta"), unit="n", higher_is_better=None, compute=com_iniciativa),
-    Indicator("mov_participacion", "movilizacion", "respuesta", _("Participación"),
-              _("Actividades de movilización realizadas (a tiempo o con retraso) ÷ actividades de "
-                "movilización planificadas cuya fecha ya pasó."), _("Ruta"),
-              verde=D(80), amarillo=D(60), compute=mov_participacion),
-    Indicator("mov_comprension", "movilizacion", "adopcion", _("Comprensión del cambio"),
-              _("Porcentaje de personas que declaran entender el cambio (encuesta)."), MANUAL,
-              verde=D(80), amarillo=D(60), manual=True),
-    Indicator("mov_tickets", "movilizacion", "respuesta", _("Tickets por cada 100 personas"),
-              _("Tickets de grupos con número de personas definido × 100 ÷ personas de esos "
-                "grupos."), _("Bitácora"), unit="n", higher_is_better=False,
-              compute=mov_tickets),
-    Indicator("for_asignada", "formacion", "ejecucion", _("Impactos con formación asignada"),
-              _("Impactos que requieren formación y tienen una actividad del frente Formación ÷ "
-                "impactos validados que requieren formación."), _("Matriz y Ruta"),
-              verde=D(90), amarillo=D(70), compute=for_asignada),
-    Indicator("for_personas", "formacion", "ejecucion", _("Personas formadas antes de la salida"),
-              _("Personas que completaron la formación antes de la salida ÷ personas que debían "
-                "formarse."), MANUAL, verde=D(90), amarillo=D(75), manual=True),
-    Indicator("for_verificacion", "formacion", "resultados", _("Verificación de competencia"),
-              _("Personas que aprobaron un cuestionario ÷ personas con enlace (cuestionarios "
-                "publicados)."), _("Formularios"), verde=D(80), amarillo=D(60),
-              compute=for_verificacion),
-    Indicator("for_certificacion", "formacion", "resultados", _("Certificación del líder"),
-              _("Personas certificadas ÷ personas evaluadas por su líder."), _("Formularios"),
-              verde=D(80), amarillo=D(60), compute=for_certificacion),
-    Indicator("tr_usuarios_activos", "transversal", "adopcion", _("Usuarios activos"),
-              _("Usuarios activos del sistema nuevo ÷ usuarios esperados."), MANUAL,
-              verde=D(80), amarillo=D(60), manual=True),
-    Indicator("tr_adopcion_30", "transversal", "adopcion", _("Adopción sostenida a 30 días"),
-              _("Usuarios que siguen activos 30 días después de la salida ÷ usuarios esperados."),
-              MANUAL, verde=D(80), amarillo=D(60), manual=True, frecuencia=_("Mensual")),
-    Indicator("tr_adopcion_60", "transversal", "adopcion", _("Adopción sostenida a 60 días"),
-              _("Igual, a 60 días."), MANUAL, verde=D(80), amarillo=D(60), manual=True,
-              frecuencia=_("Mensual")),
-    Indicator("tr_adopcion_90", "transversal", "adopcion", _("Adopción sostenida a 90 días"),
-              _("Igual, a 90 días."), MANUAL, verde=D(80), amarillo=D(60), manual=True,
-              frecuencia=_("Mensual")),
-    Indicator("tr_preparacion", "transversal", "resultados", _("Índice de preparación"),
-              _("Provisional: promedio por grupo de los componentes con datos (impactos "
-                "atendidos, verificación aprobada, certificación), y promedio entre grupos."),
-              _("Matriz y Formularios"), unit="pts", verde=D(70), amarillo=D(50),
-              compute=tr_preparacion, provisional=True),
-    Indicator("tr_diagnostico", "transversal", "resultados",
-              _("Diagnóstico: cambio respecto del inicio"),
-              _("Puntaje del diagnóstico actual menos puntaje del diagnóstico inicial."), MANUAL,
-              unit="pts", higher_is_better=None, manual=True, frecuencia=_("Por etapa")),
+    Indicator(
+        "imp_con_plan",
+        "impactos",
+        "ejecucion",
+        _("Impactos con plan y responsable"),
+        _(
+            "Impactos validados (no propuestos ni descartados) con responsable y al menos una "
+            "actividad en la Ruta ÷ impactos validados."
+        ),
+        _("Matriz y Ruta"),
+        verde=D(90),
+        amarillo=D(70),
+        compute=imp_con_plan,
+    ),
+    Indicator(
+        "imp_criticos",
+        "impactos",
+        "resultados",
+        _("Críticos mitigados"),
+        _(
+            "Impactos con nivel de riesgo Crítico atendidos o cerrados ÷ impactos críticos no "
+            "descartados."
+        ),
+        _("Matriz"),
+        verde=D(80),
+        amarillo=D(50),
+        compute=imp_criticos,
+    ),
+    Indicator(
+        "imp_no_anticipados",
+        "impactos",
+        "respuesta",
+        _("Impactos no anticipados"),
+        _("Tickets de la Bitácora con categoría «impacto no anticipado»."),
+        _("Bitácora"),
+        unit="n",
+        higher_is_better=None,
+        compute=imp_no_anticipados,
+    ),
+    Indicator(
+        "com_a_tiempo",
+        "comunicacion",
+        "ejecucion",
+        _("Mensajes a tiempo"),
+        _("Comunicaciones hechas a tiempo ÷ comunicaciones planificadas cuya fecha ya pasó."),
+        _("Ruta"),
+        verde=D(90),
+        amarillo=D(75),
+        compute=com_a_tiempo,
+    ),
+    Indicator(
+        "com_cobertura",
+        "comunicacion",
+        "ejecucion",
+        _("Cobertura de grupos"),
+        _("Grupos con al menos una comunicación completada ÷ grupos activos."),
+        _("Ruta"),
+        verde=D(90),
+        amarillo=D(70),
+        compute=com_cobertura,
+    ),
+    Indicator(
+        "com_iniciativa",
+        "comunicacion",
+        "respuesta",
+        _("Eventos detectados por iniciativa propia"),
+        _("Comunicaciones registradas como no planificadas (surgieron sobre la marcha)."),
+        _("Ruta"),
+        unit="n",
+        higher_is_better=None,
+        compute=com_iniciativa,
+    ),
+    Indicator(
+        "mov_participacion",
+        "movilizacion",
+        "respuesta",
+        _("Participación"),
+        _(
+            "Actividades de movilización realizadas (a tiempo o con retraso) ÷ actividades de "
+            "movilización planificadas cuya fecha ya pasó."
+        ),
+        _("Ruta"),
+        verde=D(80),
+        amarillo=D(60),
+        compute=mov_participacion,
+    ),
+    Indicator(
+        "mov_comprension",
+        "movilizacion",
+        "adopcion",
+        _("Comprensión del cambio"),
+        _("Porcentaje de personas que declaran entender el cambio (encuesta)."),
+        MANUAL,
+        verde=D(80),
+        amarillo=D(60),
+        manual=True,
+    ),
+    Indicator(
+        "mov_tickets",
+        "movilizacion",
+        "respuesta",
+        _("Tickets por cada 100 personas"),
+        _("Tickets de grupos con número de personas definido × 100 ÷ personas de esos grupos."),
+        _("Bitácora"),
+        unit="n",
+        higher_is_better=False,
+        compute=mov_tickets,
+    ),
+    Indicator(
+        "for_asignada",
+        "formacion",
+        "ejecucion",
+        _("Impactos con formación asignada"),
+        _(
+            "Impactos que requieren formación y tienen una actividad del frente Formación ÷ "
+            "impactos validados que requieren formación."
+        ),
+        _("Matriz y Ruta"),
+        verde=D(90),
+        amarillo=D(70),
+        compute=for_asignada,
+    ),
+    Indicator(
+        "for_personas",
+        "formacion",
+        "ejecucion",
+        _("Personas formadas antes de la salida"),
+        _(
+            "Personas que completaron la formación antes de la salida ÷ personas que debían "
+            "formarse."
+        ),
+        MANUAL,
+        verde=D(90),
+        amarillo=D(75),
+        manual=True,
+    ),
+    Indicator(
+        "for_verificacion",
+        "formacion",
+        "resultados",
+        _("Verificación de competencia"),
+        _(
+            "Personas que aprobaron un cuestionario ÷ personas con enlace (cuestionarios "
+            "publicados)."
+        ),
+        _("Formularios"),
+        verde=D(80),
+        amarillo=D(60),
+        compute=for_verificacion,
+    ),
+    Indicator(
+        "for_certificacion",
+        "formacion",
+        "resultados",
+        _("Certificación del líder"),
+        _("Personas certificadas ÷ personas evaluadas por su líder."),
+        _("Formularios"),
+        verde=D(80),
+        amarillo=D(60),
+        compute=for_certificacion,
+    ),
+    Indicator(
+        "tr_usuarios_activos",
+        "transversal",
+        "adopcion",
+        _("Usuarios activos"),
+        _("Usuarios activos del sistema nuevo ÷ usuarios esperados."),
+        MANUAL,
+        verde=D(80),
+        amarillo=D(60),
+        manual=True,
+    ),
+    Indicator(
+        "tr_adopcion_30",
+        "transversal",
+        "adopcion",
+        _("Adopción sostenida a 30 días"),
+        _("Usuarios que siguen activos 30 días después de la salida ÷ usuarios esperados."),
+        MANUAL,
+        verde=D(80),
+        amarillo=D(60),
+        manual=True,
+        frecuencia=_("Mensual"),
+    ),
+    Indicator(
+        "tr_adopcion_60",
+        "transversal",
+        "adopcion",
+        _("Adopción sostenida a 60 días"),
+        _("Igual, a 60 días."),
+        MANUAL,
+        verde=D(80),
+        amarillo=D(60),
+        manual=True,
+        frecuencia=_("Mensual"),
+    ),
+    Indicator(
+        "tr_adopcion_90",
+        "transversal",
+        "adopcion",
+        _("Adopción sostenida a 90 días"),
+        _("Igual, a 90 días."),
+        MANUAL,
+        verde=D(80),
+        amarillo=D(60),
+        manual=True,
+        frecuencia=_("Mensual"),
+    ),
+    Indicator(
+        "tr_preparacion",
+        "transversal",
+        "resultados",
+        _("Índice de preparación"),
+        _(
+            "Provisional: promedio por grupo de los componentes con datos (impactos "
+            "atendidos, verificación aprobada, certificación), y promedio entre grupos."
+        ),
+        _("Matriz y Formularios"),
+        unit="pts",
+        verde=D(70),
+        amarillo=D(50),
+        compute=tr_preparacion,
+        provisional=True,
+    ),
+    Indicator(
+        "tr_diagnostico",
+        "transversal",
+        "resultados",
+        _("Diagnóstico: cambio respecto del inicio"),
+        _("Puntaje del diagnóstico actual menos puntaje del diagnóstico inicial."),
+        MANUAL,
+        unit="pts",
+        higher_is_better=None,
+        manual=True,
+        frecuencia=_("Por etapa"),
+    ),
 ]
 BY_KEY = {i.key: i for i in INDICATORS}
 
@@ -399,13 +605,16 @@ def tiles(ctx):
         if c is not None and not c.activo:
             continue
         result = manual(ctx, ind.key) if ind.manual else ind.compute(ctx)
-        out.append(Tile(
-            ind, result,
-            verde=c.verde if c else ind.verde,
-            amarillo=c.amarillo if c else ind.amarillo,
-            responsable=c.responsable if c and c.responsable else "",
-            frecuencia=c.frecuencia if c and c.frecuencia else ind.frecuencia,
-        ))
+        out.append(
+            Tile(
+                ind,
+                result,
+                verde=c.verde if c else ind.verde,
+                amarillo=c.amarillo if c else ind.amarillo,
+                responsable=c.responsable if c and c.responsable else "",
+                frecuencia=c.frecuencia if c and c.frecuencia else ind.frecuencia,
+            )
+        )
     return out
 
 
@@ -422,11 +631,15 @@ def alerts(ctx):
     open_impacts = ctx.impactos().exclude(estado__in=[Estado.CERRADO, Estado.DESCARTADO])
     _verde, amarillo = threshold("tr_preparacion")
     limit = amarillo if amarillo is not None else _verde
-    bajo = [r for r in readiness_by_group(ctx)
-            if limit is not None and r["value"] is not None and r["value"] < limit]
+    bajo = [
+        r
+        for r in readiness_by_group(ctx)
+        if limit is not None and r["value"] is not None and r["value"] < limit
+    ]
     return {
-        "p1_sin_criterio": open_impacts.filter(sin_criterio_q(), prioridad=Priority.P1)
-        .order_by("numero"),
+        "p1_sin_criterio": open_impacts.filter(sin_criterio_q(), prioridad=Priority.P1).order_by(
+            "numero"
+        ),
         "extrema": open_impacts.filter(severidad=EXTREME_SEVERITY).order_by("numero"),
         "grupos_bajo_umbral": bajo,
         "umbral_preparacion": limit,
@@ -436,11 +649,23 @@ def alerts(ctx):
 def tickets_by_type(ctx):
     from apps.catalogs.models import SystemCatalog, SystemCatalogItem
 
-    counts = {r["categoria"]: r["n"] for r in ctx.tickets().values("categoria").annotate(
-        n=Count("id"))}
-    return [{"label": str(c), "value": counts.get(c.pk, 0)}
-            for c in SystemCatalogItem.objects.of(SystemCatalog.CATEGORIA_TICKET)]
+    counts = {
+        r["categoria"]: r["n"] for r in ctx.tickets().values("categoria").annotate(n=Count("id"))
+    }
+    return [
+        {"label": str(c), "value": counts.get(c.pk, 0)}
+        for c in SystemCatalogItem.objects.of(SystemCatalog.CATEGORIA_TICKET)
+    ]
 
 
-__all__ = ["Ctx", "INDICATORS", "BY_KEY", "FRENTES", "NIVELES", "tiles", "alerts",
-           "readiness_by_group", "tickets_by_type"]
+__all__ = [
+    "Ctx",
+    "INDICATORS",
+    "BY_KEY",
+    "FRENTES",
+    "NIVELES",
+    "tiles",
+    "alerts",
+    "readiness_by_group",
+    "tickets_by_type",
+]

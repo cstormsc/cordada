@@ -22,28 +22,47 @@ class ImpactoChoiceField(forms.ModelMultipleChoiceField):
 class ActividadForm(forms.ModelForm):
     # Tenant-scoped choices are filled in __init__ (see BaseImpactoForm).
     grupos = forms.ModelMultipleChoiceField(
-        label=_("Grupos impactados"), queryset=GrupoImpactado.unscoped.none(), required=False,
+        label=_("Grupos impactados"),
+        queryset=GrupoImpactado.unscoped.none(),
+        required=False,
         widget=forms.CheckboxSelectMultiple,
     )
     impactos = ImpactoChoiceField(
-        label=_("Impactos"), queryset=Impacto.unscoped.none(), required=False,
+        label=_("Impactos"),
+        queryset=Impacto.unscoped.none(),
+        required=False,
         help_text=Actividad._meta.get_field("impactos").help_text,
         widget=forms.SelectMultiple(attrs={"size": 6}),
     )
-    canal = forms.ModelChoiceField(label=_("Canal o formato"), queryset=Canal.unscoped.none(),
-                                   required=False)
-    responsable = MemberChoiceField(label=_("Responsable"), queryset=User.objects.none(),
-                                    required=False)
+    canal = forms.ModelChoiceField(
+        label=_("Canal o formato"), queryset=Canal.unscoped.none(), required=False
+    )
+    responsable = MemberChoiceField(
+        label=_("Responsable"), queryset=User.objects.none(), required=False
+    )
 
     class Meta:
         model = Actividad
         fields = [
-            "titulo", "descripcion", "frente", "tiempo", "impactos", "grupos", "responsable",
-            "no_planificada", "fecha_planificada", "fecha_real", "estado", "canal", "vocero",
-            "evidencia", "indicador",
+            "titulo",
+            "descripcion",
+            "frente",
+            "tiempo",
+            "impactos",
+            "grupos",
+            "responsable",
+            "no_planificada",
+            "fecha_planificada",
+            "fecha_real",
+            "estado",
+            "canal",
+            "vocero",
+            "evidencia",
+            "indicador",
         ]
         widgets = {
-            "fecha_planificada": DATE, "fecha_real": DATE,
+            "fecha_planificada": DATE,
+            "fecha_real": DATE,
             "descripcion": forms.Textarea(attrs={"rows": 3}),
             "evidencia": forms.Textarea(attrs={"rows": 3}),
         }
@@ -51,22 +70,40 @@ class ActividadForm(forms.ModelForm):
     sections = [
         (_("Actividad"), ["titulo", "descripcion", "frente", "tiempo", "canal", "vocero"]),
         (_("A qué responde"), ["impactos", "grupos", "indicador"]),
-        (_("Plan y ejecución"), ["responsable", "no_planificada", "fecha_planificada",
-                                 "fecha_real", "estado", "evidencia"]),
+        (
+            _("Plan y ejecución"),
+            [
+                "responsable",
+                "no_planificada",
+                "fecha_planificada",
+                "fecha_real",
+                "estado",
+                "evidencia",
+            ],
+        ),
     ]
 
     def __init__(self, *args, client, **kwargs):
         super().__init__(*args, **kwargs)
         pk = self.instance.pk
         self.fields["grupos"].queryset = GrupoImpactado.objects.filter(
-            Q(is_active=True) | Q(actividades=pk) if pk else Q(is_active=True)).distinct()
-        self.fields["impactos"].queryset = Impacto.objects.filter(
-            ~Q(estado=Estado.DESCARTADO) | Q(actividades=pk) if pk
-            else ~Q(estado=Estado.DESCARTADO)).distinct().order_by("numero")
-        self.fields["canal"].queryset = active_or_current(Canal.objects.all(),
-                                                          self.instance.canal_id)
+            Q(is_active=True) | Q(actividades=pk) if pk else Q(is_active=True)
+        ).distinct()
+        self.fields["impactos"].queryset = (
+            Impacto.objects.filter(
+                ~Q(estado=Estado.DESCARTADO) | Q(actividades=pk)
+                if pk
+                else ~Q(estado=Estado.DESCARTADO)
+            )
+            .distinct()
+            .order_by("numero")
+        )
+        self.fields["canal"].queryset = active_or_current(
+            Canal.objects.all(), self.instance.canal_id
+        )
         self.fields["responsable"].queryset = User.objects.filter(
-            memberships__client=client, memberships__is_active=True,
+            memberships__client=client,
+            memberships__is_active=True,
         ).order_by("first_name", "email")
 
     def get_sections(self):
@@ -75,9 +112,10 @@ class ActividadForm(forms.ModelForm):
     def clean(self):
         cleaned = super().clean()
         if not cleaned.get("no_planificada") and not cleaned.get("fecha_planificada"):
-            self.add_error("fecha_planificada",
-                           _("Indica la fecha planificada, o marca la actividad como no "
-                             "planificada."))
+            self.add_error(
+                "fecha_planificada",
+                _("Indica la fecha planificada, o marca la actividad como no planificada."),
+            )
         if cleaned.get("estado") in DONE and not cleaned.get("fecha_real"):
             self.add_error("fecha_real", _("Indica cuándo se hizo."))
         fecha_real = cleaned.get("fecha_real")
@@ -104,24 +142,33 @@ def _frente_qs():
 
 class FiltroForm(forms.Form):
     q = forms.CharField(label=_("Buscar"), required=False)
-    frente = forms.ModelChoiceField(label=_("Frente"), queryset=None, required=False,
-                                    empty_label=_("Todos"))
-    tiempo = forms.ModelChoiceField(label=_("Tiempo"), queryset=None, required=False,
-                                    empty_label=_("Todos"))
-    estado = forms.ChoiceField(label=_("Estado"), required=False,
-                               choices=[("", _("Todos")), *EstadoActividad.choices])
-    cumplimiento = forms.ChoiceField(label=_("Cumplimiento"), required=False,
-                                     choices=[("", _("Todos")), *Cumplimiento.choices])
-    grupo = forms.ModelChoiceField(label=_("Grupo"), queryset=GrupoImpactado.unscoped.none(),
-                                   required=False, empty_label=_("Todos"))
+    frente = forms.ModelChoiceField(
+        label=_("Frente"), queryset=None, required=False, empty_label=_("Todos")
+    )
+    tiempo = forms.ModelChoiceField(
+        label=_("Tiempo"), queryset=None, required=False, empty_label=_("Todos")
+    )
+    estado = forms.ChoiceField(
+        label=_("Estado"), required=False, choices=[("", _("Todos")), *EstadoActividad.choices]
+    )
+    cumplimiento = forms.ChoiceField(
+        label=_("Cumplimiento"), required=False, choices=[("", _("Todos")), *Cumplimiento.choices]
+    )
+    grupo = forms.ModelChoiceField(
+        label=_("Grupo"),
+        queryset=GrupoImpactado.unscoped.none(),
+        required=False,
+        empty_label=_("Todos"),
+    )
     huerfanas = forms.BooleanField(label=_("Solo huérfanas"), required=False)
 
     def __init__(self, *args, grupos=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["frente"].queryset = _frente_qs()
         self.fields["tiempo"].queryset = _tiempo_qs()
-        self.fields["grupo"].queryset = grupos if grupos is not None else \
-            GrupoImpactado.objects.all()
+        self.fields["grupo"].queryset = (
+            grupos if grupos is not None else GrupoImpactado.objects.all()
+        )
 
     def filter(self, qs):
         if not self.is_valid():
@@ -142,13 +189,18 @@ class FiltroForm(forms.Form):
 class InformeForm(forms.Form):
     """Compliance report: by stage (stage sessions) or by month (sponsor summary)."""
 
-    tiempo = forms.ModelChoiceField(label=_("Etapa"), queryset=None, required=False,
-                                    empty_label=_("Todas"))
-    mes = forms.CharField(label=_("Mes"), required=False,
-                          widget=forms.DateInput(attrs={"type": "month"}),
-                          help_text=_("Para el resumen mensual."))
-    frente = forms.ModelChoiceField(label=_("Frente"), queryset=None, required=False,
-                                    empty_label=_("Todos"))
+    tiempo = forms.ModelChoiceField(
+        label=_("Etapa"), queryset=None, required=False, empty_label=_("Todas")
+    )
+    mes = forms.CharField(
+        label=_("Mes"),
+        required=False,
+        widget=forms.DateInput(attrs={"type": "month"}),
+        help_text=_("Para el resumen mensual."),
+    )
+    frente = forms.ModelChoiceField(
+        label=_("Frente"), queryset=None, required=False, empty_label=_("Todos")
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

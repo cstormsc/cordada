@@ -13,8 +13,9 @@ URL = "/c/acme/matriz/tablero/"
 
 def column(body, estado):
     """HTML of one board column."""
-    match = re.search(rf'<section class="kcol[^"]*" data-estado="{estado}".*?</section>', body,
-                      re.S)
+    match = re.search(
+        rf'<section class="kcol[^"]*" data-estado="{estado}".*?</section>', body, re.S
+    )
     return match.group(0)
 
 
@@ -39,8 +40,12 @@ def test_editor_cards_carry_allowed_moves(client, equipo, make_impacto):
 
 
 def test_board_flags(client, equipo, make_impacto):
-    make_impacto(complete=True, estado=Estado.EVALUADO, severidad=4,
-                 fecha_compromiso=datetime.date(2020, 1, 1))
+    make_impacto(
+        complete=True,
+        estado=Estado.EVALUADO,
+        severidad=4,
+        fecha_compromiso=datetime.date(2020, 1, 1),
+    )
     client.force_login(equipo)
     card = column(client.get(URL).content.decode(), "evaluado")
     assert "Extrema" in card and "Descubierto" in card and "overdue" in card
@@ -106,6 +111,7 @@ class TestMove:
         impacto.refresh_from_db()
         assert impacto.estado == Estado.DESCARTADO
         from apps.core.tenancy import tenant_context
+
         with tenant_context(acme):
             assert Transicion.objects.get().motivo == "Duplicado de IMP-002"
 

@@ -51,8 +51,9 @@ def _cuestionario(numero):
 
 
 def _editor_url(client_slug, numero):
-    return reverse("formularios:cuestionario", kwargs={"client_slug": client_slug,
-                                                       "numero": numero})
+    return reverse(
+        "formularios:cuestionario", kwargs={"client_slug": client_slug, "numero": numero}
+    )
 
 
 @client_member_required
@@ -61,17 +62,23 @@ def index(request, client_slug):
     if not actions & {A.EDIT, A.DESIGN}:
         raise PermissionDenied
     cuestionarios = Cuestionario.objects.select_related("impacto").annotate(
-        n_preguntas=Count("preguntas", distinct=True),
-        n_enlaces=Count("enlaces", distinct=True))
-    return render(request, "formularios/index.html", {
-        "cuestionarios": cuestionarios,
-        "can_people": A.EDIT in actions,
-        "personas": Persona.objects.filter(is_active=True).count() if A.EDIT in actions
-        else None,
-    })
+        n_preguntas=Count("preguntas", distinct=True), n_enlaces=Count("enlaces", distinct=True)
+    )
+    return render(
+        request,
+        "formularios/index.html",
+        {
+            "cuestionarios": cuestionarios,
+            "can_people": A.EDIT in actions,
+            "personas": Persona.objects.filter(is_active=True).count()
+            if A.EDIT in actions
+            else None,
+        },
+    )
 
 
 # --- People ---
+
 
 @client_member_required
 def personas(request, client_slug):
@@ -79,18 +86,27 @@ def personas(request, client_slug):
     q = request.GET.get("q", "").strip()
     qs = Persona.objects.select_related("grupo")
     if q:
-        qs = qs.filter(Q(email__icontains=q) | Q(nombre__icontains=q)
-                       | Q(departamento__icontains=q))
+        qs = qs.filter(
+            Q(email__icontains=q) | Q(nombre__icontains=q) | Q(departamento__icontains=q)
+        )
     if request.GET.get("inactivas") != "1":
         qs = qs.filter(is_active=True)
     from .models import Carga
 
-    return render(request, "formularios/personas.html", {
-        "personas": qs[:500], "total": qs.count(), "q": q,
-        "por_grupo": Persona.objects.filter(is_active=True).values("grupo__name").annotate(
-            n=Count("id")).order_by("grupo__name"),
-        "cargas": Carga.objects.select_related("creada_por")[:5],
-    })
+    return render(
+        request,
+        "formularios/personas.html",
+        {
+            "personas": qs[:500],
+            "total": qs.count(),
+            "q": q,
+            "por_grupo": Persona.objects.filter(is_active=True)
+            .values("grupo__name")
+            .annotate(n=Count("id"))
+            .order_by("grupo__name"),
+            "cargas": Carga.objects.select_related("creada_por")[:5],
+        },
+    )
 
 
 @client_member_required
@@ -122,11 +138,16 @@ def cargar(request, client_slug):
             if group_field and group_field not in mapping:
                 form.add_error("columna_grupo", _("El archivo no tiene esa columna."))
             else:
-                existing = set(Persona.objects.filter(
-                    email__in=[r["email"] for r in records]).values_list("email", flat=True))
+                existing = set(
+                    Persona.objects.filter(email__in=[r["email"] for r in records]).values_list(
+                        "email", flat=True
+                    )
+                )
                 preview = _preview(records, errors, existing, mapping, group_field)
                 request.session[SESSION_KEY] = {
-                    "filename": archivo.name, "records": records, "errors": errors,
+                    "filename": archivo.name,
+                    "records": records,
+                    "errors": errors,
                     "group_field": group_field,
                     "create_groups": form.cleaned_data["crear_grupos"],
                 }
@@ -144,9 +165,13 @@ def _preview(records, errors, existing, mapping, group_field):
             if name:
                 values[name] = name.lower() in groups
     return {
-        "total": len(records), "nuevas": len(records) - len(existing),
-        "actualizadas": len(existing), "errores": errors, "columnas": sorted(mapping),
-        "muestra": records[:5], "grupos": sorted(values.items()),
+        "total": len(records),
+        "nuevas": len(records) - len(existing),
+        "actualizadas": len(existing),
+        "errores": errors,
+        "columnas": sorted(mapping),
+        "muestra": records[:5],
+        "grupos": sorted(values.items()),
     }
 
 
@@ -158,15 +183,24 @@ def confirmar_carga(request, client_slug):
     if not data:
         messages.error(request, _("La vista previa expiró. Sube el archivo de nuevo."))
         return redirect("formularios:cargar", client_slug=client_slug)
-    carga = importer.apply(data["records"], filename=data["filename"], user=request.user,
-                           group_field=data["group_field"],
-                           create_groups=data["create_groups"], errors=data["errors"])
-    messages.success(request, _("Carga lista: %(c)s personas nuevas y %(a)s actualizadas.")
-                     % {"c": carga.creadas, "a": carga.actualizadas})
+    carga = importer.apply(
+        data["records"],
+        filename=data["filename"],
+        user=request.user,
+        group_field=data["group_field"],
+        create_groups=data["create_groups"],
+        errors=data["errors"],
+    )
+    messages.success(
+        request,
+        _("Carga lista: %(c)s personas nuevas y %(a)s actualizadas.")
+        % {"c": carga.creadas, "a": carga.actualizadas},
+    )
     return redirect("formularios:personas", client_slug=client_slug)
 
 
 # --- Questionnaires ---
+
 
 @client_member_required
 def crear(request, client_slug):
@@ -199,12 +233,19 @@ def cuestionario(request, client_slug, numero):
         raise PermissionDenied
     c = _cuestionario(numero)
     preguntas = list(c.preguntas.prefetch_related("opciones"))
-    return render(request, "formularios/cuestionario.html", {
-        "c": c, "preguntas": preguntas, "total": c.total_puntos(),
-        "errors": scoring.publish_errors(c) if c.is_draft else [],
-        "can_design": A.DESIGN in actions, "can_links": A.EDIT in actions,
-        "totales": results.totals(c) if not c.is_draft else None,
-    })
+    return render(
+        request,
+        "formularios/cuestionario.html",
+        {
+            "c": c,
+            "preguntas": preguntas,
+            "total": c.total_puntos(),
+            "errors": scoring.publish_errors(c) if c.is_draft else [],
+            "can_design": A.DESIGN in actions,
+            "can_links": A.EDIT in actions,
+            "totales": results.totals(c) if not c.is_draft else None,
+        },
+    )
 
 
 def _draft_or_redirect(request, c, client_slug):
@@ -220,8 +261,11 @@ def pregunta(request, client_slug, numero, pk=None):
     c = _cuestionario(numero)
     if (resp := _draft_or_redirect(request, c, client_slug)) is not None:
         return resp
-    p = get_object_or_404(Pregunta.objects, cuestionario=c, pk=pk) if pk else \
-        Pregunta(cuestionario=c, orden=c.preguntas.count() + 1)
+    p = (
+        get_object_or_404(Pregunta.objects, cuestionario=c, pk=pk)
+        if pk
+        else Pregunta(cuestionario=c, orden=c.preguntas.count() + 1)
+    )
     form = PreguntaForm(request.POST or None, instance=p)
     formset = opcion_formset(p, request.POST or None)
     if request.method == "POST" and form.is_valid() and formset.is_valid():
@@ -236,9 +280,17 @@ def pregunta(request, client_slug, numero, pk=None):
             if is_new and not c.puntos_manuales:
                 scoring.redistribute(c)
         return redirect(f"{_editor_url(client_slug, numero)}#p{p.pk}")
-    return render(request, "formularios/pregunta_form.html", {
-        "c": c, "p": p, "form": form, "formset": formset, "tipo_help": TIPO_HELP,
-    })
+    return render(
+        request,
+        "formularios/pregunta_form.html",
+        {
+            "c": c,
+            "p": p,
+            "form": form,
+            "formset": formset,
+            "tipo_help": TIPO_HELP,
+        },
+    )
 
 
 @client_member_required
@@ -284,8 +336,11 @@ def puntos(request, client_slug, numero):
         if total == scoring.TOTAL_POINTS:
             messages.success(request, _("Puntos guardados."))
         else:
-            messages.warning(request, _("Puntos guardados. Suman %(t)s: ajústalos a 100 antes "
-                                        "de publicar.") % {"t": total})
+            messages.warning(
+                request,
+                _("Puntos guardados. Suman %(t)s: ajústalos a 100 antes de publicar.")
+                % {"t": total},
+            )
     return redirect(f"{_editor_url(client_slug, numero)}#puntos")
 
 
@@ -317,8 +372,9 @@ def publicar(request, client_slug, numero):
     else:
         c.estado, c.publicado_at = EstadoCuestionario.PUBLICADO, timezone.now()
         c.save(update_fields=["estado", "publicado_at"])
-        messages.success(request, _("Publicado. Preguntas y puntos quedan fijos; ya puedes "
-                                    "generar los enlaces."))
+        messages.success(
+            request, _("Publicado. Preguntas y puntos quedan fijos; ya puedes generar los enlaces.")
+        )
     return redirect("formularios:cuestionario", client_slug=client_slug, numero=numero)
 
 
@@ -335,6 +391,7 @@ def cerrar(request, client_slug, numero):
 
 
 # --- Links ---
+
 
 @client_member_required
 def enlaces(request, client_slug, numero):
@@ -353,15 +410,22 @@ def enlaces(request, client_slug, numero):
         with transaction.atomic():
             for p in nuevas:
                 Enlace.objects.create(cuestionario=c, persona=p)
-        messages.success(request, _("%(n)s enlaces nuevos (cada persona tiene uno solo).")
-                         % {"n": len(nuevas)})
+        messages.success(
+            request, _("%(n)s enlaces nuevos (cada persona tiene uno solo).") % {"n": len(nuevas)}
+        )
         return redirect("formularios:enlaces", client_slug=client_slug, numero=numero)
-    return render(request, "formularios/enlaces.html", {
-        "c": c, "form": form,
-        "n_enlaces": c.enlaces.count(),
-        "por_grupo": c.enlaces.values("persona__grupo__name").annotate(n=Count("id"))
-        .order_by("persona__grupo__name"),
-    })
+    return render(
+        request,
+        "formularios/enlaces.html",
+        {
+            "c": c,
+            "form": form,
+            "n_enlaces": c.enlaces.count(),
+            "por_grupo": c.enlaces.values("persona__grupo__name")
+            .annotate(n=Count("id"))
+            .order_by("persona__grupo__name"),
+        },
+    )
 
 
 @client_member_required
@@ -371,9 +435,13 @@ def exportar_enlaces(request, client_slug, numero):
     c = _cuestionario(numero)
     fmt = request.GET.get("formato", "xlsx")
     rows = [
-        [e.persona.email, e.persona.nombre, str(e.persona.grupo or ""),
-         request.build_absolute_uri(reverse("formularios_responder", args=[e.token])),
-         c.vence.isoformat() if c.vence else ""]
+        [
+            e.persona.email,
+            e.persona.nombre,
+            str(e.persona.grupo or ""),
+            request.build_absolute_uri(reverse("formularios_responder", args=[e.token])),
+            c.vence.isoformat() if c.vence else "",
+        ]
         for e in c.enlaces.select_related("persona", "persona__grupo").order_by("persona__email")
     ]
     headers = ["correo", "nombre", "grupo", "enlace", "vence"]
@@ -396,13 +464,15 @@ def exportar_enlaces(request, client_slug, numero):
         ws.append([safe_cell(v) for v in row])
     ws.column_dimensions["D"].width = 80
     response = HttpResponse(
-        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
     response["Content-Disposition"] = f'attachment; filename="{filename}.xlsx"'
     wb.save(response)
     return response
 
 
 # --- Results ---
+
 
 @client_member_required
 def resultados(request, client_slug, numero):
@@ -413,10 +483,16 @@ def resultados(request, client_slug, numero):
     form = ResultadosForm(request.GET or None)
     por = form.cleaned_data.get("por") if form.is_valid() else ""
     min_size = request.client.tamano_minimo_grupo
-    return render(request, "formularios/resultados.html", {
-        "c": c, "form": form, "min_size": min_size,
-        "totales": results.totals(c),
-        "agregado": results.aggregate(c, by=por or "grupo", min_size=min_size),
-        "por_pregunta": results.per_question(c, min_size=min_size),
-        "individual": results.individual(c) if A.VIEW_INDIVIDUAL in actions else None,
-    })
+    return render(
+        request,
+        "formularios/resultados.html",
+        {
+            "c": c,
+            "form": form,
+            "min_size": min_size,
+            "totales": results.totals(c),
+            "agregado": results.aggregate(c, by=por or "grupo", min_size=min_size),
+            "por_pregunta": results.per_question(c, min_size=min_size),
+            "individual": results.individual(c) if A.VIEW_INDIVIDUAL in actions else None,
+        },
+    )

@@ -30,7 +30,8 @@ def invite(*, request, client, email, role):
 @transaction.atomic
 def accept(invitation, user):
     membership, _ = Membership.objects.update_or_create(
-        user=user, client=invitation.client,
+        user=user,
+        client=invitation.client,
         defaults={"role": invitation.role, "is_active": True},
     )
     invitation.accepted_at = timezone.now()
