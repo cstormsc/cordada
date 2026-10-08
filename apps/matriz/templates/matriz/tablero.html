@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load i18n static %}
+{% block title %}{% translate "Tablero de impactos" %} · {{ request.client.name }}{% endblock %}
+{% block head %}
+  <script src="{% static 'vendor/sortable.min.js' %}" defer></script>
+  <script src="{% static 'js/tablero.js' %}" defer></script>
+{% endblock %}
+{% block main_class %}wide{% endblock %}
+{% block content %}
+  <p><a href="{% url 'client_home' request.client.slug %}">← {{ request.client.name }}</a></p>
+  <div class="row">
+    <h1>{% translate "Matriz de Impactos" %}</h1>
+    <div class="row">
+      {% include "matriz/_vista_toggle.html" with active="tablero" %}
+      {% if can_edit %}<a class="btn" href="{% url 'matriz:crear' request.client.slug %}">{% translate "Nuevo impacto" %}</a>{% endif %}
+    </div>
+  </div>
+
+  <form method="get" class="filters">
+    {% for field in filtro %}{% if field.name != "estado" %}<label>{{ field.label }}{{ field }}</label>{% endif %}{% endfor %}
+    <button type="submit" class="btn">{% translate "Filtrar" %}</button>
+    {% if querystring %}<a href="{% url 'matriz:tablero' request.client.slug %}">{% translate "Limpiar" %}</a>{% endif %}
+  </form>
+  {% if can_edit %}<p class="muted small">{% translate "Arrastra una tarjeta para cambiar su estado. Solo se iluminan las columnas permitidas." %}</p>{% endif %}
+
+  <div id="board-msg" class="board-msg" aria-live="polite"></div>
+  {% include "matriz/_tablero_columnas.html" %}
+
+  {% if can_edit %}
+  <dialog id="reason-dialog" class="reason-dialog">
+    <form method="dialog">
+      <h2 id="reason-title">{% translate "Motivo" %}</h2>
+      <p class="muted small">{% translate "Este cambio de estado requiere un motivo; queda en el historial." %}</p>
+      <textarea name="motivo" rows="3" required></textarea>
+      <div class="row">
+        <button value="cancel" formnovalidate class="btn secondary">{% translate "Cancelar" %}</button>
+        <button value="ok" class="btn">{% translate "Confirmar" %}</button>
+      </div>
+    </form>
+  </dialog>
+  {% endif %}
+{% endblock %}

@@ -1,8 +1,10 @@
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db import IntegrityError, transaction
-from django.http import Http404, HttpResponse
+from django.db.models import Count
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
@@ -347,3 +349,56 @@ def impacto_url(client_slug, numero):
     from django.urls import reverse
 
     return reverse("matriz:detalle", kwargs={"client_slug": client_slug, "numero": numero})
+
+
+# --- Kanban board ---
+
+BOARD_COLUMNS = [Estado.PROPUESTO, Estado.EVALUADO, Estado.EN_ATENCION, Estado.ATENDIDO,
+                 Estado.CERRADO, Estado.REABIERTO, Estado.DESCARTADO]
+
+
+@client_member_required
+def tablero(request, client_slug):
+    _require(request, Action.VIEW)
+    filtro = FiltroForm(request.GET or None)
+    impactos = filtro.filter(Impacto.objects.select_related("grupo", "responsable")).annotate(
+        n_actividades=Count("actividades", distinct=True)).order_by("prioridad", "numero")
+    can_edit = _can(request, Action.EDIT)
+    today = timezone.localdate()
+    open_states = (Estado.PROPUESTO, *ACTIVE_STATES)
+    by_state = {estado: [] for estado in BOARD_COLUMNS}
+    for impacto in impactos:
+        impacto.vencido = bool(impacto.fecha_compromiso and impacto.fecha_compromiso < today
+                               and impacto.estado in open_states)
+        impacto.descubierto = impacto.estado in ACTIVE_STATES and not impacto.n_actividades
+        if can_edit:
+            moves = workflow.available(impacto)
+            impacto.allowed = ",".join(t.target for t in moves)
+            impacto.needs_reason = ",".join(t.target for t in moves if t.needs_reason)
+        by_state[impacto.estado].append(impacto)
+    context = {
+        "columns": [(estado, by_state[estado]) for estado in BOARD_COLUMNS],
+        "can_edit": can_edit,
+        "filtro": filtro,
+        "querystring": request.GET.urlencode(),
+    }
+    template = "matriz/_tablero_columnas.html" if request.htmx else "matriz/tablero.html"
+    return render(request, template, context)
+
+
+@client_member_required
+@require_POST
+def mover(request, client_slug, numero):
+    """JSON endpoint for drag and drop on the board."""
+    if not _can(request, Action.EDIT):
+        return JsonResponse({"ok": False, "errors": [_("Tu rol no puede cambiar estados.")]},
+                            status=403)
+    impacto = _get_impacto(request, numero)
+    try:
+        workflow.transition(impacto, request.POST.get("hacia"), user=request.user,
+                            reason=request.POST.get("motivo", ""))
+    except workflow.TransitionError as e:
+        return JsonResponse({"ok": False, "codigo": impacto.codigo,
+                             "errors": [str(m) for m in e.messages]}, status=400)
+    return JsonResponse({"ok": True, "message": _("%(codigo)s: %(estado)s.") % {
+        "codigo": impacto.codigo, "estado": impacto.get_estado_display()}})

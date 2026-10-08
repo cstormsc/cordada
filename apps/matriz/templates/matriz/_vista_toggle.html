@@ -1,0 +1,5 @@
+{% load i18n %}
+<nav class="segmented" aria-label="{% translate 'Vista' %}">
+  <a href="{% url 'matriz:index' request.client.slug %}{% if querystring %}?{{ querystring }}{% endif %}"{% if active == "lista" %} aria-current="page"{% endif %}>{% translate "Lista" %}</a>
+  <a href="{% url 'matriz:tablero' request.client.slug %}{% if querystring %}?{{ querystring }}{% endif %}"{% if active == "tablero" %} aria-current="page"{% endif %}>{% translate "Tablero" %}</a>
+</nav>

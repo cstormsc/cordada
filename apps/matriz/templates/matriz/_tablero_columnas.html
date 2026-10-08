@@ -1,0 +1,36 @@
+{% load i18n %}
+<div id="board" class="kboard"
+     {% if can_edit %}data-editable="1" data-move-url="{% url 'matriz:mover' request.client.slug 0 %}"{% endif %}
+     data-refresh-url="{% url 'matriz:tablero' request.client.slug %}{% if querystring %}?{{ querystring }}{% endif %}">
+  {% for estado, impactos in columns %}
+    <section class="kcol{% if estado == 'descartado' %} collapsible{% endif %}" data-estado="{{ estado }}"
+             {% if estado == 'descartado' %}x-data="{ open: false }" :class="{ collapsed: !open }"{% endif %}>
+      <header class="kcol-head">
+        <span>{{ estado.label }}</span>
+        <span class="kcount">{{ impactos|length }}</span>
+        {% if estado == 'descartado' %}<button type="button" class="link small" @click="open = !open" x-text="open ? '{% translate "Ocultar" %}' : '{% translate "Mostrar" %}'"></button>{% endif %}
+      </header>
+      <div class="kcol-cards" data-estado="{{ estado }}">
+        {% for i in impactos %}
+          <article class="kcard" data-numero="{{ i.numero }}"{% if can_edit %} data-allowed="{{ i.allowed }}" data-needs-reason="{{ i.needs_reason }}"{% endif %}>
+            <div class="kcard-top">
+              <a href="{% url 'matriz:detalle' request.client.slug i.numero %}" class="muted small">{{ i.codigo }}</a>
+              {% include "matriz/_badges.html" with impacto=i %}
+            </div>
+            <a href="{% url 'matriz:detalle' request.client.slug i.numero %}" class="kcard-title">{{ i.titulo }}</a>
+            <div class="kcard-meta small">
+              {% if i.grupo %}<span>{{ i.grupo }}</span>{% elif i.grupo_sugerido %}<span class="muted">{{ i.grupo_sugerido }} ({% translate "sugerido" %})</span>{% endif %}
+              {% if i.responsable %}<span>{{ i.responsable.display_name }}</span>{% endif %}
+              {% if i.fecha_compromiso %}<span{% if i.vencido %} class="overdue" title="{% translate 'Fecha compromiso vencida' %}"{% endif %}>{{ i.fecha_compromiso|date:"SHORT_DATE_FORMAT" }}</span>{% endif %}
+            </div>
+            <div class="kcard-flags small">
+              {% if i.alerta_severidad %}<span class="flag alert">{% translate "Extrema" %}</span>{% endif %}
+              {% if i.alerta_p1_sin_criterio %}<span class="flag alert">{% translate "P1 sin criterio" %}</span>{% elif not i.tiene_criterio_cierre and i.estado != 'propuesto' and i.estado != 'descartado' %}<span class="flag warn">{% translate "Sin criterio" %}</span>{% endif %}
+              {% if i.descubierto %}<span class="flag warn">{% translate "Descubierto" %}</span>{% elif i.n_actividades %}<span class="flag">{{ i.n_actividades }} {% translate "act." %}</span>{% endif %}
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  {% endfor %}
+</div>
