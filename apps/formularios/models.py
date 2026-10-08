@@ -9,6 +9,7 @@ from django.utils.translation import gettext_lazy as _
 from simple_history.models import HistoricalRecords
 
 from apps.catalogs.models import GrupoImpactado
+from apps.core.attachments import AbstractAdjunto
 from apps.core.tenancy import TenantScopedModel, assign_next_number
 from apps.matriz.models import Impacto
 
@@ -233,3 +234,101 @@ class Respuesta(TenantScopedModel):
         constraints = [
             models.UniqueConstraint(fields=["enlace", "intento"], name="unique_intento"),
         ]
+
+
+# --- Leader's practical evaluation (§7.5) ---
+
+
+class EstadoLista(models.TextChoices):
+    BORRADOR = "borrador", _("Borrador")
+    PUBLICADA = "publicada", _("Publicada")
+
+
+class ListaObservacion(TenantScopedModel):
+    """Observation checklist for one impact. Each criterion: cumple / no cumple."""
+
+    impacto = models.OneToOneField(Impacto, on_delete=models.PROTECT,
+                                   related_name="lista_observacion",
+                                   verbose_name=_("impacto"))
+    titulo = models.CharField(_("título"), max_length=200)
+    instrucciones = models.TextField(_("instrucciones para el líder"), blank=True)
+    estado = models.CharField(max_length=20, choices=EstadoLista.choices,
+                              default=EstadoLista.BORRADOR, editable=False)
+    creada_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                                   related_name="+", editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    history = HistoricalRecords()
+
+    class Meta(TenantScopedModel.Meta):
+        verbose_name = _("lista de observación")
+        verbose_name_plural = _("listas de observación")
+        ordering = ["impacto__numero"]
+
+    def __str__(self):
+        return self.titulo
+
+    @property
+    def is_draft(self):
+        return self.estado == EstadoLista.BORRADOR
+
+
+class Criterio(TenantScopedModel):
+    lista = models.ForeignKey(ListaObservacion, on_delete=models.CASCADE,
+                              related_name="criterios")
+    orden = models.PositiveSmallIntegerField(default=0)
+    texto = models.CharField(_("criterio"), max_length=300,
+                             help_text=_("Una conducta observable: qué debe hacer bien."))
+
+    class Meta(TenantScopedModel.Meta):
+        ordering = ["orden", "pk"]
+
+    def __str__(self):
+        return self.texto
+
+
+class EstadoCertificacion(models.TextChoices):
+    PENDIENTE = "pendiente", _("Pendiente")
+    APLICADO = "aplicado", _("Aplicado")
+    CERTIFICADO = "certificado", _("Certificado")
+    EN_REFUERZO = "en_refuerzo", _("En refuerzo")
+
+
+class Evaluacion(TenantScopedModel):
+    """One person's practical evaluation by their leader."""
+
+    lista = models.ForeignKey(ListaObservacion, on_delete=models.CASCADE,
+                              related_name="evaluaciones")
+    persona = models.ForeignKey(Persona, on_delete=models.CASCADE, related_name="evaluaciones")
+    lider = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                              related_name="+")
+    resultados = models.JSONField(default=dict)  # {criterio_id: true/false}
+    observaciones = models.TextField(_("observaciones"), blank=True)
+    estado = models.CharField(max_length=20, choices=EstadoCertificacion.choices,
+                              default=EstadoCertificacion.PENDIENTE)
+    aplicada_at = models.DateTimeField(null=True, blank=True)
+    acta = models.ForeignKey("Acta", on_delete=models.SET_NULL, null=True, blank=True,
+                             related_name="evaluaciones")
+
+    history = HistoricalRecords()
+
+    class Meta(TenantScopedModel.Meta):
+        constraints = [
+            models.UniqueConstraint(fields=["lista", "persona"], name="unique_evaluacion"),
+        ]
+
+    def cumple_todo(self, criterio_ids):
+        return all(self.resultados.get(str(cid)) is True for cid in criterio_ids)
+
+
+class Acta(AbstractAdjunto):
+    """The signed summary the leader uploads: evidence for the impact (§7.5)."""
+
+    UPLOAD_DIR = "actas"
+
+    lista = models.ForeignKey(ListaObservacion, on_delete=models.CASCADE, related_name="actas")
+    lider = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                              related_name="+")
+
+    class Meta(AbstractAdjunto.Meta):
+        ordering = ["-fecha"]

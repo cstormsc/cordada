@@ -185,3 +185,7 @@ tr.row-grave td { background: #fdf3f2; }
 .opciones-form td input[type=text] { width: 100%; }
 fieldset.panel ul { list-style: none; padding: 0; margin: 0; }
 fieldset.panel li label { display: flex; gap: 0.5rem; align-items: flex-start; padding: 0.35rem 0; font-weight: normal; }
+.crit-row { display: flex; justify-content: space-between; gap: 1rem; padding: 0.4rem 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.crit-choice { display: flex; gap: 1rem; white-space: nowrap; }
+.crit-choice label { display: inline-flex; gap: 0.3rem; align-items: center; font-weight: normal; }
+.inline-form { display: inline; }

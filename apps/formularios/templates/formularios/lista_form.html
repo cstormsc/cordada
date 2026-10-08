@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+<div class="narrow-wide">
+  <p><a href="{% url 'formularios:listas' request.client.slug %}">← {% translate "Evaluación práctica" %}</a></p>
+  <h1>{% translate "Nueva lista de observación" %}</h1>
+  <p class="muted">{{ impacto.codigo }} · {{ impacto.titulo }}</p>
+  <form method="post" class="form panel">{% csrf_token %}{{ form }}<button class="btn">{% translate "Crear" %}</button></form>
+</div>
+{% endblock %}

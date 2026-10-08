@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+  <p><a href="{% url 'client_home' request.client.slug %}">← {{ request.client.name }}</a></p>
+  <h1>{% translate "Evaluación práctica de tu equipo" %}</h1>
+  {% if rows %}
+    <ul class="cards">{% for r in rows %}
+      <li><a class="card" href="{% url 'formularios:evaluar' request.client.slug r.lista.pk %}">
+        <strong>{{ r.lista.titulo }}</strong>
+        <span class="muted">{{ r.lista.impacto.codigo }}</span>
+        <span>{{ r.hechas }} / {{ r.equipo }} {% translate "evaluados" %}</span></a></li>
+    {% endfor %}</ul>
+  {% else %}
+    <p class="muted">{% translate "No tienes evaluaciones pendientes. Tu equipo aparece aquí cuando sus integrantes aprueban el cuestionario del impacto." %}</p>
+  {% endif %}
+{% endblock %}

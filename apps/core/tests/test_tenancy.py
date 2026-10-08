@@ -79,5 +79,5 @@ class TestClientUrls:
         user, _ = member(Role.LIDER_AREA)
         client.force_login(user)
         body = client.get("/c/acme/").content.decode()
-        assert "Formularios" in body and "Guía de campo" in body
+        assert "Evaluación práctica" in body and "Guía de campo" in body
         assert "Matriz de Impactos" not in body

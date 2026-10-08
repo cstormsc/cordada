@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+  <p><a href="{% url 'formularios:index' request.client.slug %}">← {% translate "Formularios" %}</a></p>
+  <h1>{% translate "Evaluación práctica del líder" %}</h1>
+  <p class="muted">{% translate "Solo para los impactos marcados «requiere certificación del líder». Cada criterio se evalúa como cumple o no cumple; certifica quien cumple todos." %}</p>
+  {% if rows %}
+  <div class="table-wrap panel"><table>
+    <thead><tr><th>{% translate "Impacto" %}</th><th>{% translate "Lista" %}</th><th>{% translate "Pendientes" %}</th><th>{% translate "Por firmar" %}</th><th>{% translate "Certificados" %}</th><th>{% translate "En refuerzo" %}</th></tr></thead>
+    <tbody>{% for r in rows %}
+      <tr><td>{{ r.impacto.codigo }} · {{ r.impacto.titulo }}</td>
+        <td>{% if r.lista %}<a href="{% url 'formularios:lista' request.client.slug r.lista.pk %}">{{ r.lista.titulo }}</a> <span class="tag">{{ r.lista.get_estado_display }}</span>
+          {% elif can_design %}<a href="{% url 'formularios:lista_crear' request.client.slug r.impacto.numero %}">{% translate "Crear lista" %}</a>{% else %}<span class="muted">{% translate "Sin lista" %}</span>{% endif %}</td>
+        {% if r.resumen %}<td>{{ r.resumen.pendiente }}</td><td>{{ r.resumen.aplicado }}</td><td>{{ r.resumen.certificado }}</td><td>{{ r.resumen.en_refuerzo }}</td>{% else %}<td colspan="4"></td>{% endif %}</tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}<p class="muted">{% translate "Ningún impacto requiere certificación del líder." %}</p>{% endif %}
+{% endblock %}

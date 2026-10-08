@@ -25,13 +25,15 @@ def home(request):
 
 @client_member_required
 def client_home(request, client_slug):
+    form_actions = role_actions(request.membership.role, Module.FORMULARIOS)
     return render(request, "core/client_home.html", {
         "modules": visible_modules(request.membership),
         "can_configure": can_configure(request.membership),
-        # Area leaders only do the practical evaluation (step 7b), not the questionnaires.
-        "module_links": {"formularios": bool(
-            {Action.EDIT, Action.DESIGN} & role_actions(request.membership.role,
-                                                        Module.FORMULARIOS))},
+        # Area leaders only do the practical evaluation, not the questionnaires.
+        "module_links": {
+            "formularios": bool({Action.EDIT, Action.DESIGN} & form_actions),
+            "evaluar": Action.LEADER_EVAL in form_actions,
+        },
     })
 
 

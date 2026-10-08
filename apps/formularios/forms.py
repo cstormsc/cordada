@@ -4,10 +4,20 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from apps.catalogs.models import GrupoImpactado
+from apps.core.attachments import AdjuntoForm
 from apps.matriz.models import Estado, Impacto
 
 from .importer import GROUP_SOURCES
-from .models import MAX_OPTIONS, Cuestionario, Opcion, Pregunta, TipoPregunta
+from .models import (
+    MAX_OPTIONS,
+    Acta,
+    Criterio,
+    Cuestionario,
+    ListaObservacion,
+    Opcion,
+    Pregunta,
+    TipoPregunta,
+)
 
 GROUP_SOURCE_CHOICES = [("", _("Ninguna"))] + [(f, _(f.capitalize())) for f in GROUP_SOURCES]
 
@@ -124,3 +134,38 @@ TIPO_HELP = {
     TipoPregunta.MULTIPLE: _("Hasta 5 opciones; puntaje completo solo si marca todas las "
                              "correctas y ninguna incorrecta."),
 }
+
+
+class ListaForm(forms.ModelForm):
+    class Meta:
+        model = ListaObservacion
+        fields = ["titulo", "instrucciones"]
+        widgets = {"instrucciones": forms.Textarea(attrs={"rows": 3})}
+
+
+class CriterioForm(forms.ModelForm):
+    class Meta:
+        model = Criterio
+        fields = ["texto"]
+
+
+class ActaForm(AdjuntoForm):
+    """Signed summary: a file (PDF or photo), not a link."""
+
+    url = None  # drop the link field inherited from AdjuntoForm
+
+    class Meta(AdjuntoForm.Meta):
+        model = Acta
+        fields = ["archivo"]
+        help_texts = {"archivo": _("El resumen firmado: PDF escaneado o foto.")}
+
+    def clean(self):
+        cleaned = forms.ModelForm.clean(self)
+        archivo = cleaned.get("archivo")
+        if not archivo:
+            raise forms.ValidationError(_("Sube el resumen firmado."))
+        ext = archivo.name.rsplit(".", 1)[-1].lower()
+        if ext not in {"pdf", "jpg", "jpeg", "png"}:
+            raise forms.ValidationError(_("Sube un PDF o una imagen (JPG o PNG)."))
+        cleaned["nombre"] = archivo.name
+        return cleaned

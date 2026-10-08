@@ -98,3 +98,8 @@ Dependencias con `uv`: editar `pyproject.toml`, luego `make lock && make build`.
 - Resultados: agregados con tamaño mínimo de grupo (por cliente, por defecto 5); el detalle
   individual solo lo ve el Equipo de cambio. La página del impacto muestra la verificación de su
   grupo.
+- Evaluación práctica del líder (`/formularios/listas/`, `/formularios/evaluar/`): lista de
+  observación por impacto (cumple / no cumple; certifica quien cumple todos). El equipo del líder
+  sale del campo supervisor (= correo del líder) y, si el impacto tiene cuestionario, solo quienes
+  lo aprobaron. PDF prellenado para firmar; al subirlo firmado, cada persona queda certificada o
+  en refuerzo y se avisa por correo a los guías de su grupo.

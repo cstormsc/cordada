@@ -1,0 +1,6 @@
+{% load i18n %}{% autoescape off %}{% blocktranslate with impacto=lista.impacto.codigo titulo=lista.impacto.titulo %}En la evaluación práctica del impacto {{ impacto}} ({{ titulo }}), estas personas quedaron en refuerzo:{% endblocktranslate %}
+
+{% for p in personas %}- {{ p }}{% if p.grupo %} ({{ p.grupo }}){% endif %}
+{% endfor %}
+{% translate "Seguimiento:" %} {{ url }}
+{% endautoescape %}

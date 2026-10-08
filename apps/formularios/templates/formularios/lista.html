@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+  <p><a href="{% url 'formularios:listas' request.client.slug %}">← {% translate "Evaluación práctica" %}</a></p>
+  <div class="row">
+    <h1>{{ lista.titulo }}</h1>
+    <a href="{% url 'formularios:seguimiento' request.client.slug lista.pk %}">{% translate "Seguimiento" %}</a>
+  </div>
+  <p><span class="tag">{{ lista.get_estado_display }}</span> <span class="muted">{{ lista.impacto.codigo }} · {{ lista.impacto.titulo }}</span></p>
+  <div class="grid-2">
+    <section class="panel">
+      <h2>{% translate "Criterios" %}</h2>
+      <p class="muted small">{% translate "El líder marca cada uno como cumple o no cumple. Certifica quien cumple todos." %}</p>
+      <ol>{% for c in criterios %}
+        <li>{{ c.texto }}{% if can_design %} <form method="post" action="{% url 'formularios:criterio_borrar' request.client.slug lista.pk c.pk %}" class="inline-form">{% csrf_token %}<button class="link danger small">{% translate "Quitar" %}</button></form>{% endif %}</li>
+      {% empty %}<li class="muted">{% translate "Sin criterios." %}</li>{% endfor %}</ol>
+      {% if can_design %}
+        <form method="post" class="row dep-add">{% csrf_token %}{{ criterio_form.texto }}<button class="btn secondary">{% translate "Agregar" %}</button></form>
+        {% if criterios %}<form method="post" action="{% url 'formularios:lista_publicar' request.client.slug lista.pk %}" class="pts-repartir">{% csrf_token %}
+          <button class="btn">{% translate "Publicar" %}</button><span class="muted small">{% translate "Después no se pueden cambiar los criterios." %}</span></form>{% endif %}
+      {% endif %}
+    </section>
+    {% if form %}
+    <section class="panel"><h2>{% translate "Datos" %}</h2>
+      <form method="post" class="form">{% csrf_token %}{{ form }}<button class="btn secondary">{% translate "Guardar" %}</button></form></section>
+    {% elif lista.instrucciones %}
+    <section class="panel"><h2>{% translate "Instrucciones para el líder" %}</h2><p class="pre">{{ lista.instrucciones }}</p></section>
+    {% endif %}
+  </div>
+{% endblock %}

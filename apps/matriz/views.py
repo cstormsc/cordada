@@ -151,6 +151,7 @@ def detalle(request, client_slug, numero):
         "open_prerequisites": dependencias.open_prerequisites(impacto).order_by("numero"),
         "can_link": _can(request, Action.LINK),
         "verificacion": _verificacion(request, impacto),
+        "certificacion": _certificacion(request, impacto),
         "link_candidates": Impacto.objects.exclude(pk=impacto.pk)
         .exclude(dependientes__impacto=impacto).order_by("numero")
         if _can(request, Action.LINK) else None,
@@ -456,3 +457,13 @@ def _verificacion(request, impacto):
     from apps.formularios.results import for_impacto
 
     return for_impacto(impacto, min_size=request.client.tamano_minimo_grupo) or None
+
+
+def _certificacion(request, impacto):
+    if not (impacto.requiere_certificacion_lider
+            and request.client.has_module(Module.FORMULARIOS)):
+        return None
+    from apps.formularios.certificacion import summary
+
+    lista = getattr(impacto, "lista_observacion", None)
+    return {"lista": lista, "resumen": summary(lista) if lista else None}

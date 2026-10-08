@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+  <p><a href="{% url 'formularios:evaluar_index' request.client.slug %}">← {% translate "Mis evaluaciones" %}</a></p>
+  <h1>{{ lista.titulo }}</h1>
+  {% if lista.instrucciones %}<p class="pre muted">{{ lista.instrucciones }}</p>{% endif %}
+  <ol class="small">{% for c in criterios %}<li>{{ c.texto }}</li>{% endfor %}</ol>
+
+  <form method="post" class="form">
+    {% csrf_token %}
+    {% for ev in evaluaciones %}
+      <fieldset class="panel{% if ev.estado == 'en_refuerzo' %} attention{% endif %}">
+        <legend>{{ ev.persona }} <span class="tag">{{ ev.get_estado_display }}</span></legend>
+        {% for c, value in ev.cells %}
+          <div class="crit-row">
+            <span>{{ forloop.counter }}. {{ c.texto }}</span>
+            <span class="crit-choice">
+              <label><input type="radio" name="e{{ ev.pk }}-c{{ c.pk }}" value="si"{% if value is True %} checked{% endif %}{% if not ev.editable %} disabled{% endif %}> {% translate "Cumple" %}</label>
+              <label><input type="radio" name="e{{ ev.pk }}-c{{ c.pk }}" value="no"{% if value is False %} checked{% endif %}{% if not ev.editable %} disabled{% endif %}> {% translate "No cumple" %}</label>
+            </span>
+          </div>
+        {% endfor %}
+        <label class="small">{% translate "Observaciones" %}<textarea name="e{{ ev.pk }}-obs" rows="2"{% if not ev.editable %} disabled{% endif %}>{{ ev.observaciones }}</textarea></label>
+      </fieldset>
+    {% empty %}
+      <p class="muted">{% translate "Nadie de tu equipo está listo para esta evaluación todavía." %}</p>
+    {% endfor %}
+    {% if evaluaciones %}<button class="btn">{% translate "Guardar evaluación" %}</button>{% endif %}
+  </form>
+
+  {% if evaluaciones %}
+  <section class="panel attention">
+    <h2>{% translate "Firma" %}</h2>
+    {% if faltan %}<p class="muted small">{% blocktranslate count n=faltan|length %}Falta evaluar a {{ n }} persona.{% plural %}Falta evaluar a {{ n }} personas.{% endblocktranslate %}</p>{% endif %}
+    {% if pendientes_firma %}
+      <ol>
+        <li><a class="btn secondary" href="{% url 'formularios:evaluar_pdf' request.client.slug lista.pk %}">{% translate "Descargar resumen para firmar (PDF)" %}</a></li>
+        <li>{% translate "Imprímelo y fírmalo." %}</li>
+        <li><form method="post" enctype="multipart/form-data" action="{% url 'formularios:evaluar_acta' request.client.slug lista.pk %}" class="row">
+          {% csrf_token %}{{ acta_form.archivo }}<button class="btn">{% translate "Subir resumen firmado" %}</button></form></li>
+      </ol>
+    {% else %}<p class="muted">{% translate "No hay evaluaciones aplicadas pendientes de firma." %}</p>{% endif %}
+    {% if actas %}<p class="small">{% translate "Ya subiste" %}: {% for a in actas %}<a href="{% url 'formularios:acta' request.client.slug lista.pk a.pk %}">{{ a.nombre }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+  </section>
+  {% endif %}
+{% endblock %}

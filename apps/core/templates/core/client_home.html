@@ -17,6 +17,8 @@
         <li><a class="card" href="{% url 'bitacora:index' request.client.slug %}"><strong>{{ module.label }}</strong><span class="muted">{% translate "Tickets y consultas de la implementación" %}</span></a></li>
       {% elif module == "formularios" and module_links.formularios %}
         <li><a class="card" href="{% url 'formularios:index' request.client.slug %}"><strong>{{ module.label }}</strong><span class="muted">{% translate "Verificación de competencias" %}</span></a></li>
+      {% elif module == "formularios" and module_links.evaluar %}
+        <li><a class="card" href="{% url 'formularios:evaluar_index' request.client.slug %}"><strong>{% translate "Evaluación práctica" %}</strong><span class="muted">{% translate "Evalúa a tu equipo" %}</span></a></li>
       {% else %}
         <li><div class="card"><strong>{{ module.label }}</strong><span class="muted">{% translate "Próximamente" %}</span></div></li>
       {% endif %}

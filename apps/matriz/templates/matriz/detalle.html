@@ -126,6 +126,15 @@
   </section>
   {% endif %}
 
+  {% if certificacion %}
+  <section class="panel" id="certificacion">
+    <h2>{% translate "Certificación del líder" %}</h2>
+    {% if certificacion.resumen %}{% with r=certificacion.resumen %}
+      <p>{{ r.evaluados }} {% translate "evaluados" %} · <strong>{{ r.certificado }}</strong> {% translate "certificados" %} · {{ r.en_refuerzo }} {% translate "en refuerzo" %} · <span class="muted">{{ r.pendiente }} {% translate "pendientes" %}, {{ r.aplicado }} {% translate "por firmar" %}</span></p>
+    {% endwith %}{% else %}<p class="muted">{% translate "Requiere certificación del líder; aún no hay lista de observación." %}</p>{% endif %}
+  </section>
+  {% endif %}
+
   <section class="panel" id="dependencias">
     <h2>{% translate "Dependencias" %}</h2>
     {% if open_prerequisites %}

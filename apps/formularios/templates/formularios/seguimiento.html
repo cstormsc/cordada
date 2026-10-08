@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+  <p><a href="{% url 'formularios:lista' request.client.slug lista.pk %}">← {{ lista.titulo }}</a></p>
+  <h1>{% translate "Seguimiento de la certificación" %}</h1>
+  <p class="muted">{{ lista.impacto.codigo }} · {{ lista.impacto.titulo }}</p>
+  <ul class="stats">
+    <li><strong>{{ resumen.pendiente }}</strong> {% translate "pendientes" %}</li>
+    <li><strong>{{ resumen.aplicado }}</strong> {% translate "aplicados, por firmar" %}</li>
+    <li><strong>{{ resumen.certificado }}</strong> {% translate "certificados" %}</li>
+    <li class="{% if resumen.en_refuerzo %}warn{% endif %}"><strong>{{ resumen.en_refuerzo }}</strong> {% translate "en refuerzo" %}</li>
+  </ul>
+  <section class="panel table-wrap">
+    <h2>{% translate "Por líder" %}</h2>
+    <table class="report"><thead><tr><th>{% translate "Líder" %}</th><th>{% translate "Pendientes" %}</th><th>{% translate "Por firmar" %}</th><th>{% translate "Certificados" %}</th><th>{% translate "En refuerzo" %}</th></tr></thead>
+      <tbody>{% for lider, r in leaders %}<tr><td>{{ lider.display_name }}</td><td>{{ r.pendiente }}</td><td>{{ r.aplicado }}</td><td>{{ r.certificado }}</td><td>{{ r.en_refuerzo }}</td></tr>
+      {% empty %}<tr><td colspan="5" class="muted">{% translate "Ningún líder ha abierto la evaluación todavía." %}</td></tr>{% endfor %}</tbody></table>
+  </section>
+  {% if refuerzo %}
+  <section class="panel attention">
+    <h2>{% translate "En refuerzo" %}</h2>
+    <ul class="list">{% for ev in refuerzo %}<li><span>{{ ev.persona }} <span class="muted small">{{ ev.persona.grupo|default:"" }}</span></span><span class="muted small">{{ ev.lider.display_name }}</span></li>{% endfor %}</ul>
+  </section>
+  {% endif %}
+  {% if evaluaciones %}
+  <section class="panel table-wrap">
+    <h2>{% translate "Detalle individual" %} <span class="tag">{% translate "Solo equipo de cambio" %}</span></h2>
+    <table><thead><tr><th>{% translate "Persona" %}</th><th>{% translate "Líder" %}</th><th>{% translate "Estado" %}</th><th>{% translate "Observaciones" %}</th></tr></thead>
+      <tbody>{% for ev in evaluaciones %}<tr><td>{{ ev.persona }}</td><td>{{ ev.lider.display_name }}</td><td><span class="tag">{{ ev.get_estado_display }}</span></td><td class="small">{{ ev.observaciones }}</td></tr>{% endfor %}</tbody></table>
+  </section>
+  {% endif %}
+  {% if actas %}
+  <section class="panel">
+    <h2>{% translate "Resúmenes firmados" %}</h2>
+    <ul class="list">{% for a in actas %}<li><a href="{% url 'formularios:acta' request.client.slug lista.pk a.pk %}">{{ a.nombre }}</a><span class="muted small">{{ a.lider.display_name }} · {{ a.fecha|date:"SHORT_DATETIME_FORMAT" }}</span></li>{% endfor %}</ul>
+  </section>
+  {% endif %}
+{% endblock %}

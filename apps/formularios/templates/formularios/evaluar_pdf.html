@@ -1,0 +1,37 @@
+{% load i18n %}<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<style>
+  @page { size: A4 landscape; margin: 1.4cm; @bottom-right { content: counter(page) " / " counter(pages); font-size: 9pt; color: #666; } }
+  body { font-family: "DejaVu Sans", sans-serif; font-size: 9.5pt; color: #1f2328; }
+  h1 { font-size: 15pt; margin: 0 0 3pt; color: #2f5d50; }
+  .meta { color: #5f6670; margin: 0 0 10pt; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 10pt; }
+  th, td { border: 1px solid #ccc; padding: 4pt 5pt; text-align: left; vertical-align: top; }
+  th { background: #f3f6f4; }
+  td.c { text-align: center; }
+  .crit { font-size: 8.5pt; }
+  .summary { margin: 8pt 0 24pt; }
+  .firma { display: flex; gap: 40pt; margin-top: 30pt; }
+  .firma div { flex: 1; border-top: 1px solid #333; padding-top: 4pt; }
+</style></head>
+<body>
+  <h1>{% translate "Evaluación práctica del líder" %} · {{ lista.impacto.codigo }}</h1>
+  <p class="meta">{{ request.client.name }} · {{ lista.titulo }} · {% translate "Líder" %}: {{ lider.display_name }} · {{ fecha|date:"SHORT_DATE_FORMAT" }}</p>
+  <table class="crit"><thead><tr><th>#</th><th>{% translate "Criterio" %}</th></tr></thead>
+    <tbody>{% for c in criterios %}<tr><td>{{ forloop.counter }}</td><td>{{ c.texto }}</td></tr>{% endfor %}</tbody></table>
+  <table>
+    <thead><tr><th>{% translate "Persona" %}</th>{% for c in criterios %}<th class="c">{{ forloop.counter }}</th>{% endfor %}<th>{% translate "Resultado" %}</th><th>{% translate "Observaciones" %}</th></tr></thead>
+    <tbody>{% for ev in evaluaciones %}
+      <tr><td>{{ ev.persona }}<br><span class="crit">{{ ev.persona.email }}</span></td>
+        {% for v in ev.cells %}<td class="c">{% if v %}{% translate "Cumple" %}{% else %}{% translate "No cumple" %}{% endif %}</td>{% endfor %}
+        <td>{% if ev.certifica %}{% translate "Certificado" %}{% else %}{% translate "En refuerzo" %}{% endif %}</td>
+        <td class="crit">{{ ev.observaciones }}</td></tr>
+    {% endfor %}</tbody>
+  </table>
+  <p class="summary"><strong>{% translate "Resumen" %}:</strong> {{ evaluaciones|length }} {% translate "evaluados" %} · {{ certificados }} {% translate "certificados" %} · {{ refuerzo }} {% translate "en refuerzo" %}.</p>
+  <div class="firma">
+    <div>{% translate "Firma del líder" %}</div>
+    <div>{% translate "Nombre" %}: {{ lider.display_name }}</div>
+    <div>{% translate "Fecha" %}</div>
+  </div>
+</body></html>
