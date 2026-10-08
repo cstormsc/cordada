@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ request.client.name }} · Cordada{% endblock %}
+{% block content %}
+  <h1>{{ request.client.name }}</h1>
+  <p class="muted">{% translate "Tu rol" %}: {{ request.membership.get_role_display }}</p>
+  <ul class="cards">
+    {% for module in modules %}
+      <li><div class="card"><strong>{{ module.label }}</strong><span class="muted">{% translate "Próximamente" %}</span></div></li>
+    {% empty %}
+      <li class="muted">{% translate "Tu rol no tiene módulos activos en este cliente." %}</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

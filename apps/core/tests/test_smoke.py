@@ -10,8 +10,8 @@ def test_health_checks_database(client):
 
 
 @pytest.mark.django_db
-def test_home_renders_in_spanish(client):
-    response = client.get("/")
+def test_login_page_renders_in_spanish(client):
+    response = client.get("/entrar/")
     assert response.status_code == 200
     assert 'lang="es"' in response.content.decode()
 

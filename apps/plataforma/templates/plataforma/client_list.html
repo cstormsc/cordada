@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Plataforma" %} · Cordada{% endblock %}
+{% block content %}
+  <div class="row">
+    <h1>{% translate "Clientes" %}</h1>
+    <a class="btn" href="{% url 'plataforma:client_create' %}">{% translate "Nuevo cliente" %}</a>
+  </div>
+  {% if clients %}
+  <div class="table-wrap"><table>
+    <thead><tr><th>{% translate "Nombre" %}</th><th>{% translate "Dirección" %}</th><th>{% translate "Miembros" %}</th><th>{% translate "Estado" %}</th><th>{% translate "Creado" %}</th></tr></thead>
+    <tbody>
+    {% for c in clients %}
+      <tr>
+        <td><a href="{% url 'plataforma:client_detail' c.slug %}">{{ c.name }}</a></td>
+        <td class="muted">/c/{{ c.slug }}/</td>
+        <td>{{ c.member_count }}</td>
+        <td>{% if c.is_active %}{% translate "Activo" %}{% else %}<span class="muted">{% translate "Inactivo" %}</span>{% endif %}</td>
+        <td class="muted">{{ c.created_at|date:"SHORT_DATE_FORMAT" }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+    <p class="muted">{% translate "Aún no hay clientes. Crea el primero cuando tengas uno." %}</p>
+  {% endif %}
+{% endblock %}

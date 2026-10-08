@@ -1,0 +1,7 @@
+{% load i18n %}{% autoescape off %}{% blocktranslate with client=invitation.client.name role=invitation.get_role_display %}Te invitaron a Cordada, al espacio de {{ client }}, con el rol {{ role }}.{% endblocktranslate %}
+
+{% translate "Para aceptar, abre este enlace:" %}
+{{ link }}
+
+{% blocktranslate with days=invitation.VALID_DAYS %}El enlace vence en {{ days }} días.{% endblocktranslate %}
+{% endautoescape %}

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+<div class="narrow">
+  <h1>{% blocktranslate with client=invitation.client.name %}Invitación a {{ client }}{% endblocktranslate %}</h1>
+  <p>{% blocktranslate with role=invitation.get_role_display email=invitation.email %}Rol: <strong>{{ role }}</strong> · Cuenta: {{ email }}{% endblocktranslate %}</p>
+  <form method="post" class="form">
+    {% csrf_token %}
+    {% if form %}
+      <p class="muted">{% translate "Crea tu cuenta para entrar." %}</p>
+      {{ form }}
+      <button type="submit" class="btn">{% translate "Crear cuenta y entrar" %}</button>
+    {% else %}
+      <button type="submit" class="btn">{% translate "Aceptar invitación" %}</button>
+    {% endif %}
+  </form>
+</div>
+{% endblock %}

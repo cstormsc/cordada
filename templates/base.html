@@ -13,8 +13,21 @@
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
   <header class="topbar">
     <a href="{% url 'home' %}" class="brand">Cordada</a>
+    {% if request.client %}<span class="crumb">{{ request.client.name }}</span>{% endif %}
+    {% if user.is_authenticated %}
+      <nav class="topnav">
+        {% if user.is_platform_admin %}<a href="{% url 'plataforma:client_list' %}">{% translate "Plataforma" %}</a>{% endif %}
+        <span class="muted">{{ user.email }}</span>
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+          <button type="submit" class="link">{% translate "Salir" %}</button>
+        </form>
+      </nav>
+    {% endif %}
   </header>
   <main class="container">
+    {% if messages %}
+      <ul class="messages">{% for m in messages %}<li class="msg msg-{{ m.tags }}">{{ m }}</li>{% endfor %}</ul>
+    {% endif %}
     {% block content %}{% endblock %}
   </main>
 </body>

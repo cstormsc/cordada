@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+<div class="narrow">
+  <p><a href="{% url 'plataforma:client_list' %}">← {% translate "Clientes" %}</a></p>
+  <h1>{% translate "Nuevo cliente" %}</h1>
+  <form method="post" class="form">
+    {% csrf_token %}
+    {{ form }}
+    <button type="submit" class="btn">{% translate "Crear cliente" %}</button>
+  </form>
+</div>
+{% endblock %}

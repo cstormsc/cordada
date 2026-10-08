@@ -1,6 +1,17 @@
 {% extends "base.html" %}
 {% load i18n %}
 {% block content %}
-  <h1>{% translate "Cordada" %}</h1>
-  <p>{% translate "Plataforma de gestión del cambio." %}</p>
+  <h1>{% translate "Tus espacios" %}</h1>
+  {% if memberships %}
+    <ul class="cards">
+      {% for m in memberships %}
+        <li><a class="card" href="{% url 'client_home' m.client.slug %}">
+          <strong>{{ m.client.name }}</strong><span class="muted">{{ m.get_role_display }}</span>
+        </a></li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="muted">{% translate "Todavía no perteneces a ningún cliente." %}
+    {% if user.is_platform_admin %}<a href="{% url 'plataforma:client_list' %}">{% translate "Ir a la administración de plataforma" %}</a>{% endif %}</p>
+  {% endif %}
 {% endblock %}

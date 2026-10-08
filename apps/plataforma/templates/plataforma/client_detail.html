@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ client.name }} · {% translate "Plataforma" %}{% endblock %}
+{% block content %}
+  <p><a href="{% url 'plataforma:client_list' %}">← {% translate "Clientes" %}</a></p>
+  <h1>{{ client.name }}{% if not client.is_active %} <span class="tag">{% translate "Inactivo" %}</span>{% endif %}</h1>
+
+  <div class="grid-2">
+    <section class="panel">
+      <h2>{% translate "Configuración" %}</h2>
+      <form method="post" class="form">
+        {% csrf_token %}
+        {{ form }}
+        <button type="submit" class="btn">{% translate "Guardar" %}</button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>{% translate "Invitar" %}</h2>
+      {% if client.is_active %}
+      <form method="post" action="{% url 'plataforma:invite' client.slug %}" class="form">
+        {% csrf_token %}
+        {{ invite_form }}
+        <button type="submit" class="btn">{% translate "Enviar invitación" %}</button>
+      </form>
+      {% else %}
+        <p class="muted">{% translate "Activa el cliente para invitar personas." %}</p>
+      {% endif %}
+
+      {% if pending_invitations %}
+        <h3>{% translate "Invitaciones pendientes" %}</h3>
+        <ul class="list">
+        {% for inv in pending_invitations %}
+          <li>
+            <span>{{ inv.email }} · {{ inv.get_role_display }} <span class="muted">· {% translate "vence" %} {{ inv.expires_at|date:"SHORT_DATE_FORMAT" }}</span></span>
+            <form method="post" action="{% url 'plataforma:revoke_invitation' client.slug inv.pk %}">{% csrf_token %}
+              <button class="link danger">{% translate "Anular" %}</button>
+            </form>
+          </li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    </section>
+  </div>
+
+  <section class="panel">
+    <h2>{% translate "Miembros" %}</h2>
+    {% if memberships %}
+    <div class="table-wrap"><table>
+      <thead><tr><th>{% translate "Persona" %}</th><th>{% translate "Rol" %}</th><th>{% translate "Estado" %}</th><th></th></tr></thead>
+      <tbody>
+      {% for m in memberships %}
+        <tr{% if not m.is_active %} class="muted"{% endif %}>
+          <td>{{ m.user.get_full_name|default:"—" }}<br><span class="muted">{{ m.user.email }}</span></td>
+          <td>
+            <form method="post" action="{% url 'plataforma:membership_update' client.slug m.pk %}" class="inline">
+              {% csrf_token %}
+              <select name="role" onchange="this.form.submit()">
+                {% for value, label in roles %}
+                  <option value="{{ value }}"{% if value == m.role %} selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </form>
+          </td>
+          <td>{% if m.is_active %}{% translate "Activa" %}{% else %}{% translate "Desactivada" %}{% endif %}</td>
+          <td>
+            <form method="post" action="{% url 'plataforma:membership_update' client.slug m.pk %}">
+              {% csrf_token %}
+              {% if m.is_active %}
+                <input type="hidden" name="is_active" value="0"><button class="link danger">{% translate "Desactivar" %}</button>
+              {% else %}
+                <input type="hidden" name="is_active" value="1"><button class="link">{% translate "Reactivar" %}</button>
+              {% endif %}
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}
+      <p class="muted">{% translate "Sin miembros todavía." %}</p>
+    {% endif %}
+  </section>
+{% endblock %}
