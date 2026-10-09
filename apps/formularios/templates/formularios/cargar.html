@@ -20,6 +20,11 @@
         <h3>{% translate "Grupos" %}</h3>
         <ul class="list">{% for name, exists in preview.grupos %}<li><span>{{ name }}</span><span class="{% if exists %}ok{% else %}muted{% endif %} small">{% if exists %}{% translate "existe" %}{% else %}{% translate "no existe" %}{% endif %}</span></li>{% endfor %}</ul>
       {% endif %}
+{% if preview.supervisores %}
+        <h3>{% translate "Supervisores" %}</h3>
+        <p class="muted small">{% translate "Cada líder de área evalúa a las personas que lo tienen como supervisor. Su cuenta debe usar ese mismo correo." %}</p>
+        <ul class="list">{% for s in preview.supervisores %}<li><div><span>{{ s.email }}</span> <span class="muted small">· {% blocktranslate count n=s.personas %}{{ n }} persona{% plural %}{{ n }} personas{% endblocktranslate %}</span>{% if s.problema %}<div class="small {% if s.estado == 'invitado' %}muted{% else %}error{% endif %}">{{ s.problema }}</div>{% endif %}</div><span class="small {% if s.estado == 'ok' %}ok{% else %}muted{% endif %}">{% if s.estado == 'ok' %}{% translate "líder con cuenta" %}{% endif %}</span></li>{% endfor %}</ul>
+      {% endif %}
       {% if preview.errores %}
         <h3>{% translate "Filas con problemas (no se cargan)" %}</h3>
         <ul class="list error">{% for e in preview.errores|slice:":20" %}<li>{{ e }}</li>{% endfor %}</ul>

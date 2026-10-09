@@ -17,6 +17,13 @@
       <ul class="list">{% for k in cargas %}<li><span>{{ k.archivo }} · {{ k.creadas }} {% translate "nuevas" %}, {{ k.actualizadas }} {% translate "actualizadas" %}{% if k.errores %}, {{ k.errores|length }} {% translate "con error" %}{% endif %}</span><span class="muted small">{{ k.fecha|date:"SHORT_DATETIME_FORMAT" }}</span></li>{% empty %}<li class="muted">{% translate "Ninguna." %}</li>{% endfor %}</ul>
     </section>
   </div>
+  {% if supervisores %}
+    <section class="panel attention" id="supervisores">
+      <h2>{% translate "Supervisores sin cuenta de líder" %}</h2>
+      <p class="muted small">{% translate "Estos correos aparecen como supervisor, pero su equipo no podrá ser evaluado hasta que tengan una cuenta de Líder de área con ese mismo correo." %}</p>
+      <ul class="list">{% for s in supervisores %}<li><div><span>{{ s.email }}</span> <span class="muted small">· {% blocktranslate count n=s.personas %}{{ n }} persona{% plural %}{{ n }} personas{% endblocktranslate %}</span><div class="small {% if s.estado == 'invitado' %}muted{% else %}error{% endif %}">{{ s.problema }}</div></div></li>{% endfor %}</ul>
+    </section>
+  {% endif %}
   <form method="get" class="filters">
     <label>{% translate "Buscar" %}<input type="text" name="q" value="{{ q }}"></label>
     <label class="row"><input type="checkbox" name="inactivas" value="1"{% if request.GET.inactivas == "1" %} checked{% endif %}> {% translate "Incluir inactivas" %}</label>

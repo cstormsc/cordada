@@ -16,7 +16,7 @@ from apps.matriz.models import Estado, Impacto
 
 from . import certificacion
 from .forms import ActaForm, CriterioForm, ListaForm
-from .models import Acta, Criterio, EstadoCertificacion, EstadoLista, ListaObservacion
+from .models import Acta, Criterio, EstadoCertificacion, EstadoLista, ListaObservacion, Persona
 from .views import A, _actions, _require
 
 
@@ -199,7 +199,12 @@ def evaluar_index(request, client_slug):
                     "hechas": mine.exclude(estado=EstadoCertificacion.PENDIENTE).count(),
                 }
             )
-    return render(request, "formularios/evaluar_index.html", {"rows": rows})
+    equipo_total = Persona.objects.filter(
+        is_active=True, supervisor__iexact=request.user.email
+    ).count()
+    return render(
+        request, "formularios/evaluar_index.html", {"rows": rows, "equipo_total": equipo_total}
+    )
 
 
 @client_member_required

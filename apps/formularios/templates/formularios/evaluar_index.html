@@ -12,5 +12,6 @@
     {% endfor %}</ul>
   {% else %}
     <p class="muted">{% translate "No tienes evaluaciones pendientes. Tu equipo aparece aquí cuando sus integrantes aprueban el cuestionario del impacto." %}</p>
+    {% if not equipo_total %}<p class="muted small">{% blocktranslate with email=user.email %}En el listado de personas nadie tiene a {{ email }} como supervisor. Si tu equipo no aparece, pide al equipo de cambio que revise la columna supervisor.{% endblocktranslate %}</p>{% endif %}
   {% endif %}
 {% endblock %}

@@ -18,7 +18,7 @@ from apps.core.models import Module
 from apps.core.permissions import Action, role_actions
 from apps.matriz.export import safe_cell
 
-from . import importer, results, scoring
+from . import importer, results, scoring, supervisores
 from .forms import (
     TIPO_HELP,
     CargaForm,
@@ -105,6 +105,11 @@ def personas(request, client_slug):
             .annotate(n=Count("id"))
             .order_by("grupo__name"),
             "cargas": Carga.objects.select_related("creada_por")[:5],
+            "supervisores": [
+                s
+                for s in supervisores.from_people(request.client, Persona.objects.all())
+                if s.estado != supervisores.OK
+            ],
         },
     )
 
@@ -144,6 +149,7 @@ def cargar(request, client_slug):
                     )
                 )
                 preview = _preview(records, errors, existing, mapping, group_field)
+                preview["supervisores"] = supervisores.from_records(request.client, records)
                 request.session[SESSION_KEY] = {
                     "filename": archivo.name,
                     "records": records,

@@ -102,6 +102,8 @@ def parse(rows, mapping):
             continue
         seen.add(email)
         rec["email"] = email
+        if "supervisor" in rec:
+            rec["supervisor"] = rec["supervisor"].strip().lower()
         records.append(rec)
     return records, errors
 
