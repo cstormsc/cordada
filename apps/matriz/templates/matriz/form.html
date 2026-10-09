@@ -3,7 +3,7 @@
 {% block content %}
   <p>{% if impacto %}<a href="{% url 'matriz:detalle' request.client.slug impacto.numero %}">← {{ impacto.codigo }}</a>{% elif can_create_group %}<a href="{% url 'matriz:index' request.client.slug %}">← {% translate "Matriz de Impactos" %}</a>{% else %}<a href="{% url 'client_home' request.client.slug %}">← {{ request.client.name }}</a>{% endif %}</p>
   <h1>{% if impacto %}{% translate "Editar" %} {{ impacto.codigo }}{% elif can_create_group %}{% translate "Nuevo impacto" %}{% else %}{% translate "Proponer impacto" %}{% endif %}</h1>
-  {% if not impacto %}<p class="muted">{% if can_create_group %}{% translate "Se registra como Propuesto. El equipo de cambio lo valida y lo evalúa." %}{% else %}{% translate "El equipo de cambio recibe tu propuesta, la valida y la evalúa. Una vez enviada, no la verás de nuevo aquí." %}{% endif %}</p>{% endif %}
+  {% if not impacto %}<p class="muted">{% if can_create_group %}{% translate "Se registra como Propuesto. El equipo de cambio lo valida y lo evalúa." %}{% else %}{% translate "El equipo de cambio recibe tu propuesta, la valida y la evalúa. Abajo puedes seguir el estado de las que enviaste." %}{% endif %}</p>{% endif %}
 
   <form method="post" class="form impacto-form">
     {% csrf_token %}
@@ -27,4 +27,31 @@
     {% endfor %}
     <button type="submit" class="btn">{% translate "Guardar" %}</button>
   </form>
+
+  {% if mis_propuestas is not None %}
+    <section class="panel" id="mis-propuestas">
+      <h2>{% translate "Mis propuestas" %}</h2>
+      {% if mis_propuestas %}
+        <div class="table-wrap"><table>
+          <thead><tr>
+            <th>{% translate "ID" %}</th><th>{% translate "Impacto" %}</th><th>{% translate "Grupo" %}</th>
+            <th>{% translate "Estado" %}</th><th>{% translate "Enviada" %}</th>
+          </tr></thead>
+          <tbody>
+          {% for p in mis_propuestas %}
+            <tr>
+              <td class="nowrap">{{ p.codigo }}</td>
+              <td>{{ p.titulo }}</td>
+              <td>{% if p.grupo %}{{ p.grupo.name }}{% elif p.grupo_sugerido %}{{ p.grupo_sugerido }} <span class="muted small">({% translate "sugerido" %})</span>{% else %}—{% endif %}</td>
+              <td>{{ p.get_estado_display }}</td>
+              <td class="nowrap">{{ p.created_at|date:"d/m/Y" }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table></div>
+      {% else %}
+        <p class="muted">{% translate "Aún no has enviado propuestas." %}</p>
+      {% endif %}
+    </section>
+  {% endif %}
 {% endblock %}

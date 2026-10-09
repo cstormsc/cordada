@@ -132,13 +132,21 @@ class TestProposals:
         assert impacto.registrado_por == captain
         assert impacto.grupo_sugerido == "Call center"
 
-    def test_proposers_send_and_no_longer_see_it(self, client, as_role, acme):
-        """§2 confirmed: proposals are sent to the change team, not kept by the proposer."""
+    def test_proposers_list_their_own_proposals_but_cannot_open_them(
+        self, client, as_role, member, acme
+    ):
+        """Proposers follow the state of what they sent; only viewers open impacts."""
         as_role(Role.GUIA)
         response = client.post(f"{BASE}nuevo/", {"titulo": "Turnos", "descripcion": "d"})
         assert response.url == f"{BASE}nuevo/"
         with tenant_context(acme):
             impacto = Impacto.objects.get()
+            otro, _ = member(Role.CAPITAN, client=acme, email="otro@example.com")
+            Impacto.objects.create(titulo="Propuesta ajena", descripcion="d", registrado_por=otro)
+        body = client.get(f"{BASE}nuevo/").content.decode()
+        assert "Mis propuestas" in body and impacto.codigo in body and "Propuesto" in body
+        assert "Propuesta ajena" not in body
+        assert f'href="{BASE}{impacto.numero}/"' not in body
         assert client.get(f"{BASE}{impacto.numero}/").status_code == 404
         assert client.get(f"{BASE}{impacto.numero}/editar/").status_code == 404
         adjuntar = client.post(f"{BASE}{impacto.numero}/adjuntos/", {"url": "https://x.com"})
@@ -282,6 +290,18 @@ class TestListsAndExports:
             io.BytesIO(client.get(f"{BASE}fotos/{foto.pk}/exportar/").content)
         ).active
         assert ws.cell(3, 2).value == "Nuevo flujo de cobranza"
+
+    def test_sponsor_comments_but_cannot_edit_or_attach(self, client, as_role, make_impacto, acme):
+        impacto = make_impacto(complete=True)
+        as_role(Role.PATROCINADOR)
+        client.post(f"{BASE}{impacto.numero}/comentarios/", {"texto": "Revisado en comité"})
+        with tenant_context(acme):
+            assert impacto.comentarios.get().texto == "Revisado en comité"
+        assert client.get(f"{BASE}{impacto.numero}/editar/").status_code == 403
+        adjuntar = client.post(f"{BASE}{impacto.numero}/adjuntos/", {"url": "https://x.com"})
+        assert adjuntar.status_code == 403
+        with tenant_context(acme):
+            assert not impacto.adjuntos.exists()
 
     def test_sponsor_cannot_take_snapshots(self, client, as_role):
         as_role(Role.PATROCINADOR)

@@ -59,8 +59,10 @@ Dependencias con `uv`: editar `pyproject.toml`, luego `make lock && make build`.
 ## Matriz de Impactos
 
 - `/c/<cliente>/matriz/`. Quien edita la matriz (Administración, Equipo de cambio) ve todo y
-  usa el formulario completo; quien propone (Capitán, Guía, Equipo técnico) ve solo sus
-  propuestas y un formulario corto, con "grupo sugerido" si el grupo no existe.
+  usa el formulario completo; quien propone (Capitán, Guía, Equipo técnico) usa un formulario
+  corto, con "grupo sugerido" si el grupo no existe, y ve debajo la lista de sus propuestas con
+  su estado (no abre los impactos).
+- Patrocinador y PMO: ve la matriz y comenta; no edita, no cambia estados ni adjunta.
 - Ciclo de vida y campos obligatorios para evaluar: `apps/matriz/workflow.py`
   (`REQUIRED_FOR_EVALUATION`, pendiente de la lista final §13.1). Cada cambio de estado queda
   en `Transicion`.

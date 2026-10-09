@@ -37,7 +37,7 @@ def _require(request, action):
 
 
 def _get_impacto(request, numero):
-    """Only viewers open impacts. Proposers send theirs and don't see them again (§2)."""
+    """Only viewers open impacts. Proposers follow theirs from the proposal form (state only)."""
     if not _can(request, Action.VIEW):
         raise Http404
     return get_object_or_404(
@@ -106,12 +106,21 @@ def crear(request, client_slug):
             request, _("%(codigo)s registrado como Propuesto.") % {"codigo": impacto.codigo}
         )
         return redirect("matriz:detalle", client_slug=client_slug, numero=impacto.numero)
+    # Proposers can't open impacts, but they follow what they sent (state only).
+    mis_propuestas = (
+        None
+        if _can(request, Action.VIEW)
+        else Impacto.objects.filter(registrado_por=request.user)
+        .select_related("grupo")
+        .order_by("-numero")
+    )
     return render(
         request,
         "matriz/form.html",
         {
             "form": form,
             "can_create_group": _can(request, Action.EDIT),
+            "mis_propuestas": mis_propuestas,
         },
     )
 
