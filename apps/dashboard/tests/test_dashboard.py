@@ -115,7 +115,32 @@ class TestPeopleIndicators:
         self.setup_people(acme, equipo, 4, 3)
         with tenant_context(acme):
             r = ind.for_verificacion(ctx(acme))
-        assert r.value is None and "menos de 5" in r.detail
+        assert r.value is None and "mínimo 5" in r.detail
+        assert "4" not in r.detail  # not even how many answered
+
+    def test_group_filter_cannot_be_subtracted_from_the_total(self, acme, equipo):
+        norte = self.setup_people(acme, equipo, 6, 6)
+        with tenant_context(acme):
+            sur = GrupoImpactado.objects.create(name="Sur")
+            c = Cuestionario.objects.get()
+            for i in range(2):  # too few to show on their own
+                p = Persona.objects.create(email=f"s{i}@x.com", grupo=sur)
+                e = Enlace.objects.create(cuestionario=c, persona=p)
+                Respuesta.objects.create(
+                    enlace=e,
+                    intento=1,
+                    elecciones={},
+                    puntos_por_pregunta={},
+                    puntaje=D(10),
+                    aprobado=False,
+                )
+            total = ind.for_verificacion(ctx(acme))
+            only_norte = ind.for_verificacion(ctx(acme, grupo=norte))
+            readiness = {r["grupo"].name: r["parts"] for r in ind.readiness_by_group(ctx(acme))}
+        assert total.value is not None  # 8 respondents overall
+        # Norte would be 6 of 8, giving Sur's 2 away: hidden as well.
+        assert only_norte.value is None
+        assert "verificacion" not in readiness["Norte"] and "verificacion" not in readiness["Sur"]
 
     def test_verification_and_readiness(self, acme, equipo, make_impacto):
         g = self.setup_people(acme, equipo, 5, 4)

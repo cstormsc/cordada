@@ -120,7 +120,7 @@
       {% if impacto.criterio_meta is not None %}{% translate "Meta del criterio de cierre" %}: {{ impacto.criterio_meta|floatformat:"-2" }}.{% endif %}</p>
     <ul class="list">{% for v in verificacion %}
       <li><span>{{ v.cuestionario.codigo }} · {{ v.cuestionario.titulo }}</span>
-        <span>{% if v.aprobados is None %}<span class="muted small">{{ v.respondieron }} {% translate "de" %} {{ v.invitados }} {% translate "respondieron (muy pocos para mostrar)" %}</span>
+        <span>{% if v.aprobados is None %}<span class="muted small">{% translate "Resultados ocultos: muy pocas respuestas para proteger la confidencialidad." %}</span>
         {% else %}<strong>{{ v.pct_sobre_invitados }} %</strong> {% translate "del grupo aprobó" %} <span class="muted small">({{ v.aprobados }}/{{ v.invitados }})</span>{% endif %}</span></li>
     {% endfor %}</ul>
   </section>

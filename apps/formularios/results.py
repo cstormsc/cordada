@@ -1,10 +1,27 @@
 """Questionnaire results. Individual detail is for the change team only; everything else is
-aggregated and hides groups smaller than the client's minimum size (§7.4)."""
+aggregated and hides groups smaller than the client's minimum size (§7.4).
+
+Hiding a small group is not enough on its own: the total minus the visible groups gives the
+hidden one back. `suppressed()` also hides the next smallest groups until what is hidden adds
+up to nothing or to at least the minimum, and every page that shows results by group uses it."""
 
 from collections import defaultdict
 from decimal import Decimal
 
 from .models import Enlace, Respuesta
+
+
+def suppressed(counts, min_size):
+    """Keys to hide, given {key: respondents}. Small groups are hidden, and then the smallest
+    visible ones too until the hidden respondents add up to 0 or to at least `min_size`."""
+    hidden = {k for k, n in counts.items() if 0 < n < min_size}
+    hidden_total = sum(counts[k] for k in hidden)
+    shown = sorted((n, str(k), k) for k, n in counts.items() if n and k not in hidden)
+    while 0 < hidden_total < min_size and shown:
+        n, _, k = shown.pop(0)
+        hidden.add(k)
+        hidden_total += n
+    return hidden
 
 
 def best_by_enlace(cuestionario):
@@ -58,15 +75,17 @@ def aggregate(cuestionario, *, by="grupo", min_size=5):
             b["respondieron"] += 1
             b["aprobados"] += int(passed)
             b["suma"] += score
+    hidden = suppressed({k: b["respondieron"] for k, b in buckets.items()}, min_size)
     rows = []
     for key in sorted(buckets, key=lambda k: (k == "", k.lower())):
         b = buckets[key]
-        visible = b["respondieron"] >= min_size
+        visible = b["respondieron"] > 0 and key not in hidden
         rows.append(
             {
                 "nombre": key,
                 "invitados": b["invitados"],
-                "respondieron": b["respondieron"],
+                # Who answered in a hidden group is itself personal data.
+                "respondieron": b["respondieron"] if visible or not b["respondieron"] else None,
                 "visible": visible,
                 "aprobados": b["aprobados"] if visible else None,
                 "pct_aprobados": round(100 * b["aprobados"] / b["respondieron"])
@@ -108,6 +127,16 @@ def per_question(cuestionario, *, min_size=5):
     return rows
 
 
+def hidden_groups(cuestionario, min_size):
+    """Impacted groups (ids, None for people without one) whose results this questionnaire
+    can't show."""
+    best = best_by_enlace(cuestionario)
+    counts = defaultdict(int)
+    for pk, grupo_id in cuestionario.enlaces.values_list("pk", "persona__grupo_id"):
+        counts[grupo_id] += pk in best
+    return suppressed(counts, min_size)
+
+
 def for_impacto(impacto, *, min_size=5):
     """Verification of the impact's group across its questionnaires (feeds closing criterion)."""
     rows = []
@@ -118,12 +147,16 @@ def for_impacto(impacto, *, min_size=5):
         best = best_by_enlace(c)
         ids = set(enlaces.values_list("pk", flat=True))
         answered = [best[i] for i in ids if i in best]
-        visible = len(answered) >= min_size
+        if impacto.grupo_id:
+            visible = impacto.grupo_id not in hidden_groups(c, min_size)
+        else:
+            visible = len(answered) >= min_size
+        visible = visible and len(answered) > 0
         rows.append(
             {
                 "cuestionario": c,
                 "invitados": len(ids),
-                "respondieron": len(answered),
+                "respondieron": len(answered) if visible else None,
                 "aprobados": sum(1 for a in answered if a[1]) if visible else None,
                 "pct_aprobados": round(100 * sum(1 for a in answered if a[1]) / len(answered))
                 if visible

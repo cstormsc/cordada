@@ -119,6 +119,6 @@ def workbook(rows, title):
 
 def safe_cell(value):
     # Guard against spreadsheet formula injection from free text.
-    if isinstance(value, str) and value[:1] in ("=", "+", "-", "@"):
+    if isinstance(value, str) and value[:1] in ("=", "+", "-", "@", "\t", "\r"):
         return "'" + value
     return value

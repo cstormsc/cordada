@@ -245,6 +245,45 @@ class TestLinksAndAnswers:
         assert client.get(old).status_code == 404
 
 
+class TestSuppression:
+    def test_hidden_respondents_add_up_to_zero_or_the_minimum(self):
+        from apps.formularios.results import suppressed
+
+        assert suppressed({"a": 9, "b": 6}, 5) == set()
+        assert suppressed({"a": 9, "b": 6, "c": 0}, 5) == set()  # nobody to protect
+        assert suppressed({"a": 9, "b": 6, "c": 2}, 5) == {"b", "c"}  # 2 + 6 >= 5
+        assert suppressed({"a": 9, "b": 3, "c": 2}, 5) == {"b", "c"}  # 3 + 2 already 5
+        assert suppressed({"a": 9, "b": 1}, 5) == {"a", "b"}  # nothing left to show
+        assert suppressed({"a": 9, "b": 7, "c": 6, "d": 1}, 5) == {"c", "d"}
+
+    def test_guide_cannot_regroup_nor_subtract(self, client, member, published, acme):
+        with tenant_context(acme):
+            sur = GrupoImpactado.objects.create(name="Sur")
+            for i in range(5):
+                Persona.objects.create(email=f"s{i}@x.com", grupo=sur, oficina="Centro")
+            Persona.objects.filter(email__startswith="p").update(oficina="Centro")
+        emails = [f"p{i}@x.com" for i in range(6)] + [f"s{i}@x.com" for i in range(5)]
+        TestResults().respond(published, acme, emails, "90")
+        TestResults().respond(published, acme, ["sur@x.com"], "10")  # alone, no group
+        guide, _ = member(Role.GUIA, client=acme, email="guia@example.com")
+        client.force_login(guide)
+        url = f"{base(published)}resultados/"
+        body = client.get(url).content.decode()
+        rows = {
+            m[0]: m[1]
+            for m in re.findall(
+                r"<tr><td>([^<]+)</td><td>\d+</td><td>([^<]*)</td>", body.split("Por pregunta")[0]
+            )
+        }
+        # The lone respondent is hidden, and Sur (5, the smallest visible) with them; Norte
+        # stays. Respondent counts of hidden rows aren't shown either.
+        assert rows == {"Norte": "6", "Sur": "—", "Sin dato": "—"}
+        assert "100 %" in body and body.count("oculto: muy pocas respuestas") == 2
+        # No regrouping (an office minus a group would give hidden groups back).
+        assert 'name="por"' not in body
+        assert client.get(f"{url}?por=oficina").content.decode().count("Centro") == 0
+
+
 class TestResults:
     def respond(self, published, acme, emails, score):
         with tenant_context(acme):
@@ -268,8 +307,9 @@ class TestResults:
         self.respond(published, acme, ["sur@x.com"], "10")
         client.force_login(equipo)
         body = client.get(f"{base(published)}resultados/").content.decode()
-        assert "100 %" in body  # Norte: 5 respondents, all passed
-        assert "menos de 5" in body  # "Sin dato" group with a single respondent is hidden
+        # "Sin dato" has one respondent; Norte (5) is hidden too, or the total minus Norte
+        # would give that one person's result back.
+        assert "100 %" not in body and body.count("oculto: muy pocas respuestas") == 2
         assert "Detalle individual" in body and "sur@x.com" in body
 
         admin, _ = member(Role.ADMINISTRACION, client=acme, email="adm@example.com")
@@ -288,6 +328,19 @@ class TestResults:
         client.force_login(equipo)
         body = client.get(f"/c/acme/matriz/{impacto.numero}/").content.decode()
         assert "Verificación de competencias" in body and "100 %" in body
+
+    def test_impact_page_hides_a_group_that_could_be_subtracted(
+        self, client, equipo, make_impacto, published, acme
+    ):
+        with tenant_context(acme):
+            norte = GrupoImpactado.objects.get(name="Norte")
+        impacto = make_impacto(grupo=norte)
+        Cuestionario.unscoped.filter(pk=published.pk).update(impacto=impacto)
+        self.respond(published, acme, [f"p{i}@x.com" for i in range(6)], "85")
+        self.respond(published, acme, ["sur@x.com"], "10")  # one person outside Norte
+        client.force_login(equipo)
+        body = client.get(f"/c/acme/matriz/{impacto.numero}/").content.decode()
+        assert "Resultados ocultos" in body and "100 %" not in body
 
     def test_area_leader_has_no_questionnaire_access(self, client, member, acme, published):
         leader, _ = member(Role.LIDER_AREA, client=acme, email="lider@example.com")

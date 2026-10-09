@@ -494,8 +494,11 @@ def resultados(request, client_slug, numero):
     if not actions & {A.EDIT, A.DESIGN}:
         raise PermissionDenied
     c = _cuestionario(numero)
-    form = ResultadosForm(request.GET or None)
-    por = form.cleaned_data.get("por") if form.is_valid() else ""
+    individual = A.VIEW_INDIVIDUAL in actions
+    # Crossing two groupings (e.g. an office minus a group) gives hidden groups back, so
+    # only those who already see individual results can change the grouping.
+    form = ResultadosForm(request.GET or None) if individual else None
+    por = form.cleaned_data.get("por") if form and form.is_valid() else ""
     min_size = request.client.tamano_minimo_grupo
     return render(
         request,
@@ -507,6 +510,6 @@ def resultados(request, client_slug, numero):
             "totales": results.totals(c),
             "agregado": results.aggregate(c, by=por or "grupo", min_size=min_size),
             "por_pregunta": results.per_question(c, min_size=min_size),
-            "individual": results.individual(c) if A.VIEW_INDIVIDUAL in actions else None,
+            "individual": results.individual(c) if individual else None,
         },
     )

@@ -67,6 +67,14 @@ FORM_RENDERER = "apps.guia.renderer.FormRenderer"
 
 DATABASES = {"default": env.db("DATABASE_URL")}
 
+# Shared by all server processes (login throttling). Created by `createcachetable`.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "cordada_cache",
+    }
+}
+
 # Parte B §13, decided October 2026.
 FORMULARIOS_ENLACE_DIAS = env.int("FORMULARIOS_ENLACE_DIAS", default=60)  # from export
 DATA_RETENTION_YEARS = env.int("DATA_RETENTION_YEARS", default=5)  # per-client override

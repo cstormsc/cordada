@@ -22,6 +22,7 @@ from apps.formularios.models import (
     Evaluacion,
     Respuesta,
 )
+from apps.formularios.results import suppressed
 from apps.matriz.models import ACTIVE_STATES, Estado, Impacto
 from apps.ruta.models import DONE, Actividad, Cumplimiento
 from apps.scoring.rules import RiskBand
@@ -220,8 +221,8 @@ def for_asignada(ctx):
     )
 
 
-def _verification(ctx, grupo_ids=None):
-    """(invited, respondents, passed) across published questionnaires."""
+def _verification(ctx, all_groups=False):
+    """(invited, respondents, passed) per group across published questionnaires."""
     enlaces = Enlace.objects.filter(
         cuestionario__estado__in=[EstadoCuestionario.PUBLICADO, EstadoCuestionario.CERRADO]
     ).annotate(
@@ -230,12 +231,24 @@ def _verification(ctx, grupo_ids=None):
     )
     if ctx.tiempo:
         enlaces = enlaces.filter(cuestionario__impacto__tiempo=ctx.tiempo)
-    if ctx.grupo:
+    if ctx.grupo and not all_groups:
         enlaces = enlaces.filter(persona__grupo=ctx.grupo)
     return enlaces.values("persona__grupo").annotate(
         invitados=Count("id"),
         respondieron=Count("id", filter=Q(respondio=True)),
         aprobados=Count("id", filter=Q(aprobo=True)),
+    )
+
+
+def _hidden(rows, count, ctx):
+    """Groups whose figures can't be shown (see formularios.results.suppressed)."""
+    return suppressed({r["persona__grupo"]: r[count] for r in rows}, ctx.min_size)
+
+
+def _too_few(ctx):
+    return Result(
+        None,
+        _("Muy pocas respuestas para mostrarlo (mínimo %(m)s por grupo).") % {"m": ctx.min_size},
     )
 
 
@@ -245,10 +258,11 @@ def for_verificacion(ctx):
     resp = sum(r["respondieron"] for r in rows)
     apr = sum(r["aprobados"] for r in rows)
     if resp < ctx.min_size:
-        return Result(
-            None,
-            _("%(r)s respuestas: menos de %(m)s, no se muestra") % {"r": resp, "m": ctx.min_size},
-        )
+        return _too_few(ctx)
+    if ctx.grupo and ctx.grupo.pk in _hidden(
+        _verification(ctx, all_groups=True), "respondieron", ctx
+    ):
+        return _too_few(ctx)
     return Result(
         _pct(apr, inv),
         _("%(a)s aprobados de %(i)s con enlace · %(r)s respondieron")
@@ -256,13 +270,13 @@ def for_verificacion(ctx):
     )
 
 
-def _certification(ctx):
+def _certification(ctx, all_groups=False):
     evs = Evaluacion.objects.filter(
         estado__in=[EstadoCertificacion.CERTIFICADO, EstadoCertificacion.EN_REFUERZO]
     )
     if ctx.tiempo:
         evs = evs.filter(lista__impacto__tiempo=ctx.tiempo)
-    if ctx.grupo:
+    if ctx.grupo and not all_groups:
         evs = evs.filter(persona__grupo=ctx.grupo)
     return evs.values("persona__grupo").annotate(
         evaluados=Count("id"),
@@ -275,9 +289,11 @@ def for_certificacion(ctx):
     ev = sum(r["evaluados"] for r in rows)
     cert = sum(r["certificados"] for r in rows)
     if ev < ctx.min_size:
-        return Result(
-            None, _("%(e)s evaluados: menos de %(m)s, no se muestra") % {"e": ev, "m": ctx.min_size}
-        )
+        return _too_few(ctx)
+    if ctx.grupo and ctx.grupo.pk in _hidden(
+        _certification(ctx, all_groups=True), "evaluados", ctx
+    ):
+        return _too_few(ctx)
     return Result(
         _pct(cert, ev),
         _("%(c)s certificados de %(e)s evaluados · %(r)s en refuerzo")
@@ -295,16 +311,19 @@ def readiness_by_group(ctx):
         .values("grupo")
         .annotate(total=Count("id"), hechos=Count("id", filter=Q(estado__in=DONE_IMPACT_STATES)))
     }
-    ver = {r["persona__grupo"]: r for r in _verification(ctx)}
-    cert = {r["persona__grupo"]: r for r in _certification(ctx)}
+    ver_rows, cert_rows = list(_verification(ctx)), list(_certification(ctx))
+    ver = {r["persona__grupo"]: r for r in ver_rows}
+    cert = {r["persona__grupo"]: r for r in cert_rows}
+    ver_hidden = _hidden(_verification(ctx, all_groups=True), "respondieron", ctx)
+    cert_hidden = _hidden(_certification(ctx, all_groups=True), "evaluados", ctx)
     rows = []
     for g in ctx.grupos().order_by("name"):
         parts = {}
         if (r := imp.get(g.pk)) and r["total"]:
             parts["impactos"] = _pct(r["hechos"], r["total"])
-        if (r := ver.get(g.pk)) and r["respondieron"] >= ctx.min_size:
+        if (r := ver.get(g.pk)) and r["respondieron"] and g.pk not in ver_hidden:
             parts["verificacion"] = _pct(r["aprobados"], r["invitados"])
-        if (r := cert.get(g.pk)) and r["evaluados"] >= ctx.min_size:
+        if (r := cert.get(g.pk)) and r["evaluados"] and g.pk not in cert_hidden:
             parts["certificacion"] = _pct(r["certificados"], r["evaluados"])
         value = Decimal(round(sum(parts.values()) / len(parts))) if parts else None
         rows.append({"grupo": g, "value": value, "parts": parts})

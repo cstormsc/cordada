@@ -16,7 +16,8 @@
   <form method="post" class="form">
     <h1>{% translate "Entrar" %}</h1>
     {% csrf_token %}
-    {% if form.non_field_errors %}<p class="error">{% translate "Correo o contraseña incorrectos." %}</p>{% endif %}
+    {% if form.throttled %}<p class="error">{{ form.non_field_errors.0 }}</p>
+    {% elif form.non_field_errors %}<p class="error">{% translate "Correo o contraseña incorrectos." %}</p>{% endif %}
     {{ form.username.as_field_group }}
     {{ form.password.as_field_group }}
     <input type="hidden" name="next" value="{{ next }}">
