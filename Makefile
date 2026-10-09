@@ -1,7 +1,7 @@
 COMPOSE = docker compose
 RUN = $(COMPOSE) run --rm -e RUN_MIGRATIONS=0 web
 
-.PHONY: up down build logs shell dbshell manage platform-admin makemigrations migrate test lint lock backup
+.PHONY: up down build logs shell dbshell manage platform-admin demo makemigrations migrate test lint lock backup
 
 .env:
 	cp .env.example .env
@@ -30,6 +30,9 @@ manage: .env  ## make manage cmd="createsuperuser"
 
 platform-admin: .env  ## make platform-admin email=you@example.com
 	$(RUN) python manage.py createplatformadmin --email $(email)
+
+demo: .env  ## make demo email=you@example.com  (rebuilds the demo client at /c/demo/)
+	$(RUN) python manage.py seed_demo --reset --email $(email)
 
 makemigrations: .env
 	$(RUN) python manage.py makemigrations

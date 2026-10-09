@@ -13,8 +13,17 @@ make test                            # pytest dentro del contenedor
 make lint                            # ruff
 make makemigrations / make migrate
 make backup                          # respaldo inmediato a ./backups
+make demo email=tu@correo            # (re)crea el cliente de demostración en /c/demo/
 make down
 ```
+
+## Demo
+
+`make demo email=<cuenta existente>` borra y vuelve a crear «Banco Altiplano (demo)» en `/c/demo/`:
+un banco ficticio que reemplaza su sistema central, con datos en todos los módulos. Las fechas
+son relativas al día en que se ejecuta, así que conviene recrearla justo antes de presentar. La
+cuenta indicada entra como Administración; el resto de las personas no tiene contraseña
+(`apps/plataforma/demo.py`).
 
 ## Respaldos
 
