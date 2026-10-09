@@ -166,6 +166,19 @@ class TestMetrics:
         assert (m["recurrentes"], m["pct_recurrentes"]) == (1, 33)
         assert list(m["mas_repetidos"]) == [a]
 
+    def test_zero_is_shown_as_zero_not_as_missing(self, client, login_as, make_ticket, acme):
+        with tenant_context(acme):
+            GrupoImpactado.objects.create(name="Sur", personas=40)  # people, no tickets
+        t = make_ticket("conocimiento")
+        with tenant_context(acme):
+            Ticket.objects.filter(pk=t.pk).update(
+                primera_respuesta_at=t.created_at, resuelto_at=t.created_at
+            )
+        login_as(Role.GUIA)
+        body = client.get(f"{BASE}metricas/").content.decode()
+        assert "<strong>0.0</strong>" in body or "<strong>0,0</strong>" in body
+        assert "<td>Sur</td><td>0</td><td>40</td><td>0" in body
+
     def test_page_and_export(self, client, login_as, make_ticket):
         make_ticket("tecnico", titulo="=cmd")
         login_as(Role.GUIA)

@@ -113,6 +113,13 @@ class TestCreateAndEdit:
         assert 'name="resistencia"' not in body
         assert "escala por definir" in body
 
+    def test_closure_target_cannot_be_negative(self, client, as_equipo, acme):
+        response = client.post(f"{BASE}nuevo/", full_post(criterio_meta="-50"))
+        assert response.status_code == 200 and "mayor o igual a 0" in response.content.decode()
+        client.post(f"{BASE}nuevo/", full_post(criterio_meta="0"))
+        with tenant_context(acme):
+            assert Impacto.objects.get().criterio_meta == 0
+
     def test_locked_impact_must_be_reopened_first(self, client, as_equipo, make_impacto):
         impacto = make_impacto(estado=Estado.CERRADO)
         assert client.get(f"{BASE}{impacto.numero}/editar/").url == f"{BASE}{impacto.numero}/"
@@ -239,6 +246,8 @@ class TestDetailActions:
         client.post(url, {"archivo": SimpleUploadedFile("plan.pdf", b"%PDF-1.4 test")})
         client.post(url, {"url": "https://example.com/doc", "nombre": "Documento"})
         client.post(url, {"archivo": SimpleUploadedFile("x.exe", b"MZ")})  # rejected
+        empty = client.post(url, {}, follow=True).content.decode()  # rejected
+        assert "Sube un archivo o pega un enlace" in empty and "xor" not in empty
         with tenant_context(acme):
             archivo = Adjunto.objects.get(url="")
             assert Adjunto.objects.count() == 2

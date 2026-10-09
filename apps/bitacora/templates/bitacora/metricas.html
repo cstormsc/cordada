@@ -11,8 +11,8 @@
   <ul class="stats">
     <li><strong>{{ m.total }}</strong> {% translate "tickets" %}</li>
     <li><strong>{{ m.abiertos }}</strong> {% translate "abiertos" %}</li>
-    <li><strong>{{ m.primera_h|default:"—" }}</strong> {% translate "h promedio a la primera respuesta" %}</li>
-    <li><strong>{{ m.resolucion_h|default:"—" }}</strong> {% translate "h promedio a la resolución" %}</li>
+    <li><strong>{{ m.primera_h|default_if_none:"—" }}</strong> {% translate "h promedio a la primera respuesta" %}</li>
+    <li><strong>{{ m.resolucion_h|default_if_none:"—" }}</strong> {% translate "h promedio a la resolución" %}</li>
     <li><strong>{% if m.pct_recurrentes is not None %}{{ m.pct_recurrentes }} %{% else %}—{% endif %}</strong> {% translate "recurrentes" %}</li>
   </ul>
 
@@ -21,7 +21,7 @@
       <h2>{% translate "Por tipo" %}</h2>
       <table class="report">
         <thead><tr><th>{% translate "Categoría" %}</th><th>{% translate "Total" %}</th><th>{% translate "Abiertos" %}</th><th>{% translate "Graves" %}</th><th>{% translate "1.ª resp. (h)" %}</th><th>{% translate "Resolución (h)" %}</th></tr></thead>
-        <tbody>{% for r in m.categorias %}<tr><td>{{ r.categoria }}</td><td>{{ r.total }}</td><td>{{ r.abiertos }}</td><td>{{ r.graves }}</td><td>{{ r.primera_h|default:"—" }}</td><td>{{ r.resolucion_h|default:"—" }}</td></tr>{% endfor %}</tbody>
+        <tbody>{% for r in m.categorias %}<tr><td>{{ r.categoria }}</td><td>{{ r.total }}</td><td>{{ r.abiertos }}</td><td>{{ r.graves }}</td><td>{{ r.primera_h|default_if_none:"—" }}</td><td>{{ r.resolucion_h|default_if_none:"—" }}</td></tr>{% endfor %}</tbody>
       </table>
     </section>
     <section class="panel table-wrap">
@@ -29,7 +29,7 @@
       <table class="report">
         <thead><tr><th>{% translate "Grupo" %}</th><th>{% translate "Tickets" %}</th><th>{% translate "Personas" %}</th><th>{% translate "Por cada 100" %}</th></tr></thead>
         <tbody>
-          {% for r in m.grupos %}<tr><td>{{ r.grupo }}</td><td>{{ r.total }}</td><td>{{ r.grupo.personas|default:"—" }}</td><td>{{ r.por_100|default:"—" }}</td></tr>{% endfor %}
+          {% for r in m.grupos %}<tr><td>{{ r.grupo }}</td><td>{{ r.total }}</td><td>{{ r.grupo.personas|default_if_none:"—" }}</td><td>{{ r.por_100|default_if_none:"—" }}</td></tr>{% endfor %}
           {% if m.sin_grupo %}<tr><td class="muted">{% translate "Sin grupo" %}</td><td>{{ m.sin_grupo }}</td><td>—</td><td>—</td></tr>{% endif %}
         </tbody>
       </table>

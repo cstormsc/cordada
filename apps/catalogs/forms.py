@@ -40,6 +40,17 @@ class SystemCatalogItemForm(forms.ModelForm):
         fields = ["label", "help_text", "order", "is_active"]
         widgets = {"help_text": forms.Textarea(attrs={"rows": 3})}
 
+    def clean_label(self):
+        label = " ".join(self.cleaned_data["label"].split())
+        if self.instance.pk and label.lower() == self.instance.label.lower():
+            return label  # unchanged: don't block items duplicated before this check
+        taken = SystemCatalogItem.objects.filter(
+            catalog=self.instance.catalog, label__iexact=label
+        ).exclude(pk=self.instance.pk)
+        if taken.exists():
+            raise forms.ValidationError(_("Ya existe un ítem con ese nombre en este catálogo."))
+        return label
+
     def save(self, commit=True):
         item = super().save(commit=False)
         if not item.pk:

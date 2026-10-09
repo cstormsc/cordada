@@ -76,7 +76,10 @@ class AdjuntoForm(forms.ModelForm):
         cleaned = super().clean()
         archivo, url = cleaned.get("archivo"), cleaned.get("url")
         if bool(archivo) == bool(url):
-            raise forms.ValidationError(_("Sube un archivo o pega un enlace (uno de los dos)."))
+            # On a field, so the model's archivo_xor_url check is skipped instead of
+            # repeating this with its raw constraint name.
+            self.add_error("url", _("Sube un archivo o pega un enlace (uno de los dos)."))
+            return cleaned
         if not cleaned.get("nombre"):
             cleaned["nombre"] = archivo.name if archivo else url
         return cleaned

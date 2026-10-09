@@ -201,13 +201,41 @@ class TestSystemCatalogAdmin:
     def test_add_origin_value_gets_a_stable_code(self, admin_client):
         from apps.catalogs.models import SystemCatalogItem
 
-        for _ in range(2):
+        # Different labels, same slug: the second code gets a suffix.
+        for label in ("Diagnóstico inicial", "Diagnostico inicial"):
             admin_client.post(
                 "/plataforma/catalogos/origen/nuevo/",
-                {"label": "Diagnóstico inicial", "order": 1, "is_active": "on"},
+                {"label": label, "order": 1, "is_active": "on"},
             )
         codes = SystemCatalogItem.objects.of("origen").values_list("code", flat=True)
         assert sorted(codes) == ["diagnostico_inicial", "diagnostico_inicial_2"]
+
+    def test_duplicate_label_in_a_catalog_is_rejected(self, admin_client):
+        from apps.catalogs.models import SystemCatalogItem
+
+        url = "/plataforma/catalogos/origen/nuevo/"
+        admin_client.post(url, {"label": "Bitácora", "order": 1, "is_active": "on"})
+        response = admin_client.post(url, {"label": " bitácora ", "order": 2, "is_active": "on"})
+        assert "Ya existe un ítem con ese nombre" in response.content.decode()
+        assert SystemCatalogItem.objects.of("origen").count() == 1
+        # The same label in another catalog is fine.
+        admin_client.post(
+            "/plataforma/catalogos/categoria_ticket/nuevo/",
+            {"label": "Bitácora", "order": 9, "is_active": "on"},
+        )
+        assert SystemCatalogItem.objects.filter(label="Bitácora").count() == 2
+
+    def test_items_duplicated_before_the_check_stay_editable(self, admin_client):
+        from apps.catalogs.models import SystemCatalogItem
+
+        first = SystemCatalogItem.objects.create(catalog="origen", code="a", label="Taller")
+        SystemCatalogItem.objects.create(catalog="origen", code="b", label="Taller")
+        admin_client.post(
+            f"/plataforma/catalogos/origen/{first.pk}/",
+            {"label": "Taller", "help_text": "Nueva ayuda", "order": 1, "is_active": "on"},
+        )
+        first.refresh_from_db()
+        assert first.help_text == "Nueva ayuda"
 
     def test_edit_label_keeps_code(self, admin_client):
         from apps.catalogs.models import SystemCatalogItem

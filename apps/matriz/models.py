@@ -209,6 +209,7 @@ class Impacto(TenantScopedModel):
         decimal_places=2,
         null=True,
         blank=True,
+        validators=[MinValueValidator(0)],
         help_text=_("Valor numérico a alcanzar, por ejemplo 90 (%) o 5 (tickets)."),
     )
     criterio_descripcion = models.CharField(

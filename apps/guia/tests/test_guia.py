@@ -213,4 +213,7 @@ class TestPlataforma:
             reverse("plataforma:plantilla_create"), {"nombre": "Vacía", "orden": 0}
         )
         assert response.status_code == 200
+        body = response.content.decode()
+        assert "Sube un archivo o pega un enlace" in body
+        assert "restricción" not in body and "xor" not in body  # no raw constraint name
         assert not Plantilla.objects.exists()
