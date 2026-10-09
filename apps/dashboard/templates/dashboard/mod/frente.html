@@ -1,0 +1,7 @@
+{% load i18n %}
+<div class="dash-frente">
+  <h2 id="mod-{{ m.id }}">{{ m.nombre }}</h2>
+  <div class="tiles">
+    {% for t in m.tiles %}{% include "dashboard/_tile.html" %}{% endfor %}
+  </div>
+</div>

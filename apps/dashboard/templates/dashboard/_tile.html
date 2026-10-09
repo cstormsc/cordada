@@ -1,0 +1,22 @@
+{% load i18n dashboard_tags %}<article class="tile" id="{{ t.indicator.key }}">
+  <div class="tile-head">
+    <span class="tile-label">{{ t.indicator.nombre }}</span>
+    <span class="tag small">{{ niveles|get_item:t.indicator.nivel }}</span>
+  </div>
+  <div class="tile-value">{% tile_value t %}</div>
+  <div class="tile-status">{% status_chip t.status %}{% if t.indicator.provisional %} <span class="tag small">{% translate "provisional" %}</span>{% endif %}</div>
+  <p class="tile-detail">{{ t.result.detail }}</p>
+  <details class="tile-info">
+    <summary>{% translate "Cómo se calcula" %}</summary>
+    <dl>
+      <dt>{% translate "Fórmula" %}</dt><dd>{{ t.indicator.formula }}</dd>
+      <dt>{% translate "Fuente" %}</dt><dd>{{ t.indicator.fuente }}</dd>
+      <dt>{% translate "Frecuencia" %}</dt><dd>{{ t.frecuencia }}</dd>
+      <dt>{% translate "Responsable" %}</dt><dd>{{ t.responsable|default:_("Por definir") }}</dd>
+      {% if t.verde is not None and t.indicator.higher_is_better is not None %}
+        <dt>{% translate "Semáforo" %}</dt>
+        <dd>{% if t.indicator.higher_is_better %}{% translate "en meta desde" %} {{ t.verde|floatformat:"-2" }}{% if t.amarillo is not None %}; {% translate "atención desde" %} {{ t.amarillo|floatformat:"-2" }}{% endif %}{% else %}{% translate "en meta hasta" %} {{ t.verde|floatformat:"-2" }}{% if t.amarillo is not None %}; {% translate "atención hasta" %} {{ t.amarillo|floatformat:"-2" }}{% endif %}{% endif %}</dd>
+      {% endif %}
+    </dl>
+  </details>
+</article>

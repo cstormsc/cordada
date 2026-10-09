@@ -1,5 +1,8 @@
+import json
+
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
+from django.http import HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
@@ -9,8 +12,9 @@ from apps.core.models import Module, Role
 from apps.core.permissions import Action, can
 
 from . import indicators as ind
+from . import layout as dash_layout
 from .forms import FiltroForm, IndicadorConfigForm, ValorManualForm
-from .models import IndicadorConfig, ValorManual
+from .models import IndicadorConfig, Preferencia, ValorManual
 
 DATA_ROLES = (Role.ADMINISTRACION, Role.EQUIPO_CAMBIO)
 
@@ -26,6 +30,26 @@ def _can_load(request):
 
 
 @client_member_required
+@require_POST
+def guardar_layout(request, client_slug):
+    """Saves how this person arranged their dashboard; {"reset": true} goes back to default."""
+    if not _can_view(request):
+        raise PermissionDenied
+    try:
+        data = json.loads(request.body or b"{}")
+    except ValueError:
+        return HttpResponseBadRequest()
+    if not isinstance(data, dict):
+        return HttpResponseBadRequest()
+    if data.get("reset"):
+        Preferencia.objects.filter(usuario=request.user).delete()
+        return JsonResponse({"ok": True, "layout": dash_layout.DEFAULT})
+    layout = dash_layout.clean(data)
+    Preferencia.objects.update_or_create(usuario=request.user, defaults={"layout": layout})
+    return JsonResponse({"ok": True, "layout": dash_layout.resolve(layout)})
+
+
+@client_member_required
 def index(request, client_slug):
     if not _can_view(request):
         raise PermissionDenied
@@ -33,18 +57,36 @@ def index(request, client_slug):
     params = filtro.cleaned_data if filtro.is_valid() else {}
     ctx = ind.Ctx(request.client, tiempo=params.get("tiempo"), grupo=params.get("grupo"))
     tiles = ind.tiles(ctx)
-    frentes = [
-        (code, label, [t for t in tiles if t.indicator.frente == code])
+    frentes = {
+        code: (label, [t for t in tiles if t.indicator.frente == code])
         for code, label in ind.FRENTES
-    ]
+    }
+    general = next((t for t in tiles if t.indicator.key == ind.GENERAL), None)
     readiness = ind.readiness_by_group(ctx)
     verde, amarillo = ind.threshold("tr_preparacion")
+
+    def module(mod):
+        m = {"id": mod, "label": dash_layout.MODULES[mod], "template": f"dashboard/mod/{mod}.html"}
+        if mod in frentes:
+            m["template"], (m["nombre"], m["tiles"]) = "dashboard/mod/frente.html", frentes[mod]
+            m["empty"] = not m["tiles"]
+        if mod == "avance":
+            m["tile"], m["empty"] = general, general is None  # deactivated in configuration
+        return m
+
+    saved = Preferencia.objects.filter(usuario=request.user).values_list("layout", flat=True)
+    arrangement = dash_layout.resolve(saved.first())
+    columns = {
+        col: [m for m in map(module, arrangement[col]) if not m.get("empty")]
+        for col in ("main", "side")
+    }
     return render(
         request,
         "dashboard/index.html",
         {
             "filtro": filtro,
-            "frentes": [f for f in frentes if f[2]],
+            "columns": columns,
+            "hidden": [(mod, dash_layout.MODULES[mod]) for mod in arrangement["hidden"]],
             "niveles": ind.NIVELES,
             "alerts": ind.alerts(ctx),
             "can_view_matrix": can(

@@ -1,0 +1,21 @@
+{% load i18n dashboard_tags %}
+  {% with a=alerts %}
+  <div class="panel dash-alerts">
+    <h2 id="mod-alertas">{% translate "Alertas" %}</h2>
+    <div class="alert-grid">
+      <div class="alert-col">
+        <h3>{% alert_chip a.p1_sin_criterio|length %} {% translate "P1 sin criterio de cierre" %} <span class="kcount">{{ a.p1_sin_criterio|length }}</span></h3>
+        <ul class="list small">{% for i in a.p1_sin_criterio|slice:":5" %}<li>{% if can_view_matrix %}<a href="{% url 'matriz:detalle' request.client.slug i.numero %}">{{ i.codigo }} · {{ i.titulo }}</a>{% else %}{{ i.codigo }} · {{ i.titulo }}{% endif %}</li>{% empty %}<li class="muted">{% translate "Ninguno" %}</li>{% endfor %}</ul>
+      </div>
+      <div class="alert-col">
+        <h3>{% alert_chip a.extrema|length %} {% translate "Severidad extrema" %} <span class="kcount">{{ a.extrema|length }}</span></h3>
+        <ul class="list small">{% for i in a.extrema|slice:":5" %}<li>{% if can_view_matrix %}<a href="{% url 'matriz:detalle' request.client.slug i.numero %}">{{ i.codigo }} · {{ i.titulo }}</a>{% else %}{{ i.codigo }} · {{ i.titulo }}{% endif %}</li>{% empty %}<li class="muted">{% translate "Ninguno" %}</li>{% endfor %}</ul>
+      </div>
+      <div class="alert-col">
+        <h3>{% alert_chip a.grupos_bajo_umbral|length %} {% translate "Grupos bajo el umbral de preparación" %} <span class="kcount">{{ a.grupos_bajo_umbral|length }}</span></h3>
+        <ul class="list small">{% for r in a.grupos_bajo_umbral %}<li><span>{{ r.grupo }}</span><span>{{ r.value }}</span></li>{% empty %}<li class="muted">{% translate "Ninguno" %}</li>{% endfor %}</ul>
+        {% if a.umbral_preparacion is not None %}<p class="muted small">{% translate "Umbral" %}: {{ a.umbral_preparacion|floatformat:"-2" }}</p>{% endif %}
+      </div>
+    </div>
+  </div>
+  {% endwith %}

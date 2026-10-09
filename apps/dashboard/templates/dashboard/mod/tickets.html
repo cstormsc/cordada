@@ -1,0 +1,10 @@
+{% load i18n %}
+    <div class="panel chart-card">
+      <h2 id="mod-tickets">{% translate "Tickets por tipo" %}</h2>
+      <p class="muted small">{% translate "Bitácora, con los filtros aplicados." %}</p>
+      <div class="chart" id="chart-tickets" role="img" aria-label="{% translate 'Tickets por tipo' %}"></div>
+      <details><summary>{% translate "Ver tabla" %}</summary>
+        <table class="report small"><thead><tr><th>{% translate "Categoría" %}</th><th>{% translate "Tickets" %}</th></tr></thead>
+          <tbody>{% for r in chart_tickets %}<tr><td>{{ r.label }}</td><td>{{ r.value }}</td></tr>{% endfor %}</tbody></table>
+      </details>
+    </div>

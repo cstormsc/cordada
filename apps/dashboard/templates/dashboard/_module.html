@@ -1,0 +1,12 @@
+{% load i18n %}
+<section class="dash-mod" data-mod="{{ m.id }}" aria-labelledby="mod-{{ m.id }}">
+  <div class="mod-tools dash-edit-only" role="group" aria-label="{% blocktranslate with name=m.label %}Mover {{ name }}{% endblocktranslate %}">
+    <span class="mod-handle" title="{% translate 'Arrastrar' %}" aria-hidden="true">⠿</span>
+    <span class="mod-name">{{ m.label }}</span>
+    <button type="button" class="mod-btn" data-act="up" aria-label="{% translate 'Subir' %}" title="{% translate 'Subir' %}">↑</button>
+    <button type="button" class="mod-btn" data-act="down" aria-label="{% translate 'Bajar' %}" title="{% translate 'Bajar' %}">↓</button>
+    <button type="button" class="mod-btn" data-act="swap" aria-label="{% translate 'Pasar a la otra columna' %}" title="{% translate 'Pasar a la otra columna' %}">⇄</button>
+    <button type="button" class="mod-btn" data-act="hide">{% translate "Ocultar" %}</button>
+  </div>
+  {% include m.template %}
+</section>

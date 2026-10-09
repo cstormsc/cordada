@@ -52,3 +52,18 @@ class ValorManual(TenantScopedModel):
 
     class Meta(TenantScopedModel.Meta):
         ordering = ["-fecha", "-created_at"]
+
+
+class Preferencia(TenantScopedModel):
+    """How one person arranged their dashboard in this client (see dashboard.layout)."""
+
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="+"
+    )
+    layout = models.JSONField(default=dict)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta(TenantScopedModel.Meta):
+        constraints = [
+            models.UniqueConstraint(fields=["client", "usuario"], name="unique_preferencia"),
+        ]

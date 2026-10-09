@@ -43,6 +43,9 @@ NIVELES = {
     "resultados": _("Resultados"),
 }
 
+GENERAL = "avance_general"
+GENERAL_FRENTES = ("impactos", "comunicacion", "movilizacion", "formacion")
+
 # Impacts that have been validated (no longer just proposals) and were not discarded.
 WORKED_STATES = (*ACTIVE_STATES, Estado.ATENDIDO, Estado.CERRADO)
 DONE_IMPACT_STATES = (Estado.ATENDIDO, Estado.CERRADO)
@@ -353,6 +356,21 @@ MANUAL = _("Carga manual")
 
 INDICATORS = [
     Indicator(
+        GENERAL,
+        "general",
+        "resultados",
+        _("Avance general del proyecto"),
+        _(
+            "Promedio de los cuatro frentes (Impactos, Comunicación, Movilización, Formación). "
+            "Cada frente es el promedio de sus indicadores en % que tienen datos."
+        ),
+        _("Dashboard"),
+        verde=D(80),
+        amarillo=D(60),
+        frecuencia=_("Por etapa"),
+        provisional=True,
+    ),
+    Indicator(
         "imp_con_plan",
         "impactos",
         "ejecucion",
@@ -600,6 +618,7 @@ class Tile:
     amarillo: Decimal | None
     responsable: str
     frecuencia: str
+    partes: list = field(default_factory=list)  # avance general: one row per front
 
     @property
     def status(self):
@@ -623,7 +642,10 @@ def tiles(ctx):
         c = cfg.get(ind.key)
         if c is not None and not c.activo:
             continue
-        result = manual(ctx, ind.key) if ind.manual else ind.compute(ctx)
+        if ind.key == GENERAL:
+            result = Result()  # filled in below, from the other tiles
+        else:
+            result = manual(ctx, ind.key) if ind.manual else ind.compute(ctx)
         out.append(
             Tile(
                 ind,
@@ -634,7 +656,34 @@ def tiles(ctx):
                 frecuencia=c.frecuencia if c and c.frecuencia else ind.frecuencia,
             )
         )
+    for tile in out:
+        if tile.indicator.key == GENERAL:
+            tile.result, tile.partes = avance_general(out)
     return out
+
+
+def avance_general(tiles):
+    """Provisional overall figure: average of the four fronts, each the average of its
+    percentage indicators with data (higher is better). Fronts without data are left out."""
+    nombres = dict(FRENTES)
+    partes = []
+    for code in GENERAL_FRENTES:
+        values = [
+            t.result.value
+            for t in tiles
+            if t.indicator.frente == code
+            and t.indicator.unit == "%"
+            and t.indicator.higher_is_better
+            and t.result.value is not None
+        ]
+        score = Decimal(round(sum(values) / len(values))) if values else None
+        partes.append({"code": code, "nombre": nombres[code], "valor": score, "n": len(values)})
+    with_data = [p["valor"] for p in partes if p["valor"] is not None]
+    if not with_data:
+        return Result(None, _("Sin datos todavía")), partes
+    value = Decimal(round(sum(with_data) / len(with_data)))
+    detail = _("promedio de %(n)s de 4 frentes con datos") % {"n": len(with_data)}
+    return Result(value, detail), partes
 
 
 def threshold(key):

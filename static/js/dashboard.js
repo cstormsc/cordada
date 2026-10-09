@@ -58,7 +58,101 @@
     window.addEventListener("resize", () => chart.resize());
   }
 
+  // --- Each person arranges their own dashboard (saved per user and client). ---
+  function csrfToken() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.content : "";
+  }
+
+  function setupLayout() {
+    const dash = document.querySelector(".dash");
+    const layout = document.querySelector(".dash-layout");
+    const toggle = document.getElementById("dash-personalizar");
+    if (!dash || !layout || !toggle) return;
+    const url = layout.dataset.saveUrl;
+    const columns = Array.from(layout.querySelectorAll(".dash-col"));
+    const status = document.createElement("span");
+    status.className = "dash-saved";
+    status.setAttribute("aria-live", "polite");
+    toggle.after(status);
+
+    function hiddenIds() {
+      return Array.from(document.querySelectorAll("[data-show]")).map((b) => b.dataset.show);
+    }
+    function current(hidden) {
+      const out = { hidden: hidden || hiddenIds() };
+      columns.forEach((col) => {
+        out[col.dataset.col] = Array.from(col.querySelectorAll(":scope > .dash-mod"))
+          .map((m) => m.dataset.mod);
+      });
+      return out;
+    }
+    function post(body) {
+      status.textContent = "Guardando…";
+      return fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken() },
+        body: JSON.stringify(body),
+      }).then((r) => {
+        // A redirect means the session ended and we landed on the login page.
+        status.textContent = r.ok && !r.redirected ? "Guardado" : "No se pudo guardar";
+        return r;
+      }).catch(() => { status.textContent = "No se pudo guardar. Revisa tu conexión."; });
+    }
+    function changed() {
+      window.dispatchEvent(new Event("resize"));  // charts follow their new width
+      post(current());
+    }
+    function reloadEditing() {
+      location.hash = "personalizar";
+      location.reload();
+    }
+
+    const sortables = typeof Sortable === "undefined" ? [] : columns.map((col) =>
+      Sortable.create(col, {
+        group: "dash-modulos", handle: ".mod-handle", draggable: ".dash-mod",
+        animation: 150, disabled: true, onEnd: changed,
+      }));
+
+    function setEditing(on) {
+      dash.classList.toggle("editing", on);
+      toggle.setAttribute("aria-pressed", on ? "true" : "false");
+      toggle.textContent = on ? "Listo" : "Personalizar";
+      sortables.forEach((s) => s.option("disabled", !on));
+      if (!on) status.textContent = "";
+    }
+    toggle.addEventListener("click", () => setEditing(!dash.classList.contains("editing")));
+
+    layout.addEventListener("click", (e) => {
+      const btn = e.target.closest(".mod-btn");
+      if (!btn) return;
+      const mod = btn.closest(".dash-mod");
+      const col = mod.parentElement;
+      const act = btn.dataset.act;
+      if (act === "up" && mod.previousElementSibling) col.insertBefore(mod, mod.previousElementSibling);
+      else if (act === "down" && mod.nextElementSibling) col.insertBefore(mod.nextElementSibling, mod);
+      else if (act === "swap") columns.find((c) => c !== col).appendChild(mod);
+      else if (act === "hide") {
+        const hidden = [...hiddenIds(), mod.dataset.mod];
+        mod.remove();
+        post(current(hidden)).then(reloadEditing);
+        return;
+      } else return;
+      btn.focus();
+      changed();
+    });
+    document.querySelectorAll("[data-show]").forEach((b) => b.addEventListener("click", () => {
+      post(current(hiddenIds().filter((id) => id !== b.dataset.show))).then(reloadEditing);
+    }));
+    document.getElementById("dash-reset").addEventListener("click", () => {
+      post({ reset: true }).then(() => { location.hash = ""; location.reload(); });
+    });
+
+    if (location.hash === "#personalizar") setEditing(true);
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
+    setupLayout();
     const readiness = data("data-readiness");
     if (readiness) {
       barChart(document.getElementById("chart-readiness"), readiness.rows,

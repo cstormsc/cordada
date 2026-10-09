@@ -1,0 +1,10 @@
+{% load i18n %}
+    <div class="panel chart-card">
+      <h2 id="mod-preparacion">{% translate "Índice de preparación por grupo" %} <span class="tag small">{% translate "provisional" %}</span></h2>
+      <p class="muted small">{% translate "0 a 100." %}{% if chart_readiness.threshold is not None %} {% blocktranslate with u=chart_readiness.threshold|floatformat:"-2" %}La línea vertical marca el umbral de atención ({{ u }}).{% endblocktranslate %}{% endif %}</p>
+      <div class="chart" id="chart-readiness" role="img" aria-label="{% translate 'Índice de preparación por grupo' %}"></div>
+      <details><summary>{% translate "Ver tabla" %}</summary>
+        <table class="report small"><thead><tr><th>{% translate "Grupo" %}</th><th>{% translate "Índice" %}</th><th>{% translate "Impactos atendidos" %}</th><th>{% translate "Verificación" %}</th><th>{% translate "Certificación" %}</th></tr></thead>
+          <tbody>{% for r in readiness %}<tr><td>{{ r.grupo }}</td><td>{{ r.value|default:"—" }}</td><td>{{ r.parts.impactos|default:"—" }}</td><td>{{ r.parts.verificacion|default:"—" }}</td><td>{{ r.parts.certificacion|default:"—" }}</td></tr>{% endfor %}</tbody></table>
+      </details>
+    </div>

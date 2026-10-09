@@ -1,0 +1,31 @@
+{% load i18n dashboard_tags %}{% with t=m.tile %}
+<div class="panel avance" id="{{ t.indicator.key }}">
+  <div class="avance-head">
+    <h2 id="mod-avance">{{ t.indicator.nombre }}</h2>
+    {% if t.indicator.provisional %}<span class="tag small">{% translate "provisional" %}</span>{% endif %}
+  </div>
+  <div class="avance-body">
+    <div class="avance-hero">
+      <span class="hero-value">{% tile_value t %}</span>
+      {% status_chip t.status %}
+      <p class="muted small">{{ t.result.detail }}</p>
+    </div>
+    <ul class="meters">
+      {% for p in t.partes %}
+      <li title="{% if p.valor is not None %}{% blocktranslate with f=p.nombre v=p.valor n=p.n %}{{ f }}: {{ v }} % (promedio de {{ n }} indicadores){% endblocktranslate %}{% else %}{% blocktranslate with f=p.nombre %}{{ f }}: sin datos{% endblocktranslate %}{% endif %}">
+        <a class="meter-label" href="#mod-{{ p.code }}">{{ p.nombre }}</a>
+        <span class="meter" role="meter" aria-valuemin="0" aria-valuemax="100"{% if p.valor is not None %} aria-valuenow="{{ p.valor }}"{% endif %} aria-label="{{ p.nombre }}"><span class="meter-fill" style="width: {{ p.valor|default:0 }}%"></span></span>
+        <span class="meter-value">{% if p.valor is not None %}{{ p.valor }} %{% else %}<span class="muted">{% translate "sin datos" %}</span>{% endif %}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  <details class="tile-info">
+    <summary>{% translate "Cómo se calcula" %}</summary>
+    <p class="small">{{ t.indicator.formula }}</p>
+    <table class="report small"><thead><tr><th>{% translate "Frente" %}</th><th>{% translate "Valor" %}</th><th>{% translate "Indicadores con datos" %}</th></tr></thead>
+      <tbody>{% for p in t.partes %}<tr><td>{{ p.nombre }}</td><td>{{ p.valor|default_if_none:"—" }}</td><td>{{ p.n }}</td></tr>{% endfor %}</tbody></table>
+    <p class="small muted">{% if t.verde is not None %}{% translate "en meta desde" %} {{ t.verde|floatformat:"-2" }}{% if t.amarillo is not None %}; {% translate "atención desde" %} {{ t.amarillo|floatformat:"-2" }}{% endif %} · {% endif %}{% translate "Responsable" %}: {{ t.responsable|default:_("Por definir") }}</p>
+  </details>
+</div>
+{% endwith %}
