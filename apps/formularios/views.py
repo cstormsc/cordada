@@ -421,6 +421,7 @@ def enlaces(request, client_slug, numero):
             "c": c,
             "form": form,
             "n_enlaces": c.enlaces.count(),
+            "enlace_dias": Enlace.validez().days,
             "por_grupo": c.enlaces.values("persona__grupo__name")
             .annotate(n=Count("id"))
             .order_by("persona__grupo__name"),
@@ -434,13 +435,16 @@ def exportar_enlaces(request, client_slug, numero):
     _require(request, A.EDIT)
     c = _cuestionario(numero)
     fmt = request.GET.get("formato", "xlsx")
+    vence = timezone.localdate() + Enlace.validez()
+    if c.vence:
+        vence = min(vence, c.vence)
     rows = [
         [
             e.persona.email,
             e.persona.nombre,
             str(e.persona.grupo or ""),
             request.build_absolute_uri(reverse("formularios_responder", args=[e.token])),
-            c.vence.isoformat() if c.vence else "",
+            vence.isoformat(),
         ]
         for e in c.enlaces.select_related("persona", "persona__grupo").order_by("persona__email")
     ]

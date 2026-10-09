@@ -48,4 +48,4 @@ lock:
 
 backup: .env
 	mkdir -p backups
-	$(COMPOSE) exec -T db sh -c 'pg_dump -U $$POSTGRES_USER -d $$POSTGRES_DB -Fc' > backups/cordada-$$(date +%Y%m%d-%H%M%S).dump
+	$(COMPOSE) run --rm backup once

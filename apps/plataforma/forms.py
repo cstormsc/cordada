@@ -2,7 +2,7 @@ from django import forms
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
-from apps.core.models import Client, Membership, Module, Role
+from apps.core.models import Client, Membership, Module, Role, default_retention_years
 
 RESERVED_SLUGS = {"admin", "plataforma", "static", "media", "api", "nuevo"}
 
@@ -17,11 +17,20 @@ class ClientForm(forms.ModelForm):
 
     class Meta:
         model = Client
-        fields = ["name", "slug", "is_active", "enabled_modules", "tamano_minimo_grupo"]
+        fields = [
+            "name",
+            "slug",
+            "is_active",
+            "enabled_modules",
+            "tamano_minimo_grupo",
+            "retencion_anos",
+        ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["tamano_minimo_grupo"].required = False
+        self.fields["retencion_anos"].required = False
+        self.fields["retencion_anos"].widget.attrs["min"] = 1
         self.fields["slug"].required = False
         self.fields["slug"].help_text = _(
             "Se usa en la dirección web: /c/<identificador>/. Si lo dejas vacío, "
@@ -38,6 +47,14 @@ class ClientForm(forms.ModelForm):
         value = self.cleaned_data.get("tamano_minimo_grupo")
         if value is None:
             return Client._meta.get_field("tamano_minimo_grupo").default
+        if value < 1:
+            raise forms.ValidationError(_("Debe ser al menos 1."))
+        return value
+
+    def clean_retencion_anos(self):
+        value = self.cleaned_data.get("retencion_anos")
+        if value is None:
+            return default_retention_years()
         if value < 1:
             raise forms.ValidationError(_("Debe ser al menos 1."))
         return value

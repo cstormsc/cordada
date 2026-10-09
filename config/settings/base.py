@@ -66,6 +66,10 @@ TEMPLATES = [
 FORM_RENDERER = "apps.guia.renderer.FormRenderer"
 
 DATABASES = {"default": env.db("DATABASE_URL")}
+
+# Parte B §13, decided October 2026.
+FORMULARIOS_ENLACE_DIAS = env.int("FORMULARIOS_ENLACE_DIAS", default=60)  # from export
+DATA_RETENTION_YEARS = env.int("DATA_RETENTION_YEARS", default=5)  # per-client override
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "core.User"

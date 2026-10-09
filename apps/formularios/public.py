@@ -36,6 +36,10 @@ def responder(request, token):
         raise Http404
     with tenant_context(enlace.client):
         c = enlace.cuestionario
+        if enlace.vencido:
+            return _closed(
+                request, enlace, _("Este enlace venció. Pide uno nuevo a quien te lo envió.")
+            )
         if not c.is_open:
             return _closed(request, enlace, _("Este cuestionario ya no recibe respuestas."))
         usados = enlace.intentos_usados()

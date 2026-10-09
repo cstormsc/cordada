@@ -84,6 +84,10 @@ def all_modules():
     return list(Module.values)
 
 
+def default_retention_years():
+    return settings.DATA_RETENTION_YEARS
+
+
 class Client(models.Model):
     name = models.CharField(_("nombre"), max_length=200)
     slug = models.SlugField(
@@ -105,6 +109,14 @@ class Client(models.Model):
         help_text=_(
             "En las vistas agregadas, los grupos con menos respuestas que este número "
             "no muestran resultados, para que nadie pueda ser identificado."
+        ),
+    )
+    retencion_anos = models.PositiveSmallIntegerField(
+        _("conservación de datos (años)"),
+        default=default_retention_years,
+        help_text=_(
+            "Cuántos años se conservan los datos del cliente. Por defecto, el valor de "
+            "la plataforma; la política de privacidad aún está por definir."
         ),
     )
     created_at = models.DateTimeField(_("creado"), auto_now_add=True)

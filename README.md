@@ -12,8 +12,22 @@ make platform-admin email=tu@correo   # administrador de plataforma (pide contra
 make test                            # pytest dentro del contenedor
 make lint                            # ruff
 make makemigrations / make migrate
-make backup                          # pg_dump a ./backups
+make backup                          # respaldo inmediato a ./backups
 make down
+```
+
+## Respaldos
+
+Con `make up` corre también el servicio `backup`: al arrancar y luego cada
+`BACKUP_INTERVAL_HOURS` (24) guarda en `./backups` la base de datos
+(`cordada-<fecha>.dump`) y los archivos subidos (`cordada-<fecha>-media.tar.gz`), y borra
+los de más de `BACKUP_KEEP_DAYS` (14) días. Solo respalda mientras Docker está corriendo.
+
+Restaurar (con la app detenida: `docker compose stop web`):
+
+```sh
+docker compose exec -T db sh -c 'pg_restore -U $POSTGRES_USER -d $POSTGRES_DB --clean --if-exists' < backups/cordada-<fecha>.dump
+docker compose run --rm -v ./backups:/b web tar -xzf /b/cordada-<fecha>-media.tar.gz -C /app/media
 ```
 
 Dependencias con `uv`: editar `pyproject.toml`, luego `make lock && make build`.

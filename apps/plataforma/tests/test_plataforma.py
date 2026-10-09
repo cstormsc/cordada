@@ -45,6 +45,19 @@ def test_create_client_with_generated_slug_and_all_modules(admin_client, platfor
     assert client.is_active
     assert client.created_by == platform_admin
     assert set(client.enabled_modules) == set(Module.values)
+    assert client.retencion_anos == 5  # platform default (Parte B §13)
+
+
+def test_retention_can_be_overridden_per_client(admin_client, make_client, settings):
+    make_client("acme")
+    data = {"name": "Acme", "is_active": "on", "enabled_modules": ["matriz"]}
+    admin_client.post("/plataforma/clientes/acme/", {**data, "retencion_anos": "10"})
+    assert Client.objects.get().retencion_anos == 10
+    admin_client.post("/plataforma/clientes/acme/", {**data, "retencion_anos": "0"})
+    assert Client.objects.get().retencion_anos == 10  # rejected
+    settings.DATA_RETENTION_YEARS = 7
+    admin_client.post("/plataforma/clientes/acme/", {**data, "retencion_anos": ""})
+    assert Client.objects.get().retencion_anos == 7  # empty means the platform default
 
 
 def test_reserved_and_duplicate_slugs_are_rejected(admin_client, make_client):

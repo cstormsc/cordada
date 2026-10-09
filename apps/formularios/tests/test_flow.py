@@ -1,9 +1,12 @@
 import datetime
 import io
 import re
+import time
 from decimal import Decimal
+from unittest import mock
 
 import pytest
+from django.utils import timezone
 from openpyxl import load_workbook
 
 from apps.catalogs.models import GrupoImpactado
@@ -203,6 +206,34 @@ class TestLinksAndAnswers:
         assert client.get(all_links["p2@x.com"]).status_code == 410
         Cuestionario.unscoped.filter(pk=published.pk).update(vence=None, estado="cerrado")
         assert client.get(all_links["p2@x.com"]).status_code == 410
+
+    def test_links_expire_60_days_after_export(self, client, equipo, published, acme):
+        client.force_login(equipo)
+        client.post(f"{base(published)}enlaces/", {})
+        sixty_one_days_ago = time.time() - 61 * 86400
+        with mock.patch("django.core.signing.time.time", return_value=sixty_one_days_ago):
+            old = links(client, published)["p5@x.com"]
+        fresh = links(client, published)["p5@x.com"]  # exporting again renews it
+        client.logout()
+        response = client.get(old)
+        assert response.status_code == 410
+        assert "Este enlace venció" in response.content.decode()
+        assert client.get(fresh).status_code == 200
+
+    def test_export_shows_when_each_link_expires(self, client, equipo, published):
+        client.force_login(equipo)
+        client.post(f"{base(published)}enlaces/", {})
+
+        def vence():
+            content = client.get(f"{base(published)}enlaces/exportar/").content
+            ws = load_workbook(io.BytesIO(content)).active
+            return {row[4].value for row in ws.iter_rows(min_row=2)}
+
+        in_60_days = timezone.localdate() + datetime.timedelta(days=60)
+        assert vence() == {in_60_days.isoformat()}
+        soon = timezone.localdate() + datetime.timedelta(days=10)
+        Cuestionario.unscoped.filter(pk=published.pk).update(vence=soon)
+        assert vence() == {soon.isoformat()}
 
     def test_bumping_version_revokes_old_link(self, client, equipo, published, acme):
         client.force_login(equipo)

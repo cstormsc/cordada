@@ -1,3 +1,4 @@
+from datetime import timedelta
 from decimal import Decimal
 
 from django.conf import settings
@@ -234,9 +235,15 @@ class Enlace(TenantScopedModel):
     def token(self):
         return signing.dumps({"e": self.pk, "v": self.version}, salt=self.SALT, compress=True)
 
+    @staticmethod
+    def validez():
+        """Each link is valid this long from when it was exported (its token was signed)."""
+        return timedelta(days=settings.FORMULARIOS_ENLACE_DIAS)
+
     @classmethod
     def from_token(cls, token):
-        """Returns the Enlace (any client) or None. Callers set the client context."""
+        """Returns the Enlace (any client) or None. Callers set the client context.
+        An expired link is still returned, with `vencido` set, so it can say so."""
         try:
             data = signing.loads(token, salt=cls.SALT)
         except signing.BadSignature:
@@ -248,6 +255,11 @@ class Enlace(TenantScopedModel):
         )
         if enlace is None or enlace.version != data.get("v"):
             return None
+        try:
+            signing.loads(token, salt=cls.SALT, max_age=cls.validez())
+            enlace.vencido = False
+        except signing.SignatureExpired:
+            enlace.vencido = True
         return enlace
 
     def intentos_usados(self):
