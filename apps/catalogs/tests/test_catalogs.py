@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 
 from apps.catalogs.models import (
+    Cargo,
     GrupoImpactado,
     Scale,
     SystemCatalog,
@@ -178,3 +179,25 @@ class TestGroupAssignment:
         client.post(f"/c/acme/configuracion/personas/{m.pk}/", {f"m{m.pk}-grupos": [norte.pk]})
         with tenant_context(acme):
             assert list(m.grupos.all()) == [norte]
+
+    def test_admin_sets_position_and_department(self, client, member, acme, equipo):
+        from apps.core.models import Membership
+
+        captain, _ = member(Role.CAPITAN, client=acme, email="cap@example.com")
+        with tenant_context(acme):
+            cargo = Cargo.objects.create(name="Supervisor")
+            depto = UnidadOrganizacional.objects.create(kind="departamento", name="Operaciones")
+            oficina = UnidadOrganizacional.objects.create(kind="oficina", name="Centro")
+        m = Membership.objects.get(user=captain)
+        client.force_login(equipo)
+        url = f"/c/acme/configuracion/personas/{m.pk}/"
+        client.post(url, {f"m{m.pk}-departamento": oficina.pk})  # not a department
+        m.refresh_from_db()
+        assert m.departamento is None
+        client.post(url, {f"m{m.pk}-cargo": cargo.pk, f"m{m.pk}-departamento": depto.pk})
+        m.refresh_from_db()
+        assert m.puesto == "Supervisor · Operaciones"
+        assert (
+            "Supervisor · Operaciones"
+            in client.get("/c/acme/configuracion/personas/").content.decode()
+        )

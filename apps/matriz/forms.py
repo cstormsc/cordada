@@ -44,8 +44,11 @@ class YesNoSelect(forms.NullBooleanSelect):
 
 
 class MemberChoiceField(forms.ModelChoiceField):
+    """Pair with User.objects.members_of(client) so the label carries the job title."""
+
     def label_from_instance(self, obj):
-        return obj.display_name
+        cargo = getattr(obj, "cargo_nombre", None)
+        return f"{obj.display_name} · {cargo}" if cargo else obj.display_name
 
 
 SCALE_FIELDS = {
@@ -208,10 +211,7 @@ class ImpactoForm(BaseImpactoForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["responsable"].queryset = User.objects.filter(
-            memberships__client=self.client,
-            memberships__is_active=True,
-        ).order_by("first_name", "email")
+        self.fields["responsable"].queryset = User.objects.members_of(self.client)
         self.fields["responsable_categoria"].queryset = active_or_current(
             CategoriaResponsable.objects.all(), self.instance.responsable_categoria_id
         )

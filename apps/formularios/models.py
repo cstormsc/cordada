@@ -23,6 +23,7 @@ class Persona(TenantScopedModel):
 
     email = models.EmailField(_("correo"))
     nombre = models.CharField(_("nombre"), max_length=200, blank=True)
+    apellido = models.CharField(_("apellido"), max_length=200, blank=True)
     oficina = models.CharField(_("oficina"), max_length=150, blank=True)
     sucursal = models.CharField(_("sucursal"), max_length=150, blank=True)
     departamento = models.CharField(_("departamento"), max_length=150, blank=True)
@@ -47,7 +48,7 @@ class Persona(TenantScopedModel):
     class Meta(TenantScopedModel.Meta):
         verbose_name = _("persona")
         verbose_name_plural = _("personas")
-        ordering = ["nombre", "email"]
+        ordering = ["nombre", "apellido", "email"]
         constraints = [
             models.UniqueConstraint(
                 "client", models.functions.Lower("email"), name="unique_persona_email"
@@ -55,7 +56,11 @@ class Persona(TenantScopedModel):
         ]
 
     def __str__(self):
-        return self.nombre or self.email
+        return self.nombre_completo or self.email
+
+    @property
+    def nombre_completo(self):
+        return " ".join(x for x in (self.nombre, self.apellido) if x)
 
     def save(self, *args, **kwargs):
         self.email = self.email.strip().lower()

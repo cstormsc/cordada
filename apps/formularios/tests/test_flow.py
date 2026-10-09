@@ -146,7 +146,8 @@ def published(make_cuestionario, acme):
 
 def links(client, c):
     ws = load_workbook(io.BytesIO(client.get(f"{base(c)}enlaces/exportar/").content)).active
-    return {row[0].value: row[3].value for row in ws.iter_rows(min_row=2)}
+    col = [c.value for c in ws[1]].index("enlace")
+    return {row[0].value: row[col].value for row in ws.iter_rows(min_row=2)}
 
 
 class TestLinksAndAnswers:
@@ -227,7 +228,8 @@ class TestLinksAndAnswers:
         def vence():
             content = client.get(f"{base(published)}enlaces/exportar/").content
             ws = load_workbook(io.BytesIO(content)).active
-            return {row[4].value for row in ws.iter_rows(min_row=2)}
+            col = [c.value for c in ws[1]].index("vence")
+            return {row[col].value for row in ws.iter_rows(min_row=2)}
 
         in_60_days = timezone.localdate() + datetime.timedelta(days=60)
         assert vence() == {in_60_days.isoformat()}

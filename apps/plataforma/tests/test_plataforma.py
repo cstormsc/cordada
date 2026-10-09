@@ -129,6 +129,7 @@ def test_existing_account_must_log_in_as_the_invitee(admin_client, make_client, 
     assert client.get(link).status_code == 403
 
     client.force_login(lucia)
+    assert "Confirma o corrige tu cargo" in client.get(link).content.decode()
     assert client.post(link).url == "/c/acme/"
     assert Membership.objects.get(user=lucia).role == Role.GUIA
 
@@ -269,3 +270,60 @@ class TestSystemCatalogAdmin:
         )
         scale = Scale.objects.get(code="magnitud")
         assert [lvl.definition for lvl in scale.levels.all()] == defs
+
+
+def test_invitation_suggests_position_and_invitee_corrects_it(
+    admin_client, make_client, client, platform_admin
+):
+    from apps.catalogs.models import Cargo, UnidadOrganizacional
+    from apps.core.tenancy import tenant_context
+
+    acme = make_client("acme")
+    with tenant_context(acme):
+        analista = Cargo.objects.create(name="Analista")
+        jefa = Cargo.objects.create(name="Jefa de área")
+        finanzas = UnidadOrganizacional.objects.create(kind="departamento", name="Finanzas")
+        UnidadOrganizacional.objects.create(kind="oficina", name="Santiago")
+    with tenant_context(make_client("globex")):
+        ajeno = Cargo.objects.create(name="Cargo ajeno")
+
+    page = admin_client.get("/plataforma/clientes/acme/").content.decode()
+    assert "Analista" in page and "Cargo ajeno" not in page
+    assert ">Santiago<" not in page  # only departments, not other units
+    rejected = admin_client.post(
+        "/plataforma/clientes/acme/invitar/",
+        {"email": "x@example.com", "role": Role.GUIA, "cargo": ajeno.pk},
+    )
+    assert rejected.status_code == 400
+
+    admin_client.post(
+        "/plataforma/clientes/acme/invitar/",
+        {
+            "email": "lucia@example.com",
+            "role": Role.GUIA,
+            "cargo": analista.pk,
+            "departamento": finanzas.pk,
+        },
+    )
+    link = invite_link()
+    client.logout()
+    form = client.get(link).content.decode()
+    assert f'<option value="{analista.pk}" selected>' in form  # pre-filled
+    client.post(
+        link,
+        {
+            "first_name": "Lucía",
+            "last_name": "Pérez",
+            "cargo": jefa.pk,  # corrected by the invitee
+            "departamento": finanzas.pk,
+            "password1": "una-clave-larga-9",
+            "password2": "una-clave-larga-9",
+        },
+    )
+    m = Membership.objects.get(user__email="lucia@example.com")
+    assert (m.cargo, m.departamento, m.puesto) == (jefa, finanzas, "Jefa de área · Finanzas")
+    home = client.get("/c/acme/").content.decode()
+    assert "Lucía Pérez" in home  # the header shows the name, not the email
+    client.force_login(platform_admin)  # admin_client is this same test client
+    detail = client.get("/plataforma/clientes/acme/").content.decode()
+    assert "Jefa de área · Finanzas" in detail

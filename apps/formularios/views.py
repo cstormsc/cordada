@@ -87,7 +87,10 @@ def personas(request, client_slug):
     qs = Persona.objects.select_related("grupo")
     if q:
         qs = qs.filter(
-            Q(email__icontains=q) | Q(nombre__icontains=q) | Q(departamento__icontains=q)
+            Q(email__icontains=q)
+            | Q(nombre__icontains=q)
+            | Q(apellido__icontains=q)
+            | Q(departamento__icontains=q)
         )
     if request.GET.get("inactivas") != "1":
         qs = qs.filter(is_active=True)
@@ -448,13 +451,14 @@ def exportar_enlaces(request, client_slug, numero):
         [
             e.persona.email,
             e.persona.nombre,
+            e.persona.apellido,
             str(e.persona.grupo or ""),
             request.build_absolute_uri(reverse("formularios_responder", args=[e.token])),
             vence.isoformat(),
         ]
         for e in c.enlaces.select_related("persona", "persona__grupo").order_by("persona__email")
     ]
-    headers = ["correo", "nombre", "grupo", "enlace", "vence"]
+    headers = ["correo", "nombre", "apellido", "grupo", "enlace", "vence"]
     filename = f"enlaces-{c.codigo.lower()}-{request.client.slug}"
     if fmt == "csv":
         response = HttpResponse(content_type="text/csv; charset=utf-8")

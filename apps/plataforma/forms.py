@@ -2,6 +2,7 @@ from django import forms
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
+from apps.core.forms import PuestoFieldsMixin
 from apps.core.models import Client, Membership, Module, Role, default_retention_years
 
 RESERVED_SLUGS = {"admin", "plataforma", "static", "media", "api", "nuevo"}
@@ -73,13 +74,16 @@ class ClientForm(forms.ModelForm):
         return slug
 
 
-class InviteForm(forms.Form):
+class InviteForm(PuestoFieldsMixin, forms.Form):
     email = forms.EmailField(label=_("Correo"))
     role = forms.ChoiceField(label=_("Rol"), choices=Role.choices)
 
     def __init__(self, *args, client, **kwargs):
         self.client = client
         super().__init__(*args, **kwargs)
+        self.add_puesto_fields(client)
+        hint = _("Sugerido: la persona lo confirma o corrige al aceptar.")
+        self.fields["cargo"].help_text = self.fields["departamento"].help_text = hint
 
     def clean_email(self):
         email = self.cleaned_data["email"].strip().lower()

@@ -47,6 +47,25 @@ def test_csv_semicolons_latin1_and_header_aliases():
     assert errors == []
 
 
+def test_first_and_last_name_columns(client, equipo, acme):
+    headers, rows = importer.read_rows(
+        csv_file("Correo,Nombres,Apellidos,Puesto\nana@x.com,Ana María,Núñez Soto,Analista\n")
+    )
+    records, _ = importer.parse(rows, importer.map_headers(headers))
+    assert records[0] == {
+        "email": "ana@x.com",
+        "nombre": "Ana María",
+        "apellido": "Núñez Soto",
+        "cargo": "Analista",
+    }
+    with tenant_context(acme):
+        persona = Persona.objects.create(**records[0])
+        assert str(persona) == "Ana María Núñez Soto"
+    client.force_login(equipo)
+    page = client.get("/c/acme/formularios/personas/?q=núñez").content.decode()
+    assert "<td>Núñez Soto</td><td>Analista</td>" in page
+
+
 def test_invalid_and_duplicate_emails_are_reported():
     _, rows = importer.read_rows(csv_file("email\nana@x.com\nno-es-correo\nANA@x.com\n"))
     records, errors = importer.parse(rows, {"email": 0})

@@ -10,7 +10,7 @@ from django.views.decorators.http import require_POST
 
 from . import invitations
 from .decorators import client_member_required
-from .forms import AcceptInvitationForm
+from .forms import AcceptInvitationForm, ConfirmPuestoForm
 from .models import Invitation, Module, User
 from .permissions import Action, can_assign_groups, can_configure, role_actions, visible_modules
 
@@ -65,12 +65,22 @@ def accept_invitation(request, token):
             return render(
                 request, "core/invitation_wrong_user.html", {"invitation": invitation}, status=403
             )
-        if request.method == "POST":
-            invitations.accept(invitation, user)
+        data = request.POST if request.method == "POST" else None
+        form = ConfirmPuestoForm(
+            data, client=invitation.client, initial=_puesto_inicial(invitation)
+        )
+        if request.method == "POST" and form.is_valid():
+            invitations.accept(invitation, user, **form.cleaned_data)
             return redirect("client_home", client_slug=invitation.client.slug)
-        return render(request, "core/invitation_accept.html", {"invitation": invitation})
+        return render(
+            request,
+            "core/invitation_accept.html",
+            {"invitation": invitation, "form": form, "has_account": True},
+        )
 
-    form = AcceptInvitationForm(request.POST or None)
+    form = AcceptInvitationForm(
+        request.POST or None, client=invitation.client, initial=_puesto_inicial(invitation)
+    )
     if request.method == "POST" and form.is_valid():
         if request.user.is_authenticated:
             logout(request)
@@ -80,10 +90,19 @@ def accept_invitation(request, token):
             first_name=form.cleaned_data["first_name"],
             last_name=form.cleaned_data["last_name"],
         )
-        invitations.accept(invitation, user)
+        invitations.accept(
+            invitation,
+            user,
+            cargo=form.cleaned_data["cargo"],
+            departamento=form.cleaned_data["departamento"],
+        )
         login(request, user)
         return redirect("client_home", client_slug=invitation.client.slug)
     return render(request, "core/invitation_accept.html", {"invitation": invitation, "form": form})
+
+
+def _puesto_inicial(invitation):
+    return {"cargo": invitation.cargo_id, "departamento": invitation.departamento_id}
 
 
 @require_POST

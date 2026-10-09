@@ -26,8 +26,9 @@ class CargaForm(forms.Form):
     archivo = forms.FileField(
         label=_("Archivo CSV o Excel"),
         help_text=_(
-            "Columnas: correo (obligatoria), nombre, oficina, "
-            "sucursal, departamento, supervisor y cargo."
+            "Columnas: correo (obligatoria), nombre, apellido, cargo, departamento, "
+            "oficina, sucursal y supervisor. Si solo hay una columna con el nombre "
+            "completo, se guarda como nombre."
         ),
     )
     columna_grupo = forms.ChoiceField(

@@ -101,10 +101,7 @@ class ActividadForm(forms.ModelForm):
         self.fields["canal"].queryset = active_or_current(
             Canal.objects.all(), self.instance.canal_id
         )
-        self.fields["responsable"].queryset = User.objects.filter(
-            memberships__client=client,
-            memberships__is_active=True,
-        ).order_by("first_name", "email")
+        self.fields["responsable"].queryset = User.objects.members_of(client)
 
     def get_sections(self):
         return [(t, [self[n] for n in names if n in self.fields]) for t, names in self.sections]

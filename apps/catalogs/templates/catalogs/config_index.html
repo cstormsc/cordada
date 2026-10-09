@@ -6,8 +6,8 @@
   <h1>{% translate "Configuración" %}</h1>
   <ul class="cards">
     <li><a class="card" href="{% url 'catalogs:personas' request.client.slug %}">
-      <strong>{% translate "Personas y sus grupos" %}</strong>
-      <span class="muted">{% translate "Qué grupos impactados acompaña cada miembro (por ejemplo, el grupo de cada capitán)." %}</span>
+      <strong>{% translate "Personas" %}</strong>
+      <span class="muted">{% translate "Cargo, departamento y grupos impactados que acompaña cada miembro (por ejemplo, el grupo de cada capitán)." %}</span>
     </a></li>
     <li><a class="card" href="{% url 'dashboard:indicadores' request.client.slug %}">
       <strong>{% translate "Indicadores del dashboard" %}</strong>

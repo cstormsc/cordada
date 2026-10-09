@@ -2,22 +2,26 @@
 {% load i18n %}
 {% block content %}
   <p>{% if can_configure %}<a href="{% url 'catalogs:index' request.client.slug %}">← {% translate "Configuración" %}</a>{% else %}<a href="{% url 'client_home' request.client.slug %}">← {{ request.client.name }}</a>{% endif %}</p>
-  <h1>{% translate "Personas y sus grupos" %}</h1>
-  <p class="muted">{% translate "Los capitanes ven en la Ruta las actividades de sus grupos y en la Bitácora los tickets de sus grupos. Para invitar personas o cambiar roles, usa la administración de plataforma." %}</p>
+  <h1>{% translate "Personas" %}</h1>
+  <p class="muted">{% translate "Cargo y departamento salen de los catálogos del cliente (Cargos y Unidades de tipo Departamento). Los capitanes ven en la Ruta las actividades de sus grupos y en la Bitácora los tickets de sus grupos. Para invitar personas o cambiar roles, usa la administración de plataforma." %}</p>
   {% for m, form in rows %}
     <section class="panel">
       <div class="row">
-        <div><strong>{{ m.user.display_name }}</strong> <span class="muted">{{ m.user.email }}</span></div>
+        <div><strong>{{ m.user.display_name }}</strong> <span class="muted">{{ m.user.email }}</span>
+          {% if m.puesto %}<div class="small">{{ m.puesto }}</div>{% endif %}</div>
         <span class="tag">{{ m.get_role_display }}</span>
       </div>
-      {% if form.fields.grupos.queryset %}
-        <form method="post" action="{% url 'catalogs:persona_grupos' request.client.slug m.pk %}" class="form">
-          {% csrf_token %}{{ form.grupos }}
-          <button class="btn secondary">{% translate "Guardar grupos" %}</button>
-        </form>
-      {% else %}
-        <p class="muted small">{% translate "Crea grupos impactados para asignarlos." %}</p>
-      {% endif %}
+      <form method="post" action="{% url 'catalogs:persona_grupos' request.client.slug m.pk %}" class="form">
+        {% csrf_token %}
+        {{ form.cargo.as_field_group }}
+        {{ form.departamento.as_field_group }}
+        {% if form.fields.grupos.queryset %}
+          <fieldset><legend>{% translate "Grupos" %}</legend>{{ form.grupos }}</fieldset>
+        {% else %}
+          <p class="muted small">{% translate "Crea grupos impactados para asignarlos." %}</p>
+        {% endif %}
+        <button class="btn secondary">{% translate "Guardar" %}</button>
+      </form>
     </section>
   {% endfor %}
 {% endblock %}

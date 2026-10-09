@@ -31,9 +31,9 @@
   </form>
   <p class="muted small">{{ total }} {% translate "personas" %}{% if total > 500 %} · {% translate "se muestran las primeras 500" %}{% endif %}</p>
   <div class="table-wrap panel"><table>
-    <thead><tr><th>{% translate "Correo" %}</th><th>{% translate "Nombre" %}</th><th>{% translate "Grupo" %}</th><th>{% translate "Departamento" %}</th><th>{% translate "Supervisor" %}</th><th></th></tr></thead>
+    <thead><tr><th>{% translate "Correo" %}</th><th>{% translate "Nombre" %}</th><th>{% translate "Apellido" %}</th><th>{% translate "Cargo" %}</th><th>{% translate "Grupo" %}</th><th>{% translate "Departamento" %}</th><th>{% translate "Supervisor" %}</th><th></th></tr></thead>
     <tbody>{% for p in personas %}
-      <tr{% if not p.is_active %} class="muted"{% endif %}><td>{{ p.email }}</td><td>{{ p.nombre }}</td><td>{{ p.grupo|default:"—" }}</td><td>{{ p.departamento }}</td><td>{{ p.supervisor }}</td>
+      <tr{% if not p.is_active %} class="muted"{% endif %}><td>{{ p.email }}</td><td>{{ p.nombre }}</td><td>{{ p.apellido }}</td><td>{{ p.cargo }}</td><td>{{ p.grupo|default:"—" }}</td><td>{{ p.departamento }}</td><td>{{ p.supervisor }}</td>
         <td><form method="post" action="{% url 'formularios:persona_estado' request.client.slug p.pk %}">{% csrf_token %}<button class="link small{% if p.is_active %} danger{% endif %}">{% if p.is_active %}{% translate "Desactivar" %}{% else %}{% translate "Reactivar" %}{% endif %}</button></form></td></tr>
     {% endfor %}</tbody>
   </table></div>

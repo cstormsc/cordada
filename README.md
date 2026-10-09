@@ -38,6 +38,9 @@ Dependencias con `uv`: editar `pyproject.toml`, luego `make lock && make build`.
   módulos e invita personas con un rol. No ve los datos de los clientes; para trabajar
   dentro de uno, se invita a sí mismo con un rol.
 - Las invitaciones llegan por correo (en local, a Mailpit) y vencen en 7 días.
+- Cada miembro tiene nombre y apellido (los escribe al aceptar) y, por cliente, cargo y
+  departamento de los catálogos del cliente: quien invita los sugiere, la persona los confirma
+  o corrige al aceptar, y Configuración → Personas los edita después.
 - Cada cliente vive en `/c/<identificador>/`. Quien no es miembro recibe 404.
 - Roles y permisos por módulo: `apps/core/permissions.py` (Parte B §2).
 - Modelos de un cliente: heredar de `apps.core.tenancy.TenantScopedModel`. Si declaran

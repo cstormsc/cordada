@@ -6,6 +6,7 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
+from django.db.models import OuterRef, Subquery
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from simple_history.models import HistoricalRecords
@@ -31,6 +32,17 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         return self._create_user(email, password, **extra_fields)
+
+    def members_of(self, client):
+        """Active members of a client, with their job title there as `cargo_nombre`."""
+        cargo = Membership.objects.filter(user=OuterRef("pk"), client=client).values("cargo__name")[
+            :1
+        ]
+        return (
+            self.filter(memberships__client=client, memberships__is_active=True)
+            .annotate(cargo_nombre=Subquery(cargo))
+            .order_by("first_name", "last_name", "email")
+        )
 
 
 class User(AbstractUser):
@@ -170,6 +182,24 @@ class Membership(models.Model):
         ),
     )
 
+    cargo = models.ForeignKey(
+        "catalogs.Cargo",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        verbose_name=_("cargo"),
+    )
+    departamento = models.ForeignKey(
+        "catalogs.UnidadOrganizacional",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        verbose_name=_("departamento"),
+        limit_choices_to={"kind": "departamento"},
+    )
+
     history = HistoricalRecords(m2m_fields=[grupos])
 
     class Meta:
@@ -181,6 +211,11 @@ class Membership(models.Model):
 
     def __str__(self):
         return f"{self.user} · {self.client} · {self.get_role_display()}"
+
+    @property
+    def puesto(self):
+        """«Cargo · Departamento», with whichever is set."""
+        return " · ".join(str(x) for x in (self.cargo, self.departamento) if x)
 
 
 def _hash_token(token):
@@ -211,6 +246,17 @@ class Invitation(models.Model):
     expires_at = models.DateTimeField()
     accepted_at = models.DateTimeField(null=True, blank=True)
     revoked_at = models.DateTimeField(null=True, blank=True)
+    # Suggested by whoever invites; the invitee confirms or corrects them on accepting.
+    cargo = models.ForeignKey(
+        "catalogs.Cargo", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    departamento = models.ForeignKey(
+        "catalogs.UnidadOrganizacional",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
 
     objects = InvitationQuerySet.as_manager()
 
@@ -223,13 +269,15 @@ class Invitation(models.Model):
         return f"{self.email} → {self.client}"
 
     @classmethod
-    def create(cls, *, client, email, role, invited_by):
+    def create(cls, *, client, email, role, invited_by, cargo=None, departamento=None):
         """Returns (invitation, raw_token). Only the token's hash is stored."""
         token = secrets.token_urlsafe(32)
         invitation = cls.objects.create(
             client=client,
             email=email.strip().lower(),
             role=role,
+            cargo=cargo,
+            departamento=departamento,
             token_hash=_hash_token(token),
             invited_by=invited_by,
             expires_at=timezone.now() + timedelta(days=cls.VALID_DAYS),

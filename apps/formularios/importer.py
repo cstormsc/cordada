@@ -14,13 +14,24 @@ from apps.catalogs.models import GrupoImpactado
 
 from .models import Carga, Persona
 
-FIELDS = ["email", "nombre", "oficina", "sucursal", "departamento", "supervisor", "cargo"]
+FIELDS = [
+    "email",
+    "nombre",
+    "apellido",
+    "oficina",
+    "sucursal",
+    "departamento",
+    "supervisor",
+    "cargo",
+]
 GROUP_SOURCES = ["departamento", "oficina", "sucursal", "cargo"]
 
 # Accepted header spellings, compared after slugify.
 ALIASES = {
     "email": {"email", "correo", "correo-electronico", "e-mail", "mail"},
-    "nombre": {"nombre", "nombre-completo", "name"},
+    # A single full-name column (older files) also goes to nombre.
+    "nombre": {"nombre", "nombres", "nombre-completo", "name", "first-name"},
+    "apellido": {"apellido", "apellidos", "last-name", "surname"},
     "oficina": {"oficina"},
     "sucursal": {"sucursal"},
     "departamento": {"departamento", "depto", "area"},

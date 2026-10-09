@@ -31,7 +31,7 @@ def team(lista, leader_email):
         personas = personas.filter(enlaces__respuestas__in=passed).distinct()
     elif impacto.grupo_id:
         personas = personas.filter(grupo_id=impacto.grupo_id)
-    return personas.order_by("nombre", "email")
+    return personas.order_by("nombre", "apellido", "email")
 
 
 def evaluations_for(lista, leader):

@@ -2,6 +2,7 @@
 
 from django import forms
 from django.contrib import messages
+from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext as _
@@ -123,30 +124,46 @@ def catalog_edit(request, client_slug, catalog, pk):
 
 
 class MemberGroupsForm(forms.ModelForm):
-    # Declared explicitly: a generated field would query groups before any client is active.
+    # Declared explicitly: generated fields would query the catalogs before any client is active.
     grupos = forms.ModelMultipleChoiceField(
         label=gettext_lazy("Grupos"),
         queryset=GrupoImpactado.unscoped.none(),
         required=False,
         widget=forms.CheckboxSelectMultiple,
     )
+    cargo = forms.ModelChoiceField(
+        label=gettext_lazy("Cargo"), queryset=Cargo.unscoped.none(), required=False
+    )
+    departamento = forms.ModelChoiceField(
+        label=gettext_lazy("Departamento"),
+        queryset=UnidadOrganizacional.unscoped.none(),
+        required=False,
+    )
 
     class Meta:
         model = Membership
-        fields = ["grupos"]
+        fields = ["cargo", "departamento", "grupos"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["grupos"].queryset = GrupoImpactado.objects.filter(is_active=True)
+        # Active items, plus the current one even if it was deactivated since.
+        self.fields["cargo"].queryset = Cargo.objects.filter(
+            Q(is_active=True) | Q(pk=self.instance.cargo_id)
+        )
+        self.fields["departamento"].queryset = UnidadOrganizacional.objects.filter(
+            Q(is_active=True) | Q(pk=self.instance.departamento_id),
+            kind=UnidadOrganizacional.Kind.DEPARTAMENTO,
+        )
 
 
 @client_group_assigner_required
 def personas(request, client_slug):
     memberships = (
         Membership.objects.filter(client=request.client, is_active=True)
-        .select_related("user")
+        .select_related("user", "cargo", "departamento")
         .prefetch_related("grupos")
-        .order_by("role", "user__email")
+        .order_by("role", "user__first_name", "user__last_name", "user__email")
     )
     return render(
         request,
@@ -166,6 +183,6 @@ def persona_grupos(request, client_slug, pk):
     if form.is_valid():
         form.save()
         messages.success(
-            request, _("Grupos de %(user)s actualizados.") % {"user": membership.user.display_name}
+            request, _("Datos de %(user)s actualizados.") % {"user": membership.user.display_name}
         )
     return redirect("catalogs:personas", client_slug=client_slug)

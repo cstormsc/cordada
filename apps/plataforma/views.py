@@ -65,10 +65,10 @@ def client_detail(request, slug):
 
 def _members_context(client):
     return {
-        "memberships": client.memberships.select_related("user").order_by(
-            "-is_active", "user__email"
+        "memberships": client.memberships.select_related("user", "cargo", "departamento").order_by(
+            "-is_active", "user__first_name", "user__last_name", "user__email"
         ),
-        "pending_invitations": client.invitations.pending(),
+        "pending_invitations": client.invitations.pending().select_related("cargo", "departamento"),
         "roles": Role.choices,
     }
 
@@ -84,6 +84,8 @@ def invite(request, slug):
             client=client,
             email=form.cleaned_data["email"],
             role=form.cleaned_data["role"],
+            cargo=form.cleaned_data["cargo"],
+            departamento=form.cleaned_data["departamento"],
         )
         messages.success(
             request, _("Invitación enviada a %(email)s.") % {"email": invitation.email}

@@ -136,7 +136,7 @@ def seguimiento(request, client_slug, pk):
     _require(request, A.DESIGN, A.EDIT)
     lista = _lista(pk)
     evaluaciones = lista.evaluaciones.select_related("persona", "lider").order_by(
-        "lider__email", "persona__nombre"
+        "lider__email", "persona__nombre", "persona__apellido"
     )
     leaders = {}
     for ev in evaluaciones:

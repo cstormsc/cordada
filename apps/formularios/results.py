@@ -28,7 +28,7 @@ def individual(cuestionario):
     best = best_by_enlace(cuestionario)
     rows = []
     for e in cuestionario.enlaces.select_related("persona", "persona__grupo").order_by(
-        "persona__nombre", "persona__email"
+        "persona__nombre", "persona__apellido", "persona__email"
     ):
         score, passed, attempts, last = best.get(e.pk, (None, None, 0, None))
         rows.append(
