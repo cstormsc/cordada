@@ -1,6 +1,7 @@
 from django.contrib import messages
-from django.contrib.auth import login, logout
+from django.contrib.auth import login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.views import redirect_to_login
 from django.db import connection
 from django.http import Http404, JsonResponse
@@ -10,7 +11,7 @@ from django.views.decorators.http import require_POST
 
 from . import invitations
 from .decorators import client_member_required
-from .forms import AcceptInvitationForm, ConfirmPuestoForm
+from .forms import AcceptInvitationForm, ConfirmPuestoForm, PerfilForm
 from .models import Invitation, Module, User
 from .permissions import Action, can_assign_groups, can_configure, role_actions, visible_modules
 
@@ -21,6 +22,30 @@ def home(request):
     if len(memberships) == 1 and not request.user.is_platform_admin:
         return redirect("client_home", client_slug=memberships[0].client.slug)
     return render(request, "core/home.html", {"memberships": memberships})
+
+
+@login_required
+def perfil(request):
+    """The user's own name and password. Role, job title and department are per client and
+    set by Administración, so they are shown here but not edited."""
+    accion = request.POST.get("accion") if request.method == "POST" else None
+    datos = PerfilForm(request.POST if accion == "datos" else None, instance=request.user)
+    clave = PasswordChangeForm(request.user, request.POST if accion == "clave" else None)
+    if accion == "datos" and datos.is_valid():
+        datos.save()
+        messages.success(request, _("Datos guardados."))
+        return redirect("perfil")
+    if accion == "clave" and clave.is_valid():
+        clave.save()
+        update_session_auth_hash(request, clave.user)  # stay logged in here
+        messages.success(request, _("Contraseña cambiada."))
+        return redirect("perfil")
+    memberships = request.user.active_memberships().select_related("cargo", "departamento")
+    return render(
+        request,
+        "core/perfil.html",
+        {"datos": datos, "clave": clave, "memberships": memberships},
+    )
 
 
 @client_member_required

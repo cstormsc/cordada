@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Mi perfil" %} · Cordada{% endblock %}
+{% block content %}
+<div class="narrow-wide">
+  <p><a href="{% url 'home' %}">← {% translate "Inicio" %}</a></p>
+  <h1>{% translate "Mi perfil" %}</h1>
+
+  <section class="panel">
+    <h2>{% translate "Tus datos" %}</h2>
+    <p class="muted small">{% blocktranslate with email=user.email %}Cuenta: {{ email }}. El correo no se cambia aquí: es con el que entras y al que llegan las invitaciones.{% endblocktranslate %}</p>
+    <form method="post" class="form">
+      {% csrf_token %}<input type="hidden" name="accion" value="datos">
+      {{ datos }}
+      <button type="submit" class="btn">{% translate "Guardar" %}</button>
+    </form>
+  </section>
+
+  {% if memberships %}
+  <section class="panel">
+    <h2>{% translate "Tus espacios" %}</h2>
+    <p class="muted small">{% translate "Tu rol, cargo y departamento en cada cliente. Si algo no es correcto, pídele a Administración que lo cambie en Configuración → Personas." %}</p>
+    <ul class="list">{% for m in memberships %}
+      <li><span><strong>{{ m.client.name }}</strong><br><span class="small">{{ m.puesto|default:_("Sin cargo ni departamento") }}</span></span>
+        <span class="tag">{{ m.get_role_display }}</span></li>
+    {% endfor %}</ul>
+  </section>
+  {% endif %}
+
+  <section class="panel">
+    <h2>{% translate "Cambiar contraseña" %}</h2>
+    <form method="post" class="form">
+      {% csrf_token %}<input type="hidden" name="accion" value="clave">
+      {{ clave }}
+      <button type="submit" class="btn secondary">{% translate "Cambiar contraseña" %}</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

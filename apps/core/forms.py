@@ -4,6 +4,8 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.catalogs.models import Cargo, UnidadOrganizacional
 
+from .models import User
+
 
 def puesto_querysets(client):
     """Job titles and departments a member of this client can have (its own catalogs)."""
@@ -62,3 +64,15 @@ class AcceptInvitationForm(PuestoFieldsMixin, forms.Form):
             except forms.ValidationError as e:
                 self.add_error("password1", e)
         return cleaned
+
+
+class PerfilForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ["first_name", "last_name"]
+        labels = {"first_name": _("Nombre"), "last_name": _("Apellido")}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name in self.fields:
+            self.fields[name].required = True

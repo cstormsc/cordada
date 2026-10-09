@@ -14,6 +14,7 @@ urlpatterns = [
         name="login",
     ),
     path("salir/", views.logout_view, name="logout"),
+    path("perfil/", views.perfil, name="perfil"),
     path("invitacion/<str:token>/", views.accept_invitation, name="accept_invitation"),
     path("c/<slug:client_slug>/", views.client_home, name="client_home"),
     path("c/<slug:client_slug>/configuracion/", include("apps.catalogs.urls")),

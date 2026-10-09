@@ -20,7 +20,7 @@
     {% if user.is_authenticated %}
       <nav class="topnav">
         {% if user.is_platform_admin %}<a href="{% url 'plataforma:client_list' %}">{% translate "Plataforma" %}</a>{% endif %}
-        <span class="muted" title="{{ user.email }}">{{ user.display_name }}</span>
+        <a href="{% url 'perfil' %}" title="{% translate 'Mi perfil' %} · {{ user.email }}">{{ user.display_name }}</a>
         <form method="post" action="{% url 'logout' %}">{% csrf_token %}
           <button type="submit" class="link">{% translate "Salir" %}</button>
         </form>
