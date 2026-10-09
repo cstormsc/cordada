@@ -92,7 +92,15 @@ class TestViews:
         response = client.post(self.url(b, "dependencias/"), {"depende_de": a.pk}, follow=True)
         assert "se formaría un ciclo" in response.content.decode()
 
-    @pytest.mark.parametrize("role", [Role.ADMINISTRACION, Role.PATROCINADOR])
+    def test_administracion_links_too(self, client, member, acme, abc):
+        a, b, _ = abc
+        user, _ = member(Role.ADMINISTRACION, client=acme, email="admin@example.com")
+        client.force_login(user)
+        client.post(self.url(a, "dependencias/"), {"depende_de": b.pk})
+        with tenant_context(acme):
+            assert Dependencia.objects.filter(impacto=a, depende_de=b).exists()
+
+    @pytest.mark.parametrize("role", [Role.PATROCINADOR])
     def test_other_roles_see_but_cannot_change(self, client, member, acme, abc, equipo, role):
         a, b, c = abc
         with tenant_context(acme):

@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% load i18n %}
 {% block content %}
-  <p><a href="{% url 'catalogs:index' request.client.slug %}">← {% translate "Configuración" %}</a></p>
+  <p>{% if can_configure %}<a href="{% url 'catalogs:index' request.client.slug %}">← {% translate "Configuración" %}</a>{% else %}<a href="{% url 'client_home' request.client.slug %}">← {{ request.client.name }}</a>{% endif %}</p>
   <h1>{% translate "Personas y sus grupos" %}</h1>
-  <p class="muted">{% translate "Los capitanes solo ven en la Ruta las actividades de sus grupos. Para invitar personas o cambiar roles, usa la administración de plataforma." %}</p>
+  <p class="muted">{% translate "Los capitanes ven en la Ruta las actividades de sus grupos y en la Bitácora los tickets de sus grupos. Para invitar personas o cambiar roles, usa la administración de plataforma." %}</p>
   {% for m, form in rows %}
     <section class="panel">
       <div class="row">

@@ -6,7 +6,7 @@
 
   <div class="row">
     <h1><span class="muted">{{ impacto.codigo }}</span> {{ impacto.titulo }}</h1>
-    {% if not impacto.is_locked and can_edit or can_edit_proposal %}
+    {% if not impacto.is_locked and can_edit %}
       <a class="btn" href="{% url 'matriz:editar' request.client.slug impacto.numero %}">{% translate "Editar" %}</a>
     {% endif %}
   </div>
@@ -199,7 +199,7 @@
         </li>{% endfor %}
       </ul>{% else %}<p class="muted">{% translate "Sin adjuntos." %}</p>{% endif %}
     {% endwith %}
-    {% if can_edit or can_edit_proposal %}
+    {% if can_edit %}
       <details><summary>{% translate "Agregar archivo o enlace" %}</summary>
         <form method="post" enctype="multipart/form-data" action="{% url 'matriz:adjuntar' request.client.slug impacto.numero %}" class="form">
           {% csrf_token %}{{ adjunto_form }}

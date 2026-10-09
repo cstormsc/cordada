@@ -31,3 +31,13 @@ def test_system_checks_and_url_modules_load_without_a_client():
 
     call_command("check")
     get_resolver().url_patterns  # noqa: B018 (imports every urls/views module)
+
+
+@pytest.mark.django_db
+def test_proposers_home_card_proposes(client, member):
+    from apps.core.models import Role
+
+    user, _ = member(Role.CAPITAN, email="cap@example.com")
+    client.force_login(user)
+    body = client.get(f"/c/{user.memberships.get().client.slug}/").content.decode()
+    assert "Proponer un impacto" in body and "/matriz/nuevo/" in body

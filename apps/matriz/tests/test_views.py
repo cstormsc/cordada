@@ -55,9 +55,9 @@ class TestAccess:
         assert client.get(BASE).status_code == 200
 
     @pytest.mark.parametrize("role", [Role.CAPITAN, Role.GUIA, Role.EQUIPO_TECNICO])
-    def test_proposers_go_to_their_proposals(self, client, as_role, role):
+    def test_proposers_go_to_the_proposal_form(self, client, as_role, role):
         as_role(role)
-        assert client.get(BASE).url == f"{BASE}mis-propuestas/"
+        assert client.get(BASE).url == f"{BASE}nuevo/"
 
     def test_area_leaders_have_no_access(self, client, as_role):
         as_role(Role.LIDER_AREA)
@@ -131,23 +131,18 @@ class TestProposals:
             impacto = Impacto.objects.get()
         assert impacto.registrado_por == captain
         assert impacto.grupo_sugerido == "Call center"
-        assert "Turnos" in client.get(f"{BASE}mis-propuestas/").content.decode()
 
-    def test_proposers_only_see_their_own(self, client, as_role, make_impacto):
-        ajeno = make_impacto()
+    def test_proposers_send_and_no_longer_see_it(self, client, as_role, acme):
+        """§2 confirmed: proposals are sent to the change team, not kept by the proposer."""
         as_role(Role.GUIA)
-        assert client.get(f"{BASE}{ajeno.numero}/").status_code == 404
-
-    def test_proposer_edits_only_while_proposed(self, client, as_role, make_impacto, acme):
-        guia = as_role(Role.GUIA)
-        impacto = make_impacto(registrado_por=guia)
-        url = f"{BASE}{impacto.numero}/editar/"
-        assert client.post(url, {"titulo": "Mejor título", "descripcion": "d"}).status_code == 302
+        response = client.post(f"{BASE}nuevo/", {"titulo": "Turnos", "descripcion": "d"})
+        assert response.url == f"{BASE}nuevo/"
         with tenant_context(acme):
-            Impacto.objects.filter(pk=impacto.pk).update(estado=Estado.EVALUADO)
-        assert client.get(url).status_code == 403
-        impacto.refresh_from_db()
-        assert impacto.titulo == "Mejor título"
+            impacto = Impacto.objects.get()
+        assert client.get(f"{BASE}{impacto.numero}/").status_code == 404
+        assert client.get(f"{BASE}{impacto.numero}/editar/").status_code == 404
+        adjuntar = client.post(f"{BASE}{impacto.numero}/adjuntos/", {"url": "https://x.com"})
+        assert adjuntar.status_code == 404
 
     def test_change_team_creates_suggested_group(self, client, as_equipo, make_impacto, acme):
         impacto = make_impacto(grupo_sugerido="Call Center")

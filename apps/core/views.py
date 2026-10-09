@@ -12,7 +12,7 @@ from . import invitations
 from .decorators import client_member_required
 from .forms import AcceptInvitationForm
 from .models import Invitation, Module, User
-from .permissions import Action, can_configure, role_actions, visible_modules
+from .permissions import Action, can_assign_groups, can_configure, role_actions, visible_modules
 
 
 @login_required
@@ -32,10 +32,12 @@ def client_home(request, client_slug):
         {
             "modules": visible_modules(request.membership),
             "can_configure": can_configure(request.membership),
+            "can_assign_groups": can_assign_groups(request.membership),
             # Area leaders only do the practical evaluation, not the questionnaires.
             "module_links": {
                 "formularios": bool({Action.EDIT, Action.DESIGN} & form_actions),
                 "evaluar": Action.LEADER_EVAL in form_actions,
+                "matriz": Action.VIEW in role_actions(request.membership.role, Module.MATRIZ),
             },
         },
     )

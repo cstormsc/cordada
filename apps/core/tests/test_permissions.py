@@ -10,10 +10,10 @@ M = Module
 
 # (role, module): (must have, must not have). Cells marked "no" in §2 are in NO_ACCESS.
 CELLS = {
-    (Role.ADMINISTRACION, M.MATRIZ): ({A.EDIT, A.VIEW}, {A.LINK}),
+    (Role.ADMINISTRACION, M.MATRIZ): ({A.EDIT, A.VIEW, A.LINK}, set()),
     (Role.ADMINISTRACION, M.RUTA): ({A.EDIT, A.VIEW}, set()),
     (Role.ADMINISTRACION, M.BITACORA): ({A.EDIT, A.VIEW}, set()),
-    (Role.ADMINISTRACION, M.DASHBOARD): ({A.VIEW}, {A.EDIT}),
+    (Role.ADMINISTRACION, M.DASHBOARD): ({A.EDIT, A.VIEW}, set()),
     (Role.ADMINISTRACION, M.FORMULARIOS): ({A.EDIT, A.DESIGN}, {A.VIEW_INDIVIDUAL}),
     (Role.ADMINISTRACION, M.GUIA): ({A.EDIT}, set()),
     (Role.EQUIPO_CAMBIO, M.MATRIZ): ({A.EDIT, A.LINK}, set()),
@@ -76,9 +76,9 @@ def test_no_access_cell(role, module):
     assert role_actions(role, module) == frozenset()
 
 
-def test_only_change_team_manages_dependencies():
+def test_only_change_team_and_administracion_manage_dependencies():
     holders = {r for r in Role if A.LINK in role_actions(r, M.MATRIZ)}
-    assert holders == {Role.EQUIPO_CAMBIO}
+    assert holders == {Role.ADMINISTRACION, Role.EQUIPO_CAMBIO}
 
 
 def test_only_change_team_sees_individual_results():

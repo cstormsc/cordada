@@ -16,5 +16,6 @@ urlpatterns = [
     path("<int:numero>/validar/", views.validar, name="validar"),
     path("<int:numero>/caso/", views.caso_cliente, name="caso_cliente"),
     path("<int:numero>/comentarios/", views.comentar, name="comentar"),
+    path("<int:numero>/tambien/", views.tambien, name="tambien"),
     path("<int:numero>/proponer-impacto/", views.proponer_impacto, name="proponer_impacto"),
 ]

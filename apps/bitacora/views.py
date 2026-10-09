@@ -1,6 +1,6 @@
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
-from django.db.models import Case, IntegerField, Value, When
+from django.db.models import Case, Count, IntegerField, Q, Value, When
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -19,7 +19,7 @@ from apps.matriz.models import Impacto
 
 from . import metrics, workflow
 from .forms import CasoClienteForm, ComentarioForm, FiltroForm, MetricasForm, TicketForm
-from .models import EstadoTicket, Ticket, TicketComentario, Urgencia
+from .models import EstadoTicket, Ticket, TicketAfectado, TicketComentario, Urgencia
 
 A = Action
 
@@ -39,7 +39,10 @@ def _visible(request):
     if _sees_all(actions):
         return Ticket.objects.all()
     if A.REGISTER in actions:
-        return Ticket.objects.filter(registrado_por=request.user)
+        # Their own and their groups' tickets, so the same problem isn't registered twice.
+        return Ticket.objects.filter(
+            Q(registrado_por=request.user) | Q(grupo__in=request.membership.grupos.all())
+        ).distinct()
     raise PermissionDenied
 
 
@@ -76,7 +79,9 @@ def index(request, client_slug):
         "bitacora/index.html",
         {
             "filtro": filtro,
-            "tickets": filtro.filter(tickets).select_related("categoria", "grupo"),
+            "tickets": filtro.filter(tickets)
+            .select_related("categoria", "grupo")
+            .annotate(n_afectados=Count("afectados", distinct=True)),
             "sees_all": _sees_all(actions),
             "can_register": A.REGISTER in actions,
             "sees_ti": A.EDIT_DERIVED in actions,
@@ -161,8 +166,40 @@ def detalle(request, client_slug, numero):
             "sees_matrix": _sees_matrix(request),
             "transiciones": ticket.transiciones.select_related("usuario"),
             "comentarios": ticket.comentarios.select_related("autor"),
+            "afectados": ticket.afectados.select_related("usuario"),
+            "can_report_too": _can_report_too(request, ticket),
+            "reported_too": ticket.afectados.filter(usuario=request.user).exists(),
         },
     )
+
+
+def _can_report_too(request, ticket):
+    return (
+        A.REGISTER in _actions(request)
+        and ticket.registrado_por_id != request.user.pk
+        and ticket.estado != EstadoTicket.CERRADO
+    )
+
+
+@client_member_required
+@require_POST
+def tambien(request, client_slug, numero):
+    """'A mí también me pasa', with optional details as a comment. Posting again undoes it."""
+    ticket = _get(request, numero)
+    if not _can_report_too(request, ticket):
+        raise PermissionDenied
+    mine = TicketAfectado.objects.filter(ticket=ticket, usuario=request.user)
+    if request.POST.get("quitar"):
+        mine.delete()
+        messages.success(request, _("Quitaste tu «a mí también»."))
+    else:
+        TicketAfectado.objects.get_or_create(ticket=ticket, usuario=request.user)
+        detalle = request.POST.get("texto", "").strip()
+        if detalle:
+            TicketComentario.objects.create(ticket=ticket, autor=request.user, texto=detalle)
+        messages.success(request, _("Registrado: también te pasa."))
+    url = reverse("bitacora:detalle", kwargs={"client_slug": client_slug, "numero": numero})
+    return redirect(f"{url}#tambien")
 
 
 @client_member_required
@@ -264,7 +301,9 @@ def proponer_impacto(request, client_slug, numero):
         _("%(impacto)s propuesto en la matriz desde %(ticket)s.")
         % {"impacto": impacto.codigo, "ticket": ticket.codigo},
     )
-    return redirect("matriz:detalle", client_slug=client_slug, numero=impacto.numero)
+    if _sees_matrix(request):
+        return redirect("matriz:detalle", client_slug=client_slug, numero=impacto.numero)
+    return redirect("bitacora:detalle", client_slug=client_slug, numero=numero)
 
 
 @client_member_required
@@ -308,8 +347,10 @@ def exportar(request, client_slug):
     if A.VIEW not in _actions(request):
         raise PermissionDenied
     filtro = FiltroForm(request.GET or None)
-    tickets = filtro.filter(Ticket.objects.all()).select_related(
-        "categoria", "grupo", "impacto", "registrado_por", "recurrente_de"
+    tickets = (
+        filtro.filter(Ticket.objects.all())
+        .select_related("categoria", "grupo", "impacto", "registrado_por", "recurrente_de")
+        .annotate(n_afectados=Count("afectados", distinct=True))
     )
     wb = Workbook()
     ws = wb.active
@@ -326,6 +367,7 @@ def exportar(request, client_slug):
             "Impacto",
             "Caso cliente",
             "Repite",
+            "También les pasa",
             "Registrado por",
             "Registrado",
             "Primera respuesta",
@@ -355,6 +397,7 @@ def exportar(request, client_slug):
                     t.impacto.codigo if t.impacto else "",
                     t.caso_cliente,
                     t.recurrente_de.codigo if t.recurrente_de else "",
+                    t.n_afectados,
                     t.registrado_por.display_name,
                     naive(t.created_at),
                     naive(t.primera_respuesta_at),

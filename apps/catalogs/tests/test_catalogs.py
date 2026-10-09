@@ -150,3 +150,31 @@ class TestClientConfigViews:
 
     def test_unknown_catalog_is_404(self, client, admin):
         assert client.get("/c/acme/configuracion/nada/").status_code == 404
+
+
+class TestGroupAssignment:
+    """§2 confirmed: the change team assigns groups to members."""
+
+    @pytest.mark.parametrize(
+        ("role", "status"),
+        [(Role.ADMINISTRACION, 200), (Role.EQUIPO_CAMBIO, 200), (Role.GUIA, 403)],
+    )
+    def test_who_assigns(self, client, member, acme, role, status):
+        user, _ = member(role, client=acme, email="x@example.com")
+        client.force_login(user)
+        assert client.get("/c/acme/configuracion/personas/").status_code == status
+
+    def test_change_team_assigns_a_captain(self, client, member, acme, equipo):
+        from apps.core.models import Membership
+
+        captain, _ = member(Role.CAPITAN, client=acme, email="cap@example.com")
+        with tenant_context(acme):
+            norte = GrupoImpactado.objects.create(name="Norte")
+        m = Membership.objects.get(user=captain)
+        client.force_login(equipo)
+        home = client.get("/c/acme/").content.decode()
+        assert "/c/acme/configuracion/personas/" in home
+        assert client.get("/c/acme/configuracion/").status_code == 403  # rest of config
+        client.post(f"/c/acme/configuracion/personas/{m.pk}/", {f"m{m.pk}-grupos": [norte.pk]})
+        with tenant_context(acme):
+            assert list(m.grupos.all()) == [norte]

@@ -5,12 +5,15 @@
   <h1>{{ request.client.name }}</h1>
   <div class="row">
     <p class="muted">{% translate "Tu rol" %}: {{ request.membership.get_role_display }}</p>
-    {% if can_configure %}<a href="{% url 'catalogs:index' request.client.slug %}">{% translate "Configuración" %}</a>{% endif %}
+    {% if can_configure %}<a href="{% url 'catalogs:index' request.client.slug %}">{% translate "Configuración" %}</a>
+    {% elif can_assign_groups %}<a href="{% url 'catalogs:personas' request.client.slug %}">{% translate "Personas y grupos" %}</a>{% endif %}
   </div>
   <ul class="cards">
     {% for module in modules %}
-      {% if module == "matriz" %}
+      {% if module == "matriz" and module_links.matriz %}
         <li><a class="card" href="{% url 'matriz:index' request.client.slug %}"><strong>{{ module.label }}</strong><span class="muted">{% translate "Impactos, riesgos y prioridades" %}</span></a></li>
+      {% elif module == "matriz" %}
+        <li><a class="card" href="{% url 'matriz:crear' request.client.slug %}"><strong>{% translate "Proponer un impacto" %}</strong><span class="muted">{% translate "Avisa al equipo de cambio de algo que cambia para las personas" %}</span></a></li>
       {% elif module == "ruta" %}
         <li><a class="card" href="{% url 'ruta:index' request.client.slug %}"><strong>{{ module.label }}</strong><span class="muted">{% translate "Actividades planificadas y ejecutadas" %}</span></a></li>
       {% elif module == "bitacora" %}

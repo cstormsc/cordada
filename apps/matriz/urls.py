@@ -6,7 +6,6 @@ app_name = "matriz"
 
 urlpatterns = [
     path("", views.index, name="index"),
-    path("mis-propuestas/", views.mis_propuestas, name="mis_propuestas"),
     path("nuevo/", views.crear, name="crear"),
     path("tablero/", views.tablero, name="tablero"),
     path("<int:numero>/mover/", views.mover, name="mover"),

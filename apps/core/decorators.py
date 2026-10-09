@@ -3,7 +3,7 @@ from functools import wraps
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 
-from .permissions import can, can_configure
+from .permissions import can, can_assign_groups, can_configure
 
 
 def platform_admin_required(view):
@@ -49,6 +49,19 @@ def client_admin_required(view):
     @login_required
     def wrapper(request, *args, **kwargs):
         if not can_configure(request.membership):
+            raise PermissionDenied
+        return view(request, *args, **kwargs)
+
+    return wrapper
+
+
+def client_group_assigner_required(view):
+    """Assigning impacted groups to members (change team and Administración)."""
+
+    @wraps(view)
+    @login_required
+    def wrapper(request, *args, **kwargs):
+        if not can_assign_groups(request.membership):
             raise PermissionDenied
         return view(request, *args, **kwargs)
 

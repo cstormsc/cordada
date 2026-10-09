@@ -37,25 +37,14 @@ def _require(request, action):
 
 
 def _get_impacto(request, numero):
-    """Viewers see every impact; proposers only their own."""
-    impacto = get_object_or_404(
+    """Only viewers open impacts. Proposers send theirs and don't see them again (§2)."""
+    if not _can(request, Action.VIEW):
+        raise Http404
+    return get_object_or_404(
         Impacto.objects.select_related(
             "grupo", "tipo", "tiempo", "origen", "responsable", "registrado_por"
         ),
         numero=numero,
-    )
-    if _can(request, Action.VIEW):
-        return impacto
-    if _can(request, Action.PROPOSE) and impacto.registrado_por_id == request.user.pk:
-        return impacto
-    raise Http404
-
-
-def _can_edit_proposal(request, impacto):
-    return (
-        impacto.registrado_por_id == request.user.pk
-        and impacto.estado == Estado.PROPUESTO
-        and _can(request, Action.PROPOSE)
     )
 
 
@@ -63,7 +52,7 @@ def _can_edit_proposal(request, impacto):
 def index(request, client_slug):
     if not _can(request, Action.VIEW):
         if _can(request, Action.PROPOSE):
-            return redirect("matriz:mis_propuestas", client_slug=client_slug)
+            return redirect("matriz:crear", client_slug=client_slug)
         raise PermissionDenied
     filtro = FiltroForm(request.GET or None)
     impactos = dependencias.with_blocked(
@@ -94,13 +83,6 @@ def index(request, client_slug):
 
 
 @client_member_required
-def mis_propuestas(request, client_slug):
-    _require(request, Action.PROPOSE)
-    impactos = Impacto.objects.filter(registrado_por=request.user).select_related("grupo")
-    return render(request, "matriz/mis_propuestas.html", {"impactos": impactos})
-
-
-@client_member_required
 def crear(request, client_slug):
     if _can(request, Action.EDIT):
         form_class = ImpactoForm
@@ -113,6 +95,13 @@ def crear(request, client_slug):
         impacto = form.save(commit=False)
         impacto.registrado_por = request.user
         impacto.save()
+        if not _can(request, Action.VIEW):
+            messages.success(
+                request,
+                _("Impacto enviado (%(codigo)s). El equipo de cambio lo revisará.")
+                % {"codigo": impacto.codigo},
+            )
+            return redirect("matriz:crear", client_slug=client_slug)
         messages.success(
             request, _("%(codigo)s registrado como Propuesto.") % {"codigo": impacto.codigo}
         )
@@ -130,12 +119,8 @@ def crear(request, client_slug):
 @client_member_required
 def editar(request, client_slug, numero):
     impacto = _get_impacto(request, numero)
-    if _can(request, Action.EDIT):
-        form_class = ImpactoForm
-    elif _can_edit_proposal(request, impacto):
-        form_class = ProposalForm
-    else:
-        raise PermissionDenied
+    _require(request, Action.EDIT)
+    form_class = ImpactoForm
     if impacto.is_locked:
         messages.error(request, _("Reabre el impacto para editarlo."))
         return redirect("matriz:detalle", client_slug=client_slug, numero=numero)
@@ -189,7 +174,6 @@ def detalle(request, client_slug, numero):
             if _can(request, Action.LINK)
             else None,
             "can_edit": can_edit,
-            "can_edit_proposal": _can_edit_proposal(request, impacto),
             "transitions": workflow.available(impacto) if can_edit else [],
             "missing": workflow.missing_fields(impacto),
             "priority_form": PriorityOverrideForm(instance=impacto),
@@ -272,8 +256,7 @@ def comentar(request, client_slug, numero):
 @require_POST
 def adjuntar(request, client_slug, numero):
     impacto = _get_impacto(request, numero)
-    if not (_can(request, Action.EDIT) or _can_edit_proposal(request, impacto)):
-        raise PermissionDenied
+    _require(request, Action.EDIT)
     form = AdjuntoForm(request.POST, request.FILES)
     if form.is_valid():
         form.save_for(request.user, impacto=impacto)

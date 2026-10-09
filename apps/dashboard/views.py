@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
-from apps.core.decorators import client_admin_required, client_member_required
+from apps.core.decorators import client_member_required, client_permission_required
 from apps.core.models import Module, Role
 from apps.core.permissions import Action, can
 
@@ -55,6 +55,13 @@ def index(request, client_slug):
                 membership=request.membership,
             ),
             "can_load": _can_load(request),
+            "can_configure_indicators": can(
+                request.user,
+                request.client,
+                Module.DASHBOARD,
+                Action.EDIT,
+                membership=request.membership,
+            ),
             "chart_readiness": {
                 "rows": [
                     {
@@ -105,7 +112,7 @@ def borrar_dato(request, client_slug, pk):
     return redirect("dashboard:datos", client_slug=client_slug)
 
 
-@client_admin_required
+@client_permission_required(Module.DASHBOARD, Action.EDIT)
 def indicadores(request, client_slug):
     """Configuración → Indicadores: thresholds, owner, frequency, visibility."""
     existing = {c.key: c for c in IndicadorConfig.objects.all()}
@@ -118,7 +125,7 @@ def indicadores(request, client_slug):
     return render(request, "dashboard/indicadores.html", {"rows": rows})
 
 
-@client_admin_required
+@client_permission_required(Module.DASHBOARD, Action.EDIT)
 @require_POST
 def indicador_guardar(request, client_slug, key):
     i = ind.BY_KEY.get(key)

@@ -280,3 +280,17 @@ class TestPages:
         client.force_login(equipo)
         body = client.get(URL).content.decode()
         assert "Grupos bajo el umbral de preparación" in body and "Rezagado" in body
+
+
+class TestDashboardEditing:
+    """§2 confirmed: Administración edits the Dashboard (indicator settings)."""
+
+    @pytest.mark.parametrize(
+        ("role", "status"), [(Role.ADMINISTRACION, 200), (Role.EQUIPO_CAMBIO, 403)]
+    )
+    def test_who_configures_indicators(self, client, member, acme, role, status):
+        user, _ = member(role, client=acme, email="x@example.com")
+        client.force_login(user)
+        assert client.get(f"{URL}indicadores/").status_code == status
+        link = "Configurar indicadores" in client.get(URL).content.decode()
+        assert link == (status == 200)

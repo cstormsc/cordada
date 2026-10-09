@@ -14,7 +14,7 @@
       {% if can_register %}<a class="btn" href="{% url 'bitacora:crear' request.client.slug %}">{% translate "Registrar ticket" %}</a>{% endif %}
     </div>
   </div>
-  {% if not sees_all %}<p class="muted">{% translate "Ves los tickets que registraste." %}</p>{% endif %}
+  {% if not sees_all %}<p class="muted">{% translate "Ves los tickets que registraste y los de tus grupos. Si tu problema ya está, ábrelo y marca «A mí también me pasa» en vez de registrarlo de nuevo." %}</p>{% endif %}
 
   {% if resumen %}
   <ul class="stats">
@@ -37,7 +37,7 @@
     {% for t in tickets %}
       <tr>
         <td class="nowrap"><a href="{% url 'bitacora:detalle' request.client.slug t.numero %}">{{ t.codigo }}</a></td>
-        <td><a href="{% url 'bitacora:detalle' request.client.slug t.numero %}">{{ t.titulo }}</a>{% if t.caso_cliente %}<br><span class="muted small">{% translate "Caso" %} {{ t.caso_cliente }}</span>{% endif %}</td>
+        <td><a href="{% url 'bitacora:detalle' request.client.slug t.numero %}">{{ t.titulo }}</a>{% if t.n_afectados %} <span class="tag" title="{% translate 'Personas que también lo reportan' %}">+{{ t.n_afectados }}</span>{% endif %}{% if t.caso_cliente %}<br><span class="muted small">{% translate "Caso" %} {{ t.caso_cliente }}</span>{% endif %}</td>
         <td>{{ t.categoria }}</td>
         <td>{{ t.grupo|default:"" }}</td>
         <td>{% include "bitacora/_estado.html" %}</td>

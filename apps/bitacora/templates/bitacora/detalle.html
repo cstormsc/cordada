@@ -66,6 +66,29 @@
     </section>
   </div>
 
+  <section class="panel" id="tambien">
+    <h2>{% translate "A quién más le pasa" %}</h2>
+    {% if afectados %}
+      <p>{% blocktranslate count n=afectados|length %}{{ n }} persona más reporta este problema:{% plural %}{{ n }} personas más reportan este problema:{% endblocktranslate %}
+        {% for a in afectados %}{{ a.usuario.display_name }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+    {% else %}
+      <p class="muted">{% translate "Nadie más lo ha reportado." %}</p>
+    {% endif %}
+    {% if can_report_too %}
+      <form method="post" action="{% url 'bitacora:tambien' request.client.slug ticket.numero %}" class="form">
+        {% csrf_token %}
+        {% if reported_too %}
+          <p class="muted small">{% translate "Marcaste que también te pasa. Si tienes más detalles, déjalos en los comentarios." %}</p>
+          <button class="btn secondary" name="quitar" value="1">{% translate "Ya no me pasa" %}</button>
+        {% else %}
+          <label for="tambien-texto">{% translate "Detalles (opcional)" %}</label>
+          <textarea id="tambien-texto" name="texto" rows="2" placeholder="{% translate 'Qué te pasa a ti: pantalla, paso, mensaje de error…' %}"></textarea>
+          <button class="btn">{% translate "A mí también me pasa" %}</button>
+        {% endif %}
+      </form>
+    {% endif %}
+  </section>
+
   <section class="panel" id="comentarios">
     <h2>{% translate "Comentarios" %}</h2>
     {% for c in comentarios %}

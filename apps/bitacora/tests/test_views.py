@@ -1,7 +1,9 @@
 import datetime
+import io
 
 import pytest
 from django.utils import timezone
+from openpyxl import load_workbook
 
 from apps.bitacora import metrics
 from apps.bitacora.models import EstadoTicket as E
@@ -118,7 +120,7 @@ class TestProposeImpact:
         response = client.post(f"{BASE}{t.numero}/proponer-impacto/")
         with tenant_context(acme):
             impacto = Impacto.objects.get()
-        assert response.url == f"/c/acme/matriz/{impacto.numero}/"
+        assert response.url == f"{BASE}{t.numero}/"  # guides don't see the matrix
         assert (impacto.estado, impacto.grupo, impacto.origen.code, impacto.registrado_por) == (
             Estado.PROPUESTO,
             grupo,
@@ -174,3 +176,56 @@ class TestMetrics:
 
         ws = load_workbook(io.BytesIO(client.get(f"{BASE}exportar/").content)).active
         assert ws.cell(2, 1).value == "TCK-001" and ws.cell(2, 2).value == "'=cmd"
+
+
+class TestCaptainsAndGroups:
+    """§2 confirmed: captains see their groups' tickets and say 'a mí también'."""
+
+    def captain_of(self, login_as, grupo):
+        user = login_as(Role.CAPITAN)
+        Membership.objects.get(user=user).grupos.add(grupo)
+        return user
+
+    def test_sees_own_and_group_tickets_only(self, client, login_as, make_ticket, grupo, acme):
+        de_su_grupo = make_ticket(titulo="No carga el reporte", grupo=grupo)
+        with tenant_context(acme):
+            otro = GrupoImpactado.objects.create(name="Otro")
+        ajeno = make_ticket(titulo="Problema ajeno", grupo=otro)
+        self.captain_of(login_as, grupo)
+        body = client.get(BASE).content.decode()
+        assert "No carga el reporte" in body and "Problema ajeno" not in body
+        assert client.get(f"{BASE}{de_su_grupo.numero}/").status_code == 200
+        assert client.get(f"{BASE}{ajeno.numero}/").status_code == 404
+        # Seeing it is not editing it.
+        assert client.get(f"{BASE}{de_su_grupo.numero}/editar/").status_code == 403
+
+    def test_me_too_with_details_and_undo(self, client, login_as, make_ticket, grupo, acme):
+        t = make_ticket(titulo="No carga el reporte", grupo=grupo)
+        captain = self.captain_of(login_as, grupo)
+        url = f"{BASE}{t.numero}/tambien/"
+        client.post(url, {"texto": "A mí me pasa en la sucursal sur"})
+        client.post(url, {})  # twice counts once
+        with tenant_context(acme):
+            assert list(t.afectados.values_list("usuario", flat=True)) == [captain.pk]
+            assert t.comentarios.get().texto == "A mí me pasa en la sucursal sur"
+        assert "+1" in client.get(BASE).content.decode()
+        assert "1 persona más reporta" in client.get(f"{BASE}{t.numero}/").content.decode()
+        client.post(url, {"quitar": "1"})
+        with tenant_context(acme):
+            assert not t.afectados.exists()
+
+    def test_not_on_own_or_closed_tickets(self, client, login_as, make_ticket, grupo, acme):
+        captain = self.captain_of(login_as, grupo)
+        propio = make_ticket(grupo=grupo, registrado_por=captain)
+        cerrado = make_ticket(grupo=grupo, estado=E.CERRADO)
+        assert client.post(f"{BASE}{propio.numero}/tambien/").status_code == 403
+        assert client.post(f"{BASE}{cerrado.numero}/tambien/").status_code == 403
+
+    def test_export_counts_who_else_has_it(self, client, login_as, make_ticket, grupo, acme):
+        t = make_ticket(grupo=grupo)
+        self.captain_of(login_as, grupo)
+        client.post(f"{BASE}{t.numero}/tambien/")
+        login_as(Role.EQUIPO_CAMBIO, email="otro-equipo@example.com")
+        ws = load_workbook(io.BytesIO(client.get(f"{BASE}exportar/").content)).active
+        headers = [c.value for c in ws[1]]
+        assert ws.cell(2, headers.index("También les pasa") + 1).value == 1

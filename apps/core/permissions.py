@@ -1,4 +1,5 @@
-"""Role permissions per module, from Parte B §2.
+"""Role permissions per module, from Parte B §2 (confirmed October 2026, with
+Administración also editing the Dashboard and linking impact dependencies).
 
 This is the only place the role table lives. Views check it with can();
 the tests restate §2 independently so a change here has to be deliberate.
@@ -28,10 +29,10 @@ M = Module
 
 ROLE_PERMISSIONS: dict[str, dict[str, frozenset[Action]]] = {
     Role.ADMINISTRACION: {
-        M.MATRIZ: frozenset({A.EDIT}),
+        M.MATRIZ: frozenset({A.EDIT, A.LINK}),
         M.RUTA: frozenset({A.EDIT}),
         M.BITACORA: frozenset({A.EDIT}),
-        M.DASHBOARD: frozenset({A.VIEW}),
+        M.DASHBOARD: frozenset({A.EDIT}),
         M.FORMULARIOS: frozenset({A.EDIT}),
         M.GUIA: frozenset({A.EDIT}),
     },
@@ -114,6 +115,11 @@ def visible_modules(membership):
     return [
         m for m in Module if membership.client.has_module(m) and role_actions(membership.role, m)
     ]
+
+
+def can_assign_groups(membership) -> bool:
+    """Which impacted groups each member follows is set by the change team (and Administración)."""
+    return membership is not None and membership.role in (Role.ADMINISTRACION, Role.EQUIPO_CAMBIO)
 
 
 def can_configure(membership) -> bool:

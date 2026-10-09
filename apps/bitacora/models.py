@@ -169,3 +169,20 @@ class TicketComentario(TenantScopedModel):
 
     class Meta(TenantScopedModel.Meta):
         ordering = ["fecha"]
+
+
+class TicketAfectado(TenantScopedModel):
+    """Someone else with the same problem says "a mí también me pasa", instead of
+    registering it again. Details go in the comments."""
+
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name="afectados")
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
+    )
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    class Meta(TenantScopedModel.Meta):
+        ordering = ["fecha"]
+        constraints = [
+            models.UniqueConstraint(fields=["ticket", "usuario"], name="unique_ticket_afectado"),
+        ]

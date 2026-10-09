@@ -11,7 +11,10 @@
   <p><a href="{% url 'client_home' request.client.slug %}">← {{ request.client.name }}</a></p>
   <div class="row">
     <h1>{% translate "Dashboard" %}</h1>
-    {% if can_load %}<a href="{% url 'dashboard:datos' request.client.slug %}">{% translate "Cargar datos externos" %}</a>{% endif %}
+    <div class="row">
+      {% if can_configure_indicators %}<a href="{% url 'dashboard:indicadores' request.client.slug %}">{% translate "Configurar indicadores" %}</a>{% endif %}
+      {% if can_load %}<a href="{% url 'dashboard:datos' request.client.slug %}">{% translate "Cargar datos externos" %}</a>{% endif %}
+    </div>
   </div>
 
   <form method="get" class="filters">

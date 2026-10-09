@@ -8,8 +8,9 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
-from apps.core.decorators import client_admin_required
+from apps.core.decorators import client_admin_required, client_group_assigner_required
 from apps.core.models import Membership
+from apps.core.permissions import can_configure
 
 from .forms import client_catalog_form
 from .models import Canal, Cargo, CategoriaResponsable, GrupoImpactado, UnidadOrganizacional
@@ -139,7 +140,7 @@ class MemberGroupsForm(forms.ModelForm):
         self.fields["grupos"].queryset = GrupoImpactado.objects.filter(is_active=True)
 
 
-@client_admin_required
+@client_group_assigner_required
 def personas(request, client_slug):
     memberships = (
         Membership.objects.filter(client=request.client, is_active=True)
@@ -152,11 +153,12 @@ def personas(request, client_slug):
         "catalogs/personas.html",
         {
             "rows": [(m, MemberGroupsForm(instance=m, prefix=f"m{m.pk}")) for m in memberships],
+            "can_configure": can_configure(request.membership),
         },
     )
 
 
-@client_admin_required
+@client_group_assigner_required
 @require_POST
 def persona_grupos(request, client_slug, pk):
     membership = get_object_or_404(Membership, client=request.client, pk=pk)
