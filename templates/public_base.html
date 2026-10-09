@@ -1,11 +1,11 @@
-{% load static i18n %}<!doctype html>
+{% load static i18n assets %}<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
   <title>{% block title %}Cordada{% endblock %}</title>
-  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <link rel="stylesheet" href="{% asset 'css/app.css' %}">
 </head>
 <body>
   <header class="topbar">{% include "includes/ridges.html" %}<div class="topbar-inner"><span class="brand">{% include "includes/logo.html" %}{% block brand %}Cordada{% endblock %}</span></div></header>

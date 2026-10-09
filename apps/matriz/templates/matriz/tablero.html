@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% load i18n static %}
+{% load i18n static assets %}
 {% block title %}{% translate "Tablero de impactos" %} · {{ request.client.name }}{% endblock %}
 {% block head %}
   <script src="{% static 'vendor/sortable.min.js' %}" defer></script>
-  <script src="{% static 'js/tablero.js' %}" defer></script>
+  <script src="{% asset 'js/tablero.js' %}" defer></script>
 {% endblock %}
 {% block main_class %}wide{% endblock %}
 {% block content %}

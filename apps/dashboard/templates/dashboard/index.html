@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% load i18n static dashboard_tags %}
+{% load i18n static dashboard_tags assets %}
 {% block title %}{% translate "Dashboard" %} · {{ request.client.name }}{% endblock %}
 {% block main_class %}wide{% endblock %}
 {% block head %}
   <script src="{% static 'vendor/echarts.min.js' %}" defer></script>
-  <script src="{% static 'js/dashboard.js' %}" defer></script>
+  <script src="{% asset 'js/dashboard.js' %}" defer></script>
 {% endblock %}
 {% block content %}
 <div class="dash">

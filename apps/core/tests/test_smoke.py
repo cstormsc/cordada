@@ -41,3 +41,12 @@ def test_proposers_home_card_proposes(client, member):
     client.force_login(user)
     body = client.get(f"/c/{user.memberships.get().client.slug}/").content.decode()
     assert "Proponer un impacto" in body and "/matriz/nuevo/" in body
+
+
+@pytest.mark.django_db
+def test_stylesheet_url_changes_with_the_file(client):
+    """Cache busting: the CSS link carries the file's version."""
+    import re
+
+    body = client.get("/entrar/").content.decode()
+    assert re.search(r'href="/static/css/app\.css\?v=\d+"', body)
