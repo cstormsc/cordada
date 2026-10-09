@@ -22,5 +22,5 @@
   </tbody>
 </table></div>
 {% else %}
-  <p class="muted">{% translate "No hay tickets pendientes en TI." %}</p>
+  {% translate "Sin pendientes" as t %}{% translate "No hay tickets pendientes en TI." as x %}{% include "includes/empty.html" with titulo=t texto=x %}
 {% endif %}

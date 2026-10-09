@@ -55,6 +55,6 @@
     </tbody>
   </table></div>
   {% else %}
-    <p class="muted">{% if querystring %}{% translate "Ninguna actividad coincide con el filtro." %}{% else %}{% translate "Todavía no hay actividades en la Ruta." %}{% endif %}</p>
+    {% if querystring %}<p class="muted">{% translate "Ninguna actividad coincide con el filtro." %}</p>{% else %}{% translate "La ruta está por trazar" as t %}{% translate "Todavía no hay actividades en la Ruta. Cada actividad es un paso del ascenso." as x %}{% include "includes/empty.html" with titulo=t texto=x %}{% endif %}
   {% endif %}
 {% endblock %}

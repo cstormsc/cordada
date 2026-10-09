@@ -15,11 +15,25 @@ from . import anchors
 from .forms import DocumentoForm
 from .models import Documento, Plantilla, Tema
 
+PREGUNTA = "Pregunta que responde:"
+
+
+def _pregunta(help_text):
+    """The question a tiempo answers, from its help (seeded from Parte A), or ""."""
+    for line in help_text.splitlines():
+        if line.startswith(PREGUNTA):
+            return line.removeprefix(PREGUNTA).strip()
+    return ""
+
 
 def _catalogos():
-    items = SystemCatalogItem.objects.active()
+    items = list(SystemCatalogItem.objects.active())
+    for i in items:
+        if i.catalog == SystemCatalog.TIEMPO:
+            i.pregunta = _pregunta(i.help_text)
     catalogos = [
         {
+            "code": code,
             "anchor": anchors.catalogo(code),
             "name": label,
             "items": [i for i in items if i.catalog == code],

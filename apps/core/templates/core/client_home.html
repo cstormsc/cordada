@@ -11,23 +11,29 @@
   <ul class="cards">
     {% for module in modules %}
       {% if module == "matriz" and module_links.matriz %}
-        <li><a class="card" href="{% url 'matriz:index' request.client.slug %}"><strong>{{ module.label }}</strong><span class="muted">{% translate "Impactos, riesgos y prioridades" %}</span></a></li>
+        {% url 'matriz:index' request.client.slug as href %}{% translate "El mapa del terreno: impactos, riesgos y prioridades" as desc %}
+        {% include "core/_module_card.html" with title=module.label %}
       {% elif module == "matriz" %}
-        <li><a class="card" href="{% url 'matriz:crear' request.client.slug %}"><strong>{% translate "Proponer un impacto" %}</strong><span class="muted">{% translate "Avisa al equipo de cambio de algo que cambia para las personas" %}</span></a></li>
+        {% url 'matriz:crear' request.client.slug as href %}{% translate "Proponer un impacto" as title %}{% translate "Avisa al equipo de cambio de algo que cambia para las personas" as desc %}
+        {% include "core/_module_card.html" %}
       {% elif module == "ruta" %}
-        <li><a class="card" href="{% url 'ruta:index' request.client.slug %}"><strong>{{ module.label }}</strong><span class="muted">{% translate "Actividades planificadas y ejecutadas" %}</span></a></li>
+        {% url 'ruta:index' request.client.slug as href %}{% translate "Las actividades del ascenso, planificadas y hechas" as desc %}
+        {% include "core/_module_card.html" with title=module.label %}
       {% elif module == "bitacora" %}
-        <li><a class="card" href="{% url 'bitacora:index' request.client.slug %}"><strong>{{ module.label }}</strong><span class="muted">{% translate "Tickets y consultas de la implementación" %}</span></a></li>
+        {% url 'bitacora:index' request.client.slug as href %}{% translate "Lo que pasa en la travesía: tickets y consultas" as desc %}
+        {% include "core/_module_card.html" with title=module.label %}
       {% elif module == "dashboard" %}
-        <li><a class="card" href="{% url 'dashboard:index' request.client.slug %}"><strong>{{ module.label }}</strong><span class="muted">{% translate "Indicadores y alertas" %}</span></a></li>
+        {% url 'dashboard:index' request.client.slug as href %}{% translate "El altímetro: indicadores y alertas" as desc %}
+        {% include "core/_module_card.html" with title=module.label %}
       {% elif module == "guia" %}
-        <li><a class="card" href="{% url 'guia:index' request.client.slug %}"><strong>{{ module.label }}</strong><span class="muted">{% translate "Metodología, escalas, plantillas y documentos" %}</span></a></li>
+        {% url 'guia:index' request.client.slug as href %}{% translate "Metodología, escalas, plantillas y documentos" as desc %}
+        {% include "core/_module_card.html" with title=module.label %}
       {% elif module == "formularios" and module_links.formularios %}
-        <li><a class="card" href="{% url 'formularios:index' request.client.slug %}"><strong>{{ module.label }}</strong><span class="muted">{% translate "Verificación de competencias" %}</span></a></li>
+        {% url 'formularios:index' request.client.slug as href %}{% translate "¿Listos para subir? Verificación de competencias" as desc %}
+        {% include "core/_module_card.html" with title=module.label %}
       {% elif module == "formularios" and module_links.evaluar %}
-        <li><a class="card" href="{% url 'formularios:evaluar_index' request.client.slug %}"><strong>{% translate "Evaluación práctica" %}</strong><span class="muted">{% translate "Evalúa a tu equipo" %}</span></a></li>
-      {% else %}
-        <li><div class="card"><strong>{{ module.label }}</strong><span class="muted">{% translate "Próximamente" %}</span></div></li>
+        {% url 'formularios:evaluar_index' request.client.slug as href %}{% translate "Evaluación práctica" as title %}{% translate "Evalúa a tu equipo" as desc %}
+        {% include "core/_module_card.html" %}
       {% endif %}
     {% empty %}
       <li class="muted">{% translate "Tu rol no tiene módulos activos en este cliente." %}</li>

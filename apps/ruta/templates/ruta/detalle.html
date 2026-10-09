@@ -16,7 +16,7 @@
       <dl class="facts">
         {% if actividad.descripcion %}<dt>{% translate "Descripción" %}</dt><dd class="pre">{{ actividad.descripcion }}</dd>{% endif %}
         <dt>{% translate "Frente" %}</dt><dd>{{ actividad.frente }}</dd>
-        <dt>{% translate "Tiempo" %}</dt><dd>{{ actividad.tiempo|default:"—" }}</dd>
+        <dt>{% translate "Tiempo" %}</dt><dd>{% include "includes/tiempo_tag.html" with tiempo=actividad.tiempo %}</dd>
         <dt>{% translate "Canal o formato" %}</dt><dd>{{ actividad.canal|default:"—" }}</dd>
         {% if actividad.es_comunicacion %}<dt>{% translate "Líder o vocero" %}</dt><dd>{{ actividad.vocero|default:"—" }}</dd>{% endif %}
         <dt>{% translate "Grupos" %}</dt><dd>{{ actividad.grupos.all|join:", "|default:"—" }}</dd>

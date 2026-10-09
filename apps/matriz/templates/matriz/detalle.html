@@ -67,7 +67,7 @@
         {% if impacto.situacion_futura %}<dt>{% translate "Situación futura" %}</dt><dd class="pre">{{ impacto.situacion_futura }}</dd>{% endif %}
         <dt>{% translate "Origen" %}</dt><dd>{{ impacto.origen|default:"—" }}</dd>
         <dt>{% translate "Tipo" %}</dt><dd>{{ impacto.tipo|default:"—" }}</dd>
-        <dt>{% translate "Tiempo" %}</dt><dd>{{ impacto.tiempo|default:"—" }}</dd>
+        <dt>{% translate "Tiempo" %}</dt><dd>{% include "includes/tiempo_tag.html" with tiempo=impacto.tiempo %}</dd>
         <dt>{% translate "Grupo" %}</dt><dd>{{ impacto.grupo|default:"—" }}{% if impacto.personas_impactadas %} · {{ impacto.personas_impactadas }} {% translate "personas" %}{% endif %}</dd>
       </dl>
     </section>

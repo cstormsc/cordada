@@ -13,7 +13,9 @@
 </head>
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
   <header class="topbar">
-    <a href="{% url 'home' %}" class="brand">Cordada</a>
+    {% include "includes/ridges.html" %}
+    <div class="topbar-inner">
+    <a href="{% url 'home' %}" class="brand">{% include "includes/logo.html" %}Cordada <small>{% translate "nadie sube solo" %}</small></a>
     {% if request.client %}<span class="crumb">{{ request.client.name }}</span>{% endif %}
     {% if user.is_authenticated %}
       <nav class="topnav">
@@ -24,6 +26,7 @@
         </form>
       </nav>
     {% endif %}
+    </div>
   </header>
   <main class="container {% block main_class %}{% endblock %}">
     {% if messages %}

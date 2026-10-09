@@ -1,0 +1,12 @@
+<div class="ascent">
+  <svg viewBox="0 0 800 150" aria-hidden="true" focusable="false">
+    <path d="M0 150 L120 110 L210 120 L330 70 L420 85 L560 30 L640 50 L720 18 L800 40 L800 150 Z" fill="#e4effb"/>
+    <path d="M720 18 L735 30 L724 28 L712 33 L704 28 Z" fill="#fff"/>
+    <path d="M100 125 C 180 118, 200 108, 300 92 S 450 70, 520 52 S 650 36, 715 26" fill="none" stroke="#c8763a" stroke-width="2.5" stroke-dasharray="6 5" stroke-linecap="round"/>
+    <g fill="#384959"><circle cx="100" cy="125" r="6"/><circle cx="300" cy="92" r="6"/><circle cx="520" cy="52" r="6"/></g>
+    <g fill="#c8763a"><circle cx="715" cy="26" r="7"/><path d="M715 26 V4 L731 9 L715 14"/></g>
+  </svg>
+  <ol class="camps" style="list-style:none;padding:0;margin:.25rem 0 1rem">
+    {% for t in tiempos %}<li{% if forloop.last %} class="last"{% endif %}><b>{{ t.label }}</b>{% if t.pregunta %}<span class="muted">{{ t.pregunta|capfirst }}</span>{% endif %}</li>{% endfor %}
+  </ol>
+</div>

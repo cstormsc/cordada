@@ -2,9 +2,19 @@
 {% load i18n %}
 {% block title %}{% translate "Entrar" %} · Cordada{% endblock %}
 {% block content %}
-<div class="narrow">
-  <h1>{% translate "Entrar" %}</h1>
+<div class="login">
+  <div class="login-art" aria-hidden="true">
+    <p>{% translate "Nadie sube solo." %}<small>{% translate "Entra a tu cordada." %}</small></p>
+    <svg viewBox="0 0 400 240" preserveAspectRatio="xMidYMax slice" focusable="false">
+      <path d="M0 240 L0 150 L80 90 L140 130 L230 40 L300 110 L360 80 L400 110 L400 240 Z" fill="#6a89a7"/>
+      <path d="M230 40 L250 62 L236 58 L224 66 L212 58 Z" fill="#fff"/>
+      <path d="M0 240 L0 190 L100 150 L180 180 L270 140 L400 190 L400 240 Z" fill="#384959"/>
+      <path d="M40 200 C 90 180, 120 160, 160 150 S 210 110, 230 45" fill="none" stroke="#c8763a" stroke-width="2.5" stroke-dasharray="6 5" stroke-linecap="round"/>
+      <g fill="#2c3a48"><circle cx="160" cy="146" r="4"/><circle cx="205" cy="96" r="4"/></g>
+    </svg>
+  </div>
   <form method="post" class="form">
+    <h1>{% translate "Entrar" %}</h1>
     {% csrf_token %}
     {% if form.non_field_errors %}<p class="error">{% translate "Correo o contraseña incorrectos." %}</p>{% endif %}
     {{ form.username.as_field_group }}

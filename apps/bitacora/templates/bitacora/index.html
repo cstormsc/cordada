@@ -47,6 +47,6 @@
     </tbody>
   </table></div>
   {% else %}
-    <p class="muted">{% if querystring %}{% translate "Ningún ticket coincide con el filtro." %}{% else %}{% translate "Todavía no hay tickets." %}{% endif %}</p>
+    {% if querystring %}<p class="muted">{% translate "Ningún ticket coincide con el filtro." %}</p>{% else %}{% translate "Cielo despejado" as t %}{% translate "Todavía no hay tickets. Si algo falla, regístralo y alguien de la cordada lo toma." as x %}{% include "includes/empty.html" with titulo=t texto=x %}{% endif %}
   {% endif %}
 {% endblock %}

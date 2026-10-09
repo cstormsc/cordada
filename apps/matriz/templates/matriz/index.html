@@ -53,6 +53,6 @@
     </tbody>
   </table></div>
   {% else %}
-    <p class="muted">{% if querystring %}{% translate "Ningún impacto coincide con el filtro." %}{% else %}{% translate "Todavía no hay impactos registrados." %}{% endif %}</p>
+    {% if querystring %}<p class="muted">{% translate "Ningún impacto coincide con el filtro." %}</p>{% else %}{% translate "Terreno sin explorar" as t %}{% translate "Todavía no hay impactos registrados. El taller de planificación es un buen punto de partida." as x %}{% include "includes/empty.html" with titulo=t texto=x %}{% endif %}
   {% endif %}
 {% endblock %}

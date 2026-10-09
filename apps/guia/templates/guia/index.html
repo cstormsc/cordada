@@ -34,6 +34,7 @@
       {% for c in catalogos %}
         <article class="panel" id="{{ c.anchor }}">
           <h3>{{ c.name }}</h3>
+          {% if c.code == "tiempo" and c.items|length == 4 %}{% include "guia/_ascenso.html" with tiempos=c.items %}{% endif %}
           <dl class="guia-defs">
             {% for item in c.items %}
               <dt>{{ item.label }}</dt>

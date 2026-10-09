@@ -21,5 +21,5 @@
         <td><span class="tag">{{ c.get_estado_display }}</span></td></tr>
     {% endfor %}</tbody>
   </table></div>
-  {% else %}<p class="muted">{% translate "Todavía no hay cuestionarios." %}</p>{% endif %}
+  {% else %}{% translate "Sin cuestionarios aún" as t %}{% translate "Todavía no hay cuestionarios. Con ellos se verifica que cada grupo esté listo para subir." as x %}{% include "includes/empty.html" with titulo=t texto=x %}{% endif %}
 {% endblock %}
