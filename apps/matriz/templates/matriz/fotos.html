@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load i18n %}
 {% block content %}
-  <p><a href="{% url 'matriz:index' request.client.slug %}">← {% translate "Matriz de Impactos" %}</a></p>
+  <p><a href="{% url 'matriz:tablero' request.client.slug %}">← {% translate "Matriz de Impactos" %}</a></p>
   <h1>{% translate "Fotos de la matriz por etapa" %}</h1>
   <p class="muted">{% translate "Al cerrar cada etapa se guarda una copia de la matriz completa, tal como estaba." %}</p>
   <div class="grid-2">

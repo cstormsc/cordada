@@ -11,7 +11,7 @@
   <ul class="cards">
     {% for module in modules %}
       {% if module == "matriz" and module_links.matriz %}
-        {% url 'matriz:index' request.client.slug as href %}{% translate "El mapa del terreno: impactos, riesgos y prioridades" as desc %}
+        {% url 'matriz:tablero' request.client.slug as href %}{% translate "El mapa del terreno: impactos, riesgos y prioridades" as desc %}
         {% include "core/_module_card.html" with title=module.label %}
       {% elif module == "matriz" %}
         {% url 'matriz:crear' request.client.slug as href %}{% translate "Proponer un impacto" as title %}{% translate "Avisa al equipo de cambio de algo que cambia para las personas" as desc %}

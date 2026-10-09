@@ -2,7 +2,7 @@
 {% load i18n %}
 {% block title %}{{ impacto.codigo }} · {{ request.client.name }}{% endblock %}
 {% block content %}
-  <p><a href="{% url 'matriz:index' request.client.slug %}">← {% translate "Matriz de Impactos" %}</a></p>
+  <p><a href="{% url 'matriz:tablero' request.client.slug %}">← {% translate "Matriz de Impactos" %}</a></p>
 
   <div class="row">
     <h1><span class="muted">{{ impacto.codigo }}</span> {{ impacto.titulo }}</h1>

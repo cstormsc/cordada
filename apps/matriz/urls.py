@@ -1,13 +1,19 @@
 from django.urls import path
+from django.views.generic import RedirectView
 
 from . import views
 
 app_name = "matriz"
 
 urlpatterns = [
-    path("", views.index, name="index"),
+    # The board is the default view; the list is the second one.
+    path("", views.tablero, name="tablero"),
+    path("lista/", views.index, name="index"),
     path("nuevo/", views.crear, name="crear"),
-    path("tablero/", views.tablero, name="tablero"),
+    path(  # old address of the board, kept for bookmarks
+        "tablero/",
+        RedirectView.as_view(pattern_name="matriz:tablero", query_string=True, permanent=True),
+    ),
     path("<int:numero>/mover/", views.mover, name="mover"),
     path("exportar/", views.exportar, name="exportar"),
     path("grupos/nuevo/", views.crear_grupo, name="crear_grupo"),

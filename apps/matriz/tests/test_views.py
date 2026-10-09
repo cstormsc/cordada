@@ -271,9 +271,9 @@ class TestListsAndExports:
     def test_filters(self, client, as_equipo, make_impacto):
         make_impacto(titulo="Sin criterio P1", magnitud=4, probabilidad=4, severidad=4)
         make_impacto(complete=True, titulo="Completo")
-        body = client.get(f"{BASE}?alerta=p1_sin_criterio").content.decode()
+        body = client.get(f"{BASE}lista/?alerta=p1_sin_criterio").content.decode()
         assert "Sin criterio P1" in body and "Completo" not in body
-        body = client.get(f"{BASE}?q=complet").content.decode()
+        body = client.get(f"{BASE}lista/?q=complet").content.decode()
         assert "Completo" in body and "Sin criterio P1" not in body
 
     def test_excel_export(self, client, as_equipo, make_impacto):

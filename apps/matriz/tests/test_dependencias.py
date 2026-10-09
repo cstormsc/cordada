@@ -139,7 +139,7 @@ class TestViews:
         with tenant_context(acme):
             dependencias.add(a, b, user=equipo)
         client.force_login(equipo)
-        assert "Bloqueado" in client.get("/c/acme/matriz/tablero/").content.decode()
+        assert "Bloqueado" in client.get("/c/acme/matriz/").content.decode()
         data = client.post(self.url(a, "mover/"), {"hacia": "atendido"}).json()
         assert data["ok"] is True
         assert "IMP-002" in data["warning"]

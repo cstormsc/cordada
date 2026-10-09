@@ -8,7 +8,7 @@ from apps.matriz.models import Estado, Transicion
 
 pytestmark = pytest.mark.django_db
 
-URL = "/c/acme/matriz/tablero/"
+URL = "/c/acme/matriz/"  # the board is the default view
 
 
 def column(body, estado):
@@ -77,11 +77,32 @@ def test_sponsor_sees_a_read_only_board(client, member, acme, make_impacto):
     assert impacto.estado == Estado.PROPUESTO
 
 
-@pytest.mark.parametrize("role", [Role.CAPITAN, Role.LIDER_AREA])
-def test_roles_without_matrix_view(client, member, acme, role):
-    user, _ = member(role, client=acme, email="x@example.com")
-    client.force_login(user)
+def test_roles_without_matrix_view(client, member, acme):
+    captain, _ = member(Role.CAPITAN, client=acme, email="cap@example.com")
+    client.force_login(captain)
+    assert client.get(URL).url == f"{URL}nuevo/"  # proposers land on their proposal form
+    leader, _ = member(Role.LIDER_AREA, client=acme, email="lider@example.com")
+    client.force_login(leader)
     assert client.get(URL).status_code == 403
+    assert client.get(f"{URL}lista/").status_code == 403
+
+
+def test_board_is_the_default_and_list_comes_second(client, equipo):
+    client.force_login(equipo)
+    body = client.get(URL).content.decode()
+    assert 'data-move-url="' in body  # the board
+    toggle = body.split('class="segmented"')[1].split("</nav>")[0]
+    assert toggle.index("Tablero") < toggle.index("Lista")
+    assert f'href="{URL}lista/"' in toggle
+    assert client.get(f"{URL}lista/").status_code == 200
+    home = client.get("/c/acme/").content.decode()
+    assert f'href="{URL}"' in home
+
+
+def test_old_board_address_redirects_with_its_filters(client, equipo):
+    client.force_login(equipo)
+    response = client.get("/c/acme/matriz/tablero/?prioridad=1")
+    assert response.status_code == 301 and response.url == f"{URL}?prioridad=1"
 
 
 class TestMove:

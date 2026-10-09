@@ -12,6 +12,8 @@
     <h1>{% translate "Matriz de Impactos" %}</h1>
     <div class="row">
       {% include "matriz/_vista_toggle.html" with active="tablero" %}
+      <a href="{% url 'matriz:fotos' request.client.slug %}">{% translate "Fotos por etapa" %}</a>
+      <a href="{% url 'matriz:exportar' request.client.slug %}{% if querystring %}?{{ querystring }}{% endif %}">{% translate "Exportar a Excel" %}</a>
       {% if can_edit %}<a class="btn" href="{% url 'matriz:crear' request.client.slug %}">{% translate "Nuevo impacto" %}</a>{% endif %}
     </div>
   </div>

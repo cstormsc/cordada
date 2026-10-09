@@ -61,7 +61,7 @@ Dependencias con `uv`: editar `pyproject.toml`, luego `make lock && make build`.
 
 ## Matriz de Impactos
 
-- `/c/<cliente>/matriz/`. Quien edita la matriz (Administración, Equipo de cambio) ve todo y
+- `/c/<cliente>/matriz/` abre el tablero (kanban); la lista está en `/c/<cliente>/matriz/lista/`. Quien edita la matriz (Administración, Equipo de cambio) ve todo y
   usa el formulario completo; quien propone (Capitán, Guía, Equipo técnico) usa un formulario
   corto, con "grupo sugerido" si el grupo no existe, y ve debajo la lista de sus propuestas con
   su estado (no abre los impactos).
@@ -86,7 +86,7 @@ Dependencias con `uv`: editar `pyproject.toml`, luego `make lock && make build`.
 
 ## Tablero y dependencias
 
-- `/c/<cliente>/matriz/tablero/`: kanban por estado. Arrastrar cambia el estado con las mismas
+- `/c/<cliente>/matriz/` (vista por defecto): kanban por estado. Arrastrar cambia el estado con las mismas
   reglas del ciclo de vida (`static/js/tablero.js` + `matriz:mover`).
 - Dependencias "Depende de" (`apps/matriz/dependencias.py`): solo avisan, nunca bloquean el
   ciclo de vida. Un impacto está **bloqueado** si depende de uno abierto (Propuesto, Evaluado,

@@ -48,12 +48,19 @@ def _get_impacto(request, numero):
     )
 
 
-@client_member_required
-def index(request, client_slug):
+def _viewers_only(request, client_slug):
+    """Proposers who open the matrix land on their proposal form; others without access get 403."""
     if not _can(request, Action.VIEW):
         if _can(request, Action.PROPOSE):
             return redirect("matriz:crear", client_slug=client_slug)
         raise PermissionDenied
+    return None
+
+
+@client_member_required
+def index(request, client_slug):
+    if response := _viewers_only(request, client_slug):
+        return response
     filtro = FiltroForm(request.GET or None)
     impactos = dependencias.with_blocked(
         filtro.filter(Impacto.objects.select_related("grupo", "tipo", "tiempo", "responsable"))
@@ -439,7 +446,8 @@ BOARD_COLUMNS = [
 
 @client_member_required
 def tablero(request, client_slug):
-    _require(request, Action.VIEW)
+    if response := _viewers_only(request, client_slug):
+        return response
     filtro = FiltroForm(request.GET or None)
     impactos = (
         dependencias.with_blocked(
