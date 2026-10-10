@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load i18n dashboard_tags %}
+{% block title %}{% translate "Datos externos" %} · {{ request.client.name }}{% endblock %}
 {% block content %}
   <p><a href="{% url 'dashboard:index' request.client.slug %}">← {% translate "Dashboard" %}</a></p>
   <h1>{% translate "Datos externos" %}</h1>

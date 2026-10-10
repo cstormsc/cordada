@@ -67,7 +67,7 @@ h3 { font-size: 1rem; margin: 1.25rem 0 0.5rem; }
 :focus-visible { outline: 2px solid var(--accent-mid); outline-offset: 2px; }
 button.link { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; cursor: pointer; }
 .danger { color: #a33 !important; }
-.tag { font-size: 0.8rem; padding: 0.1rem 0.5rem; border-radius: 99px; background: var(--line); color: var(--muted); vertical-align: middle; }
+.tag { font-size: 0.8rem; padding: 0.1rem 0.5rem; border-radius: 99px; background: var(--line); color: var(--muted); vertical-align: middle; white-space: nowrap; }
 
 .form > div { margin-bottom: 0.9rem; }
 .form label { display: block; font-weight: 500; margin-bottom: 0.25rem; }
@@ -105,6 +105,7 @@ a.card:hover { transform: translateY(-3px); box-shadow: 0 8px 18px -10px rgb(56 
 table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
 th { font-weight: 500; color: var(--muted); font-size: 0.9rem; }
+th:has(.ayuda) { white-space: nowrap; }  /* keep a header's "?" next to its word */
 td select { width: auto; }
 
 [x-cloak] { display: none !important; }
@@ -199,7 +200,7 @@ table.report td:first-child, table.report th:first-child { text-align: left; }
 .kcard-meta .overdue { color: #b42318; font-weight: 600; }
 .kcard-flags { display: flex; flex-wrap: wrap; gap: 0.3rem; }
 .kcard-flags:empty { display: none; }
-.flag { padding: 0 0.4rem; border-radius: 4px; background: var(--line); color: var(--muted); }
+.flag { padding: 0 0.4rem; border-radius: 4px; background: var(--line); color: var(--muted); white-space: nowrap; }
 .flag.alert { background: #fbeaea; color: #7a1f1f; }
 .flag.warn { background: #fff4e5; color: #7a4a00; }
 .board-msg .msg { margin-bottom: 0.75rem; }
@@ -318,6 +319,39 @@ fieldset.panel li label { display: flex; gap: 0.5rem; align-items: flex-start; p
   text-decoration: none; color: var(--muted); background: var(--surface);
 }
 .guia-link:hover, .guia-link:focus-visible { color: var(--accent); border-color: var(--accent-mid); background: var(--tint); }
+/* "?" reminders next to terms (static/js/ayuda.js shows and places the bubble). */
+.ayuda { display: inline-block; vertical-align: middle; margin-left: 0.2rem; font-size: 0.8rem; font-weight: 400; line-height: 1; }
+.ayuda-btn {
+  display: inline-flex; align-items: center; justify-content: center; padding: 0;
+  width: 1.05rem; height: 1.05rem; border-radius: 50%; cursor: help;
+  border: 1px solid var(--line); background: var(--surface); color: var(--muted);
+  font: 600 0.7rem/1 system-ui, sans-serif;
+}
+.ayuda-btn:hover, .ayuda-btn:focus-visible, .ayuda-btn[aria-expanded="true"] { color: var(--accent); border-color: var(--accent-mid); background: var(--tint); }
+.ayuda-tip {
+  position: fixed; z-index: 50; max-width: min(20rem, calc(100vw - 16px));
+  padding: 0.55rem 0.7rem; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--fg); box-shadow: 0 6px 20px rgb(31 41 51 / 0.18);
+  font-size: 0.85rem; font-weight: 400; line-height: 1.4; text-align: left; white-space: normal; text-transform: none; letter-spacing: normal;
+}
+.ayuda-tip[hidden] { display: none; }
+.ayuda-tip strong { display: block; margin-bottom: 0.15rem; }
+.ayuda-tip a { white-space: nowrap; }
+.glosario dt { scroll-margin-top: 1rem; }
+.glosario dt:target { background: var(--tint); border-radius: 4px; }
+/* «Para ti» on a client's home */
+.para-ti h2 { margin: 0 0 0.75rem; }
+.para-ti h3 { font-size: 0.95rem; margin: 1rem 0 0.4rem; }
+.para-ti-body { display: flex; flex-wrap: wrap; gap: 1rem 2rem; align-items: flex-start; }
+.para-ti-main { flex: 1 1 22rem; min-width: 0; }
+.para-ti-avance { display: flex; flex-direction: column; gap: 0.2rem; padding: 0.75rem 1rem; border: 1px solid var(--line); border-radius: 10px; text-decoration: none; color: var(--fg); min-width: 11rem; }
+.para-ti-avance:hover { border-color: var(--accent-mid); background: var(--tint); }
+.para-ti-valor { font-size: 2.4rem; font-weight: 700; line-height: 1.05; }
+.para-ti-items { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.para-ti-items li a { display: inline-block; padding: 0.35rem 0.7rem; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); text-decoration: none; color: var(--fg); }
+.para-ti-items li a:hover { border-color: var(--accent-mid); }
+.para-ti-items li.warn a { border-color: #f3c27a; background: #fff8ec; }
+.para-ti-items li.alert a { border-color: #e7a3a3; background: #fdf1f1; }
 .toc ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; }
 .guia-defs { margin: 0; display: grid; grid-template-columns: minmax(8rem, max-content) 1fr; gap: 0.4rem 1rem; }
 .guia-defs dt { font-weight: 600; }
@@ -340,7 +374,7 @@ section[id], article[id] { scroll-margin-top: 1rem; }
 .ascent svg { width: 100%; height: auto; display: block; }
 .camps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-top: 0.25rem; text-align: center; font-size: 0.85rem; }
 .camps b { display: block; font-size: 0.95rem; }
-.camps .last b { color: var(--accent); }
+.camps .summit b { color: var(--rope); }  /* the goal: where the flag is */
 @media (max-width: 40rem) { .camps { font-size: 0.75rem; } .camps span { display: none; } }
 
 /* Sign-in */

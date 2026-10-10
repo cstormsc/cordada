@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n guia %}
 {% block title %}{{ c.codigo }} · {{ request.client.name }}{% endblock %}
 {% block content %}
   <p><a href="{% url 'formularios:index' request.client.slug %}">← {% translate "Formularios" %}</a></p>
@@ -12,7 +12,7 @@
     </div>
   </div>
   <p><span class="tag">{{ c.get_estado_display }}</span>
-    <span class="muted">{% translate "Aprueba con" %} {{ c.nota_minima|floatformat:"-2" }}/100 · {{ c.intentos }} {% translate "intento(s)" %}{% if c.vence %} · {% translate "vence" %} {{ c.vence|date:"SHORT_DATE_FORMAT" }}{% endif %}{% if c.impacto %} · {% translate "verifica" %} {{ c.impacto.codigo }}{% endif %}</span></p>
+    <span class="muted">{% translate "Aprueba con" %} {{ c.nota_minima|floatformat:"-2" }}/100{% ayuda "nota_minima" %} · {{ c.intentos }} {% translate "intento(s)" %}{% ayuda "intentos" %}{% if c.vence %} · {% translate "vence" %} {{ c.vence|date:"SHORT_DATE_FORMAT" }}{% endif %}{% if c.impacto %} · {% translate "verifica" %} {{ c.impacto.codigo }}{% endif %}</span></p>
 
   {% if totales %}
   <ul class="stats">

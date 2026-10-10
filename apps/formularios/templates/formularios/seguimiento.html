@@ -1,14 +1,15 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n guia %}
+{% block title %}{% translate "Seguimiento" %} · {{ lista.titulo }} · {{ request.client.name }}{% endblock %}
 {% block content %}
   <p><a href="{% url 'formularios:lista' request.client.slug lista.pk %}">← {{ lista.titulo }}</a></p>
   <h1>{% translate "Seguimiento de la certificación" %}</h1>
   <p class="muted">{{ lista.impacto.codigo }} · {{ lista.impacto.titulo }}</p>
   <ul class="stats">
-    <li><strong>{{ resumen.pendiente }}</strong> {% translate "pendientes" %}</li>
-    <li><strong>{{ resumen.aplicado }}</strong> {% translate "aplicados, por firmar" %}</li>
-    <li><strong>{{ resumen.certificado }}</strong> {% translate "certificados" %}</li>
-    <li class="{% if resumen.en_refuerzo %}warn{% endif %}"><strong>{{ resumen.en_refuerzo }}</strong> {% translate "en refuerzo" %}</li>
+    <li><strong>{{ resumen.pendiente }}</strong> {% translate "pendientes" %}{% ayuda "cert_pendiente" %}</li>
+    <li><strong>{{ resumen.aplicado }}</strong> {% translate "aplicados, por firmar" %}{% ayuda "cert_aplicado" %}</li>
+    <li><strong>{{ resumen.certificado }}</strong> {% translate "certificados" %}{% ayuda "cert_certificado" %}</li>
+    <li class="{% if resumen.en_refuerzo %}warn{% endif %}"><strong>{{ resumen.en_refuerzo }}</strong> {% translate "en refuerzo" %}{% ayuda "cert_en_refuerzo" %}</li>
   </ul>
   <section class="panel table-wrap">
     <h2>{% translate "Por líder" %}</h2>

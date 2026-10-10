@@ -11,6 +11,7 @@
       {% if catalogos %}<li><a href="#catalogos">{% translate "Catálogos" %}</a></li>{% endif %}
       <li><a href="#escalas">{% translate "Escalas" %}</a></li>
       <li><a href="#{{ calculos.anchor }}">{% translate "Riesgo y prioridad" %}</a></li>
+      <li><a href="#glosario">{% translate "Glosario" %}</a></li>
       {% if plantillas %}<li><a href="#plantillas">{% translate "Plantillas" %}</a></li>{% endif %}
       <li><a href="#documentos">{% translate "Documentos del cliente" %}</a></li>
     </ul>
@@ -84,6 +85,19 @@
       </tbody>
     </table></div>
     <p class="muted small">{{ calculos.priorities|join:" · " }}</p>
+  </section>
+
+  <section id="glosario">
+    <h2>{% translate "Glosario" %}</h2>
+    <p class="muted">{% translate "Lo que significa cada término de la plataforma. Es el mismo texto que aparece al pasar por el «?» junto a un término." %}</p>
+    {% for seccion, terminos in glosario %}
+      <article class="panel">
+        <h3>{{ seccion }}</h3>
+        <dl class="guia-defs glosario">
+          {% for key, term, text in terminos %}<dt id="glosario-{{ key }}">{{ term }}</dt><dd>{{ text }}</dd>{% endfor %}
+        </dl>
+      </article>
+    {% endfor %}
   </section>
 
   {% if plantillas %}

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% block title %}{% if item.pk %}{{ item }}{% else %}{% translate "Nuevo" %}{% endif %} · {% translate "Guía" %} · {% translate "Plataforma" %}{% endblock %}
 {% block content %}
 <div class="narrow-wide">
   <p><a href="{% url 'plataforma:guia_index' %}">← {% translate "Guía de campo" %}</a></p>

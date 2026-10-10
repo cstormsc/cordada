@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n ruta_tags %}
+{% load i18n ruta_tags guia %}
 {% block title %}{{ actividad.codigo }} · {{ request.client.name }}{% endblock %}
 {% block content %}
   <p><a href="{% url 'ruta:index' request.client.slug %}">← {% translate "Ruta" %}</a></p>
@@ -15,10 +15,10 @@
       <h2>{% translate "Actividad" %}</h2>
       <dl class="facts">
         {% if actividad.descripcion %}<dt>{% translate "Descripción" %}</dt><dd class="pre">{{ actividad.descripcion }}</dd>{% endif %}
-        <dt>{% translate "Frente" %}</dt><dd>{{ actividad.frente }}</dd>
-        <dt>{% translate "Tiempo" %}</dt><dd>{% include "includes/tiempo_tag.html" with tiempo=actividad.tiempo %}</dd>
+        <dt>{% translate "Frente" %}</dt><dd>{{ actividad.frente }}{% ayuda_catalogo actividad.frente %}</dd>
+        <dt>{% translate "Tiempo" %}</dt><dd>{% include "includes/tiempo_tag.html" with tiempo=actividad.tiempo %}{% ayuda_catalogo actividad.tiempo %}</dd>
         <dt>{% translate "Canal o formato" %}</dt><dd>{{ actividad.canal|default:"—" }}</dd>
-        {% if actividad.es_comunicacion %}<dt>{% translate "Líder o vocero" %}</dt><dd>{{ actividad.vocero|default:"—" }}</dd>{% endif %}
+        {% if actividad.es_comunicacion %}<dt>{% translate "Líder o vocero" %} {% ayuda "vocero" %}</dt><dd>{{ actividad.vocero|default:"—" }}</dd>{% endif %}
         <dt>{% translate "Grupos" %}</dt><dd>{{ actividad.grupos.all|join:", "|default:"—" }}</dd>
         <dt>{% translate "Indicador" %}</dt><dd>{{ actividad.indicador|default:"—" }}</dd>
       </dl>
@@ -27,7 +27,7 @@
       <h2>{% translate "Plan y ejecución" %}</h2>
       <dl class="facts">
         <dt>{% translate "Responsable" %}</dt><dd>{{ actividad.responsable.display_name|default:"—" }}</dd>
-        <dt>{% translate "Fecha planificada" %}</dt><dd>{% if actividad.no_planificada %}{% translate "No planificada" %}{% else %}{{ actividad.fecha_planificada|date:"SHORT_DATE_FORMAT" }}{% endif %}</dd>
+        <dt>{% translate "Fecha planificada" %}</dt><dd>{% if actividad.no_planificada %}{% translate "No planificada" %}{% ayuda "no_planificada" %}{% else %}{{ actividad.fecha_planificada|date:"SHORT_DATE_FORMAT" }}{% endif %}</dd>
         <dt>{% translate "Fecha real" %}</dt><dd>{{ actividad.fecha_real|date:"SHORT_DATE_FORMAT"|default:"—" }}</dd>
         {% if actividad.evidencia %}<dt>{% translate "Evidencia" %}</dt><dd class="pre">{{ actividad.evidencia }}</dd>{% endif %}
       </dl>

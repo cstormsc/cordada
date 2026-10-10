@@ -9,7 +9,7 @@ from django.shortcuts import redirect, render
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
-from . import invitations
+from . import invitations, pendientes
 from .decorators import client_member_required
 from .forms import AcceptInvitationForm, ConfirmPuestoForm, PerfilForm
 from .models import Invitation, Module, User
@@ -55,6 +55,7 @@ def client_home(request, client_slug):
         request,
         "core/client_home.html",
         {
+            "para_ti": pendientes.para_ti(request),
             "modules": visible_modules(request.membership),
             "can_configure": can_configure(request.membership),
             "can_assign_groups": can_assign_groups(request.membership),

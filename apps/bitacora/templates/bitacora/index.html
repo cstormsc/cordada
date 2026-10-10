@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n guia %}
 {% block title %}{% translate "Bitácora" %} · {{ request.client.name }}{% endblock %}
 {% block content %}
   <p><a href="{% url 'client_home' request.client.slug %}">← {{ request.client.name }}</a></p>
@@ -18,9 +18,9 @@
 
   {% if resumen %}
   <ul class="stats">
-    <li class="{% if resumen.nuevos %}warn{% endif %}"><a href="?estado=nuevo"><strong>{{ resumen.nuevos }}</strong> {% translate "nuevos por clasificar" %}</a></li>
-    <li><a href="?estado=derivado_ti"><strong>{{ resumen.en_ti }}</strong> {% translate "en TI" %}</a></li>
-    <li class="{% if resumen.sin_validar %}warn{% endif %}"><a href="?sin_validar=on"><strong>{{ resumen.sin_validar }}</strong> {% translate "derivados sin validar" %}</a></li>
+    <li class="{% if resumen.nuevos %}warn{% endif %}"><a href="?estado=nuevo"><strong>{{ resumen.nuevos }}</strong> {% translate "nuevos por clasificar" %}</a>{% ayuda "ticket_nuevo" %}</li>
+    <li><a href="?estado=derivado_ti"><strong>{{ resumen.en_ti }}</strong> {% translate "en TI" %}</a>{% ayuda "ticket_derivado_ti" %}</li>
+    <li class="{% if resumen.sin_validar %}warn{% endif %}"><a href="?sin_validar=on"><strong>{{ resumen.sin_validar }}</strong> {% translate "derivados sin validar" %}</a>{% ayuda "fallo_grave" %}</li>
   </ul>
   <form method="get" class="filters">
     {% for field in filtro %}<label>{{ field.label }}{{ field }}</label>{% endfor %}
@@ -32,7 +32,7 @@
   {% if tickets %}
   <div class="table-wrap panel"><table>
     <thead><tr><th>{% translate "ID" %}</th><th>{% translate "Asunto" %}</th><th>{% translate "Categoría" %}</th>
-      <th>{% translate "Grupo" %}</th><th>{% translate "Estado" %}</th><th>{% translate "Registrado" %}</th></tr></thead>
+      <th>{% translate "Grupo" %}</th><th>{% translate "Estado" %} {% ayuda "ticket_flujo" %}</th><th>{% translate "Registrado" %}</th></tr></thead>
     <tbody>
     {% for t in tickets %}
       <tr>

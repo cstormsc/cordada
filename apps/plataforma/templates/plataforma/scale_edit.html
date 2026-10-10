@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% block title %}{{ scale.name }} · {% translate "Escalas" %} · {% translate "Plataforma" %}{% endblock %}
 {% block content %}
   <p><a href="{% url 'plataforma:catalog_index' %}">← {% translate "Catálogos del sistema" %}</a></p>
   <h1>{{ scale.name }}</h1>

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n guia %}
 {% block title %}{% translate "Matriz de Impactos" %} · {{ request.client.name }}{% endblock %}
 {% block content %}
   <p><a href="{% url 'client_home' request.client.slug %}">← {{ request.client.name }}</a></p>
@@ -15,10 +15,10 @@
 
   <ul class="stats">
     <li><strong>{{ resumen.total }}</strong> {% translate "impactos" %}</li>
-    <li><a href="?estado=propuesto"><strong>{{ resumen.propuestos }}</strong> {% translate "por validar" %}</a></li>
-    <li class="{% if resumen.p1_sin_criterio %}alert{% endif %}"><a href="?alerta=p1_sin_criterio"><strong>{{ resumen.p1_sin_criterio }}</strong> {% translate "P1 sin criterio de cierre" %}</a></li>
-    <li class="{% if resumen.descubiertos %}warn{% endif %}"><a href="?alerta=descubiertos"><strong>{{ resumen.descubiertos }}</strong> {% translate "descubiertos (sin actividades)" %}</a></li>
-    <li class="{% if resumen.extrema %}alert{% endif %}"><a href="?alerta=extrema"><strong>{{ resumen.extrema }}</strong> {% translate "con severidad extrema abiertos" %}</a></li>
+    <li><a href="?estado=propuesto"><strong>{{ resumen.propuestos }}</strong> {% translate "por validar" %}</a>{% ayuda "impacto_propuesto" %}</li>
+    <li class="{% if resumen.p1_sin_criterio %}alert{% endif %}"><a href="?alerta=p1_sin_criterio"><strong>{{ resumen.p1_sin_criterio }}</strong> {% translate "P1 sin criterio de cierre" %}</a>{% ayuda "p1_sin_criterio" %}</li>
+    <li class="{% if resumen.descubiertos %}warn{% endif %}"><a href="?alerta=descubiertos"><strong>{{ resumen.descubiertos }}</strong> {% translate "descubiertos (sin actividades)" %}</a>{% ayuda "descubierto" %}</li>
+    <li class="{% if resumen.extrema %}alert{% endif %}"><a href="?alerta=extrema"><strong>{{ resumen.extrema }}</strong> {% translate "con severidad extrema abiertos" %}</a>{% ayuda "severidad_extrema" %}</li>
   </ul>
 
   <form method="get" class="filters">
@@ -31,7 +31,7 @@
   <div class="table-wrap panel"><table>
     <thead><tr>
       <th>{% translate "ID" %}</th><th>{% translate "Impacto" %}</th><th>{% translate "Grupo" %}</th>
-      <th>{% translate "Prioridad" %}</th><th>{% translate "Riesgo" %}</th><th>{% translate "Estado" %}</th>
+      <th>{% translate "Prioridad" %} {% ayuda "prioridad" %}</th><th>{% translate "Riesgo" %} {% ayuda "riesgo" %}</th><th>{% translate "Estado" %} {% ayuda "impacto_flujo" %}</th>
       <th>{% translate "Responsable" %}</th><th>{% translate "Compromiso" %}</th>
     </tr></thead>
     <tbody>
@@ -39,7 +39,7 @@
       <tr>
         <td class="nowrap"><a href="{% url 'matriz:detalle' request.client.slug impacto.numero %}">{{ impacto.codigo }}</a></td>
         <td><a href="{% url 'matriz:detalle' request.client.slug impacto.numero %}">{{ impacto.titulo }}</a>
-          {% if impacto.n_bloqueos %}<span class="flag warn small">{% translate "Bloqueado" %}</span>{% endif %}
+          {% if impacto.n_bloqueos %}<span class="flag warn small">{% translate "Bloqueado" %}</span>{% ayuda "bloqueado" %}{% endif %}
           {% if impacto.alerta_severidad %}<span class="badge alert" title="{% translate 'Severidad extrema' %}">!</span>{% endif %}
           {% if not impacto.tiene_criterio_cierre %}<br><span class="muted small">{% translate "sin criterio de cierre" %}</span>{% endif %}</td>
         <td>{{ impacto.grupo|default:"" }}{% if not impacto.grupo and impacto.grupo_sugerido %}<span class="muted">{{ impacto.grupo_sugerido }} ({% translate "sugerido" %})</span>{% endif %}</td>

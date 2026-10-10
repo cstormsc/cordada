@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% block title %}{% translate "Indicadores del dashboard" %} · {{ request.client.name }}{% endblock %}
 {% block content %}
   <p><a href="{% url 'catalogs:index' request.client.slug %}">← {% translate "Configuración" %}</a></p>
   <h1>{% translate "Indicadores del dashboard" %}</h1>

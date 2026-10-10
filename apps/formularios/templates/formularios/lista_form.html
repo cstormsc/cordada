@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% block title %}{% translate "Nueva lista de observación" %} · {{ request.client.name }}{% endblock %}
 {% block content %}
 <div class="narrow-wide">
   <p><a href="{% url 'formularios:listas' request.client.slug %}">← {% translate "Evaluación práctica" %}</a></p>

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% block title %}{% blocktranslate with client=invitation.client.name %}Invitación a {{ client }}{% endblocktranslate %} · Cordada{% endblock %}
 {% block content %}
 <div class="narrow">
   <h1>{% blocktranslate with client=invitation.client.name %}Invitación a {{ client }}{% endblocktranslate %}</h1>

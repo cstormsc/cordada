@@ -1,13 +1,13 @@
-{% load i18n dashboard_tags %}{% with t=m.tile %}
+{% load i18n dashboard_tags guia %}{% with t=m.tile %}
 <div class="panel avance" id="{{ t.indicator.key }}">
   <div class="avance-head">
-    <h2 id="mod-avance">{{ t.indicator.nombre }}</h2>
+    <h2 id="mod-avance">{{ t.indicator.nombre }} {% ayuda "avance_general" %}</h2>
     {% if t.indicator.provisional %}<span class="tag small">{% translate "provisional" %}</span>{% endif %}
   </div>
   <div class="avance-body">
     <div class="avance-hero">
       <span class="hero-value">{% tile_value t %}</span>
-      {% status_chip t.status %}
+      {% status_chip t.status %}{% ayuda "semaforo" %}
       <p class="muted small">{{ t.result.detail }}</p>
     </div>
     <ul class="meters">

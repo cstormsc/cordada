@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% block title %}{% if ticket %}{% translate "Editar" %} {{ ticket.codigo }}{% else %}{% translate "Registrar ticket" %}{% endif %} · {{ request.client.name }}{% endblock %}
 {% block content %}
 <div class="narrow-wide">
   <p>{% if ticket %}<a href="{% url 'bitacora:detalle' request.client.slug ticket.numero %}">← {{ ticket.codigo }}</a>{% else %}<a href="{% url 'bitacora:index' request.client.slug %}">← {% translate "Bitácora" %}</a>{% endif %}</p>

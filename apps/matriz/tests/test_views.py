@@ -1,4 +1,5 @@
 import io
+import re
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -275,6 +276,18 @@ class TestListsAndExports:
         assert "Sin criterio P1" in body and "Completo" not in body
         body = client.get(f"{BASE}lista/?q=complet").content.decode()
         assert "Completo" in body and "Sin criterio P1" not in body
+
+    def test_dropdowns_filter_on_change_on_list_and_board(self, client, as_equipo):
+        pattern = r'name="(\w+)"[^>]*onchange="this.form.submit\(\)"'
+        lista = re.findall(pattern, client.get(f"{BASE}lista/").content.decode())
+        assert sorted(lista) == ["alerta", "estado", "grupo", "prioridad", "tiempo"]
+        tablero = re.findall(pattern, client.get(BASE).content.decode())
+        assert sorted(tablero) == [
+            "alerta",
+            "grupo",
+            "prioridad",
+            "tiempo",
+        ]  # no estado column filter
 
     def test_excel_export(self, client, as_equipo, make_impacto):
         make_impacto(complete=True, titulo='=HYPERLINK("x")')

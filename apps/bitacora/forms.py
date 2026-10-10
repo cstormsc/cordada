@@ -71,10 +71,17 @@ class CasoClienteForm(forms.ModelForm):
     class Meta:
         model = Ticket
         fields = ["caso_cliente"]
+        widgets = {
+            "caso_cliente": forms.TextInput(
+                attrs={"aria-label": _("Número del caso en el sistema del cliente")}
+            )
+        }
 
 
 class ComentarioForm(forms.Form):
-    texto = forms.CharField(label="", widget=forms.Textarea(attrs={"rows": 2}))
+    texto = forms.CharField(
+        label="", widget=forms.Textarea(attrs={"rows": 2, "aria-label": _("Comentario")})
+    )
 
 
 class FiltroForm(forms.Form):

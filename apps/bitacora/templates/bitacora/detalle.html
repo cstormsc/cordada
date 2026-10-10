@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n guia %}
 {% block title %}{{ ticket.codigo }} · {{ request.client.name }}{% endblock %}
 {% block content %}
   <p><a href="{% url 'bitacora:index' request.client.slug %}">← {% translate "Bitácora" %}</a></p>
@@ -16,7 +16,7 @@
       {% for s in steps %}
         <form method="post" action="{% url 'bitacora:cambiar_estado' request.client.slug ticket.numero %}" class="transition">
           {% csrf_token %}<input type="hidden" name="hacia" value="{{ s.target }}">
-          {% if s.needs_reason %}<input type="text" name="motivo" placeholder="{% translate 'Motivo' %}" required>{% endif %}
+          {% if s.needs_reason %}<input type="text" name="motivo" placeholder="{% translate 'Motivo' %}" aria-label="{% translate 'Motivo' %}" required>{% endif %}
           <button class="btn">{{ s.label }}</button>
         </form>
       {% endfor %}
@@ -30,7 +30,7 @@
 
   {% if can_propose %}
   <section class="panel attention">
-    <h2>{% translate "Impacto no anticipado" %}</h2>
+    <h2>{% translate "Impacto no anticipado" %} {% ayuda "impacto_no_anticipado" %}</h2>
     <p>{% translate "Llévalo a la Matriz de Impactos como propuesta. El equipo de cambio lo validará." %}</p>
     <form method="post" action="{% url 'bitacora:proponer_impacto' request.client.slug ticket.numero %}">{% csrf_token %}
       <button class="btn">{% translate "Proponer impacto en la matriz" %}</button></form>
@@ -43,19 +43,19 @@
       <dl class="facts">
         <dt>{% translate "Descripción" %}</dt><dd class="pre">{{ ticket.descripcion }}</dd>
         <dt>{% translate "Grupo" %}</dt><dd>{{ ticket.grupo|default:"—" }}</dd>
-        <dt>{% translate "Urgencia" %}</dt><dd>{{ ticket.get_urgencia_display }}</dd>
+        <dt>{% translate "Urgencia" %} {% ayuda "fallo_grave" %}</dt><dd>{{ ticket.get_urgencia_display }}</dd>
         <dt>{% translate "Impacto vinculado" %}</dt>
         <dd>{% if ticket.impacto %}{% if sees_matrix %}<a href="{% url 'matriz:detalle' request.client.slug ticket.impacto.numero %}">{{ ticket.impacto.codigo }} · {{ ticket.impacto.titulo }}</a>{% else %}{{ ticket.impacto.codigo }}{% endif %}{% else %}—{% endif %}</dd>
-        {% if ticket.recurrente_de %}<dt>{% translate "Repite el caso" %}</dt><dd><a href="{% url 'bitacora:detalle' request.client.slug ticket.recurrente_de.numero %}">{{ ticket.recurrente_de.codigo }}</a></dd>{% endif %}
+        {% if ticket.recurrente_de %}<dt>{% translate "Repite el caso" %} {% ayuda "recurrente" %}</dt><dd><a href="{% url 'bitacora:detalle' request.client.slug ticket.recurrente_de.numero %}">{{ ticket.recurrente_de.codigo }}</a></dd>{% endif %}
       </dl>
     </section>
     <section class="panel">
       <h2>{% translate "Seguimiento" %}</h2>
       <dl class="facts">
         <dt>{% translate "Registrado" %}</dt><dd>{{ ticket.created_at|date:"SHORT_DATETIME_FORMAT" }} · {{ ticket.registrado_por.display_name }}</dd>
-        <dt>{% translate "Primera respuesta" %}</dt><dd>{{ ticket.primera_respuesta_at|date:"SHORT_DATETIME_FORMAT"|default:"—" }}</dd>
+        <dt>{% translate "Primera respuesta" %} {% ayuda "primera_respuesta" %}</dt><dd>{{ ticket.primera_respuesta_at|date:"SHORT_DATETIME_FORMAT"|default:"—" }}</dd>
         <dt>{% translate "Resolución" %}</dt><dd>{{ ticket.resuelto_at|date:"SHORT_DATETIME_FORMAT"|default:"—" }}</dd>
-        <dt>{% translate "Clasificación" %}</dt><dd>{% if ticket.validado %}{% translate "Validada por" %} {{ ticket.validado_por.display_name }}{% else %}{% translate "Sin validar" %}{% endif %}</dd>
+        <dt>{% translate "Clasificación" %} {% ayuda "ticket_validado" %}</dt><dd>{% if ticket.validado %}{% translate "Validada por" %} {{ ticket.validado_por.display_name }}{% else %}{% translate "Sin validar" %}{% endif %}</dd>
         <dt>{% translate "Caso en el sistema del cliente" %}</dt><dd>{{ ticket.caso_cliente|default:"—" }}</dd>
       </dl>
       {% if caso_form %}
@@ -67,7 +67,7 @@
   </div>
 
   <section class="panel" id="tambien">
-    <h2>{% translate "A quién más le pasa" %}</h2>
+    <h2>{% translate "A quién más le pasa" %} {% ayuda "a_mi_tambien" %}</h2>
     {% if afectados %}
       <p>{% blocktranslate count n=afectados|length %}{{ n }} persona más reporta este problema:{% plural %}{{ n }} personas más reportan este problema:{% endblocktranslate %}
         {% for a in afectados %}{{ a.usuario.display_name }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>

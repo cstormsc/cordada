@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n guia %}
+{% block title %}{% translate "Resultados" %} · {{ c.codigo }} · {{ request.client.name }}{% endblock %}
 {% block content %}
   <p><a href="{% url 'formularios:cuestionario' request.client.slug c.numero %}">← {{ c.codigo }}</a></p>
   <h1>{% translate "Resultados" %} · {{ c.titulo }}</h1>
@@ -8,7 +9,7 @@
     <li><strong>{{ totales.respondieron }}</strong> {% translate "respondieron" %}</li>
     {% if totales.respondieron >= min_size %}<li><strong>{{ totales.pct_aprobados }} %</strong> {% translate "aprobó" %}</li>{% endif %}
   </ul>
-  <p class="muted small">{% blocktranslate %}Los grupos con menos de {{ min_size }} respuestas no muestran resultados, para proteger la confidencialidad. Si con eso todavía se podrían deducir, también se oculta el siguiente grupo más pequeño.{% endblocktranslate %}</p>
+  <p class="muted small">{% blocktranslate %}Los grupos con menos de {{ min_size }} respuestas no muestran resultados, para proteger la confidencialidad. Si con eso todavía se podrían deducir, también se oculta el siguiente grupo más pequeño.{% endblocktranslate %} {% ayuda "confidencialidad" %}</p>
 
   <section class="panel table-wrap">
     {% if form %}<form method="get" class="filters">{% for f in form %}<label>{{ f.label }}{{ f }}</label>{% endfor %}<button class="btn secondary">{% translate "Ver" %}</button></form>{% endif %}

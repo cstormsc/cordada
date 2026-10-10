@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% block title %}{% if impacto %}{% translate "Editar" %} {{ impacto.codigo }}{% elif can_create_group %}{% translate "Nuevo impacto" %}{% else %}{% translate "Proponer impacto" %}{% endif %} · {{ request.client.name }}{% endblock %}
 {% block content %}
   <p>{% if impacto %}<a href="{% url 'matriz:detalle' request.client.slug impacto.numero %}">← {{ impacto.codigo }}</a>{% elif can_create_group %}<a href="{% url 'matriz:tablero' request.client.slug %}">← {% translate "Matriz de Impactos" %}</a>{% else %}<a href="{% url 'client_home' request.client.slug %}">← {{ request.client.name }}</a>{% endif %}</p>
   <h1>{% if impacto %}{% translate "Editar" %} {{ impacto.codigo }}{% elif can_create_group %}{% translate "Nuevo impacto" %}{% else %}{% translate "Proponer impacto" %}{% endif %}</h1>

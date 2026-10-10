@@ -1,8 +1,9 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n guia %}
+{% block title %}{% translate "Evaluación práctica del líder" %} · {{ request.client.name }}{% endblock %}
 {% block content %}
   <p><a href="{% url 'formularios:index' request.client.slug %}">← {% translate "Formularios" %}</a></p>
-  <h1>{% translate "Evaluación práctica del líder" %}</h1>
+  <h1>{% translate "Evaluación práctica del líder" %} {% ayuda "lista_observacion" %}</h1>
   <p class="muted">{% translate "Solo para los impactos marcados «requiere certificación del líder». Cada criterio se evalúa como cumple o no cumple; certifica quien cumple todos." %}</p>
   {% if rows %}
   <div class="table-wrap panel"><table>

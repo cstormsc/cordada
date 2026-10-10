@@ -99,7 +99,7 @@ def purge():
             "bitacora.Ticket", "formularios.Evaluacion", "formularios.Acta", "formularios.Criterio",
             "formularios.ListaObservacion", "formularios.Respuesta", "formularios.Enlace",
             "formularios.Opcion", "formularios.Pregunta", "formularios.Cuestionario",
-            "formularios.Carga", "formularios.Persona", "dashboard.ValorManual",
+            "formularios.Carga", "formularios.Persona", "dashboard.Preferencia", "dashboard.ValorManual",
             "dashboard.IndicadorConfig", "guia.Documento", "ruta.Evidencia", "ruta.Actividad",
             "matriz.Foto", "matriz.Dependencia", "matriz.Adjunto", "matriz.Comentario",
             "matriz.Transicion", "matriz.Impacto", "catalogs.GrupoImpactado",
@@ -230,7 +230,7 @@ class Builder:
             },
         )
         self.admin = admin
-        self.u = {}
+        self.u = {"presentador": admin}  # so the presenter has their own items in «Para ti»
         for key, first, last, role, cargo, depto, grupos in PEOPLE:
             user = User.objects.create_user(  # no password: can't log in
                 email=f"{key}.{last.lower().replace('á', 'a').replace('í', 'i')}@{DOMAIN}",
@@ -531,6 +531,7 @@ class Builder:
             ("Plan de doble corrida de reportes", "impactos", "legado", [g["Riesgo y cumplimiento"]], [I["reportes"]], "andres", 40, None, NO, None, "", {}),
             ("Visita del gerente a Sucursal Norte", "movilizacion", "travesia", [g["Cajeros de sucursal"]], [I["firmas"]], "ricardo", None, -3, DONE, "Reunión de equipo", "Ricardo Vidal", {"no_planificada": True}),
             ("Boletín mensual de avance", "comunicacion", "travesia", list(g.values()), [], "valentina", -5, -2, DONE, "Intranet", "Valentina Rojas", {}),
+            ("Preparar el comité de avance con el patrocinador", "impactos", "travesia", [], [I["conciliacion"], I["horario"]], "presentador", 2, None, CUR, None, "", {}),
         ]  # fmt: skip
         for i, (
             titulo,

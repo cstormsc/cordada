@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% block title %}{% if item.pk %}{{ item.label }}{% else %}{% translate "Nuevo elemento" %}{% endif %} · {% translate "Catálogos" %} · {% translate "Plataforma" %}{% endblock %}
 {% block content %}
 <div class="narrow">
   <p><a href="{% url 'plataforma:catalog_index' %}">← {% translate "Catálogos del sistema" %}</a></p>

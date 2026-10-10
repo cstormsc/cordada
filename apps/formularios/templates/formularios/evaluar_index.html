@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% block title %}{% translate "Evaluación práctica" %} · {{ request.client.name }}{% endblock %}
 {% block content %}
   <p><a href="{% url 'client_home' request.client.slug %}">← {{ request.client.name }}</a></p>
   <h1>{% translate "Evaluación práctica de tu equipo" %}</h1>

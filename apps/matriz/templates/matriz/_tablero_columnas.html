@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load i18n guia %}
 <div id="board" class="kboard"
      {% if can_edit %}data-editable="1" data-move-url="{% url 'matriz:mover' request.client.slug 0 %}"{% endif %}
      data-refresh-url="{% url 'matriz:tablero' request.client.slug %}{% if querystring %}?{{ querystring }}{% endif %}">
@@ -6,7 +6,7 @@
     <section class="kcol{% if estado == 'descartado' %} collapsible{% endif %}" data-estado="{{ estado }}"
              {% if estado == 'descartado' %}x-data="{ open: false }" :class="{ collapsed: !open }"{% endif %}>
       <header class="kcol-head">
-        <span>{{ estado.label }}</span>
+        <span>{{ estado.label }} {% ayuda "impacto_"|add:estado %}</span>
         <span class="kcount">{{ impactos|length }}</span>
         {% if estado == 'descartado' %}<button type="button" class="link small" @click="open = !open" x-text="open ? '{% translate "Ocultar" %}' : '{% translate "Mostrar" %}'"></button>{% endif %}
       </header>

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n guia %}
 {% block title %}{{ impacto.codigo }} · {{ request.client.name }}{% endblock %}
 {% block content %}
   <p><a href="{% url 'matriz:tablero' request.client.slug %}">← {% translate "Matriz de Impactos" %}</a></p>
@@ -11,16 +11,16 @@
     {% endif %}
   </div>
   <p>
-    <span class="tag">{{ impacto.get_estado_display }}</span>
+    <span class="tag">{{ impacto.get_estado_display }}</span>{% ayuda "impacto_"|add:impacto.estado %}
     {% include "matriz/_badges.html" %}
-    {% if impacto.riesgo_nivel %}<span class="muted">{% translate "Riesgo" %} {{ impacto.get_riesgo_nivel_display }} ({{ impacto.riesgo_puntaje }})</span>{% endif %}
+    {% if impacto.riesgo_nivel %}<span class="muted">{% translate "Riesgo" %} {{ impacto.get_riesgo_nivel_display }} ({{ impacto.riesgo_puntaje }})</span>{% ayuda "riesgo" %}{% endif %}
   </p>
-  {% if impacto.alerta_severidad %}<p class="msg msg-error">{% translate "Alerta: severidad extrema." %}</p>{% endif %}
-  {% if impacto.alerta_p1_sin_criterio %}<p class="msg msg-error">{% translate "Alerta: prioridad P1 sin criterio de cierre." %}</p>{% endif %}
+  {% if impacto.alerta_severidad %}<p class="msg msg-error">{% translate "Alerta: severidad extrema." %} {% ayuda "severidad_extrema" %}</p>{% endif %}
+  {% if impacto.alerta_p1_sin_criterio %}<p class="msg msg-error">{% translate "Alerta: prioridad P1 sin criterio de cierre." %} {% ayuda "p1_sin_criterio" %}</p>{% endif %}
 
   {% if can_edit and not impacto.grupo and impacto.grupo_sugerido %}
     <section class="panel attention">
-      <h2>{% translate "Grupo sugerido por revisar" %}</h2>
+      <h2>{% translate "Grupo sugerido por revisar" %} {% ayuda "grupo_sugerido" %}</h2>
       <p>{% blocktranslate with g=impacto.grupo_sugerido %}Quien propuso escribió «{{ g }}».{% endblocktranslate %}</p>
       <div class="row">
         <form method="post" action="{% url 'matriz:resolver_grupo_sugerido' request.client.slug impacto.numero %}">{% csrf_token %}
@@ -50,7 +50,7 @@
         <form method="post" action="{% url 'matriz:cambiar_estado' request.client.slug impacto.numero %}" class="transition">
           {% csrf_token %}
           <input type="hidden" name="hacia" value="{{ t.target }}">
-          {% if t.needs_reason %}<input type="text" name="motivo" placeholder="{% translate 'Motivo' %}" required>{% endif %}
+          {% if t.needs_reason %}<input type="text" name="motivo" placeholder="{% translate 'Motivo' %}" aria-label="{% translate 'Motivo' %}" required>{% endif %}
           <button class="btn{% if t.target == 'descartado' %} secondary{% endif %}">{{ t.label }}</button>
         </form>
       {% endfor %}
@@ -67,7 +67,7 @@
         {% if impacto.situacion_futura %}<dt>{% translate "Situación futura" %}</dt><dd class="pre">{{ impacto.situacion_futura }}</dd>{% endif %}
         <dt>{% translate "Origen" %}</dt><dd>{{ impacto.origen|default:"—" }}</dd>
         <dt>{% translate "Tipo" %}</dt><dd>{{ impacto.tipo|default:"—" }}</dd>
-        <dt>{% translate "Tiempo" %}</dt><dd>{% include "includes/tiempo_tag.html" with tiempo=impacto.tiempo %}</dd>
+        <dt>{% translate "Tiempo" %}</dt><dd>{% include "includes/tiempo_tag.html" with tiempo=impacto.tiempo %}{% ayuda_catalogo impacto.tiempo %}</dd>
         <dt>{% translate "Grupo" %}</dt><dd>{{ impacto.grupo|default:"—" }}{% if impacto.personas_impactadas %} · {{ impacto.personas_impactadas }} {% translate "personas" %}{% endif %}</dd>
       </dl>
     </section>
@@ -78,7 +78,7 @@
         <dt>{% translate "Resistencia / preparación" %}</dt><dd>{{ impacto.resistencia|default:"—" }} / {{ impacto.preparacion|default:"—" }}</dd>
         <dt>{% translate "Probabilidad × severidad" %}</dt><dd>{{ impacto.probabilidad|default:"—" }} × {{ impacto.severidad|default:"—" }}</dd>
         {% if impacto.riesgo_descripcion %}<dt>{% translate "Riesgo" %}</dt><dd class="pre">{{ impacto.riesgo_descripcion }}</dd>{% endif %}
-        <dt>{% translate "Prioridad calculada" %}</dt><dd>{{ impacto.get_prioridad_calculada_display|default:"—" }}</dd>
+        <dt>{% translate "Prioridad calculada" %} {% ayuda "prioridad" %}</dt><dd>{{ impacto.get_prioridad_calculada_display|default:"—" }}</dd>
         {% if impacto.prioridad_ajustada %}<dt>{% translate "Prioridad ajustada" %}</dt><dd>{{ impacto.get_prioridad_ajustada_display }} — {{ impacto.prioridad_justificacion }}</dd>{% endif %}
       </dl>
       {% if can_edit %}
@@ -92,7 +92,7 @@
       {% endif %}
     </section>
     <section class="panel">
-      <h2>{% translate "Derivación" %}</h2>
+      <h2>{% translate "Derivación" %} {% ayuda "derivacion" %}</h2>
       <dl class="facts">
         <dt>{% translate "Comunicación · movilización · formación" %}</dt>
         <dd>{{ impacto.requiere_comunicacion|yesno:"Sí,No,—" }} · {{ impacto.requiere_movilizacion|yesno:"Sí,No,—" }} · {{ impacto.requiere_formacion|yesno:"Sí,No,—" }}</dd>
@@ -106,16 +106,16 @@
         {% if impacto.medida %}<dt>{% translate "Medida" %}</dt><dd class="pre">{{ impacto.medida }}</dd>{% endif %}
         <dt>{% translate "Responsable" %}</dt><dd>{{ impacto.responsable.display_name|default:"—" }}{% if impacto.responsable_categoria %} · {{ impacto.responsable_categoria }}{% endif %}</dd>
         <dt>{% translate "Fecha compromiso" %}</dt><dd>{{ impacto.fecha_compromiso|date:"SHORT_DATE_FORMAT"|default:"—" }}</dd>
-        <dt>{% translate "Criterio de cierre" %}</dt>
+        <dt>{% translate "Criterio de cierre" %} {% ayuda "criterio_cierre" %}</dt>
         <dd>{% if impacto.tiene_criterio_cierre %}{{ impacto.criterio_evidencia }}{% if impacto.criterio_meta is not None %} · {% translate "meta" %} {{ impacto.criterio_meta|floatformat:"-2" }}{% endif %} — {{ impacto.criterio_descripcion }}{% else %}<span class="muted">{% translate "Sin definir" %}</span>{% endif %}</dd>
-        <dt>{% translate "Certificación del líder" %}</dt><dd>{{ impacto.requiere_certificacion_lider|yesno:"Sí,No" }}</dd>
+        <dt>{% translate "Certificación del líder" %} {% ayuda "certificacion_lider" %}</dt><dd>{{ impacto.requiere_certificacion_lider|yesno:"Sí,No" }}</dd>
       </dl>
     </section>
   </div>
 
   {% if verificacion %}
   <section class="panel" id="verificacion">
-    <h2>{% translate "Verificación de competencias" %}</h2>
+    <h2>{% translate "Verificación de competencias" %} {% ayuda "verificacion" %}</h2>
     <p class="muted small">{% if impacto.grupo %}{% blocktranslate with g=impacto.grupo %}Personas del grupo {{ g }}.{% endblocktranslate %}{% endif %}
       {% if impacto.criterio_meta is not None %}{% translate "Meta del criterio de cierre" %}: {{ impacto.criterio_meta|floatformat:"-2" }}.{% endif %}</p>
     <ul class="list">{% for v in verificacion %}
@@ -145,7 +145,7 @@
     {% endif %}
     <div class="grid-2">
       <div>
-        <h3>{% translate "Depende de" %}</h3>
+        <h3>{% translate "Depende de" %} {% ayuda "dependencia" %}</h3>
         {% if dependencias %}<ul class="list">
           {% for d in dependencias %}<li>
             <span><a href="{% url 'matriz:detalle' request.client.slug d.depende_de.numero %}">{{ d.depende_de.codigo }} · {{ d.depende_de.titulo }}</a>

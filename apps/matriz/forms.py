@@ -246,7 +246,7 @@ class ComentarioForm(forms.ModelForm):
     class Meta:
         model = Comentario
         fields = ["texto"]
-        widgets = {"texto": forms.Textarea(attrs={"rows": 2})}
+        widgets = {"texto": forms.Textarea(attrs={"rows": 2, "aria-label": _("Comentario")})}
         labels = {"texto": ""}
 
 
@@ -298,6 +298,11 @@ class FiltroForm(forms.Form):
         super().__init__(*args, **kwargs)
         self.fields["grupo"].queryset = GrupoImpactado.objects.all()
         self.fields["tiempo"].queryset = SystemCatalogItem.objects.of(SystemCatalog.TIEMPO)
+        # Dropdowns filter as soon as they change (list and board alike); the text search
+        # waits for Enter or "Filtrar" so the page doesn't reload while typing.
+        for name, field in self.fields.items():
+            if name != "q":
+                field.widget.attrs["onchange"] = "this.form.submit()"
 
     def filter(self, qs):
         from django.db.models import Q

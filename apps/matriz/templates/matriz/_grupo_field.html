@@ -9,7 +9,7 @@
     <details class="inline-create"{% if grupo_error %} open{% endif %}>
       <summary>{% translate "+ Nuevo grupo" %}</summary>
       <div class="row">
-        <input type="text" name="nuevo_grupo" placeholder="{% translate 'Nombre del grupo' %}" maxlength="150">
+        <input type="text" name="nuevo_grupo" placeholder="{% translate 'Nombre del grupo' %}" aria-label="{% translate 'Nombre del grupo nuevo' %}" maxlength="150">
         <button type="button" class="btn"
                 hx-post="{% url 'matriz:crear_grupo' request.client.slug %}"
                 hx-include="#grupo-field"

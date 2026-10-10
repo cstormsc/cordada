@@ -1,3 +1,4 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% block title %}{% translate "Otra cuenta" %} · Cordada{% endblock %}
 {% block content %}<h1>{% translate "Otra cuenta" %}</h1><p>{% blocktranslate with email=invitation.email %}Esta invitación es para {{ email }}. Sal de tu sesión y entra con esa cuenta.{% endblocktranslate %}</p>{% endblock %}

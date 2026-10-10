@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n guia %}
+{% block title %}{{ lista.titulo }} · {{ request.client.name }}{% endblock %}
 {% block content %}
   <p><a href="{% url 'formularios:evaluar_index' request.client.slug %}">← {% translate "Mis evaluaciones" %}</a></p>
   <h1>{{ lista.titulo }}</h1>
@@ -30,7 +31,7 @@
 
   {% if evaluaciones %}
   <section class="panel attention">
-    <h2>{% translate "Firma" %}</h2>
+    <h2>{% translate "Firma" %} {% ayuda "resumen_firmado" %}</h2>
     {% if faltan %}<p class="muted small">{% blocktranslate count n=faltan|length %}Falta evaluar a {{ n }} persona.{% plural %}Falta evaluar a {{ n }} personas.{% endblocktranslate %}</p>{% endif %}
     {% if pendientes_firma %}
       <ol>

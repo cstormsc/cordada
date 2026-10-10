@@ -1,13 +1,42 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n guia dashboard_tags %}
 {% block title %}{{ request.client.name }} · Cordada{% endblock %}
 {% block content %}
   <h1>{{ request.client.name }}</h1>
   <div class="row">
-    <p class="muted">{% translate "Tu rol" %}: {{ request.membership.get_role_display }}</p>
+    <p class="muted">{% translate "Tu rol" %}: {{ request.membership.get_role_display }}{% ayuda "rol_"|add:request.membership.role %}</p>
     {% if can_configure %}<a href="{% url 'catalogs:index' request.client.slug %}">{% translate "Configuración" %}</a>
     {% elif can_assign_groups %}<a href="{% url 'catalogs:personas' request.client.slug %}">{% translate "Personas y grupos" %}</a>{% endif %}
   </div>
+  {% with p=para_ti %}
+  <section class="panel para-ti" aria-labelledby="para-ti-h">
+    <h2 id="para-ti-h">{% translate "Para ti" %}</h2>
+    <div class="para-ti-body">
+      {% if p.avance and p.avance.result.value is not None %}
+        <a class="para-ti-avance" href="{% url 'dashboard:index' request.client.slug %}">
+          <span class="muted small">{% translate "Avance general del proyecto" %}</span>
+          <span class="para-ti-valor">{% tile_value p.avance %}</span>
+          {% status_chip p.avance.status %}
+        </a>
+      {% endif %}
+      <div class="para-ti-main">
+        {% if p.items %}
+          <ul class="para-ti-items">
+            {% for i in p.items %}<li class="{{ i.tono }}"><a href="{{ i.url }}"><strong>{{ i.n }}</strong> {{ i.texto }}</a></li>{% endfor %}
+          </ul>
+        {% endif %}
+        {% if p.mios %}
+          <h3>{% blocktranslate count n=p.semana %}A tu cargo: vencido o en los próximos {{ n }} día{% plural %}A tu cargo: vencido o en los próximos {{ n }} días{% endblocktranslate %}</h3>
+          <ul class="list small">
+            {% for m in p.mios %}<li><a href="{{ m.url }}">{{ m.codigo }} · {{ m.titulo }}</a><span class="{% if m.vencido %}error{% else %}muted{% endif %} nowrap">{{ m.cuando }}</span></li>{% endfor %}
+          </ul>
+        {% endif %}
+        {% if not p.items and not p.mios %}<p class="muted"><span class="status status-good"><span class="status-icon" aria-hidden="true">✓</span>{% translate "Todo al día" %}</span> {% translate "No tienes pendientes ahora." %}</p>{% endif %}
+      </div>
+    </div>
+  </section>
+  {% endwith %}
+
   <ul class="cards">
     {% for module in modules %}
       {% if module == "matriz" and module_links.matriz %}

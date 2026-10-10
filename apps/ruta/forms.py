@@ -140,7 +140,10 @@ def _frente_qs():
 class FiltroForm(forms.Form):
     q = forms.CharField(label=_("Buscar"), required=False)
     frente = forms.ModelChoiceField(
-        label=_("Frente"), queryset=None, required=False, empty_label=_("Todos")
+        label=_("Frente"),
+        queryset=None,
+        required=False,
+        empty_label=_("Todos"),
     )
     tiempo = forms.ModelChoiceField(
         label=_("Tiempo"), queryset=None, required=False, empty_label=_("Todos")
@@ -161,6 +164,11 @@ class FiltroForm(forms.Form):
 
     def __init__(self, *args, grupos=None, **kwargs):
         super().__init__(*args, **kwargs)
+        # Dropdowns and the checkbox filter as soon as they change; the text search
+        # waits for Enter or "Filtrar" so the page doesn't reload while typing.
+        for name, field in self.fields.items():
+            if name != "q":
+                field.widget.attrs["onchange"] = "this.form.submit()"
         self.fields["frente"].queryset = _frente_qs()
         self.fields["tiempo"].queryset = _tiempo_qs()
         self.fields["grupo"].queryset = (

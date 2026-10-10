@@ -50,3 +50,23 @@ def test_stylesheet_url_changes_with_the_file(client):
 
     body = client.get("/entrar/").content.decode()
     assert re.search(r'href="/static/css/app\.css\?v=\d+"', body)
+
+
+def test_every_page_template_sets_its_own_tab_title():
+    from pathlib import Path
+
+    from django.conf import settings
+
+    missing = [
+        str(p.relative_to(settings.BASE_DIR))
+        for p in Path(settings.BASE_DIR).glob("**/templates/**/*.html")
+        if 'extends "base.html"' in (text := p.read_text()) or 'extends "public_base.html"' in text
+        if "block title" not in text
+    ]
+    assert missing == []
+
+
+def test_favicon(client):
+    response = client.get("/favicon.ico")
+    assert response.status_code == 301 and response.url.endswith("img/favicon.svg")
+    assert 'rel="icon"' in client.get("/entrar/").content.decode()

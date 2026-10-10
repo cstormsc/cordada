@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% block title %}{% if c %}{% translate "Configurar" %} {{ c.codigo }}{% else %}{% translate "Nuevo cuestionario" %}{% endif %} · {{ request.client.name }}{% endblock %}
 {% block content %}
 <div class="narrow-wide">
   <p>{% if c %}<a href="{% url 'formularios:cuestionario' request.client.slug c.numero %}">← {{ c.codigo }}</a>{% else %}<a href="{% url 'formularios:index' request.client.slug %}">← {% translate "Formularios" %}</a>{% endif %}</p>

@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
+from apps.catalogs.models import SystemCatalog, SystemCatalogItem
 from apps.core.decorators import client_member_required, client_permission_required
 from apps.core.models import Module, Role
 from apps.core.permissions import Action, can
@@ -62,6 +63,7 @@ def index(request, client_slug):
         for code, label in ind.FRENTES
     }
     general = next((t for t in tiles if t.indicator.key == ind.GENERAL), None)
+    frente_items = {i.code: i for i in SystemCatalogItem.objects.of(SystemCatalog.FRENTE)}
     readiness = ind.readiness_by_group(ctx)
     verde, amarillo = ind.threshold("tr_preparacion")
 
@@ -70,6 +72,7 @@ def index(request, client_slug):
         if mod in frentes:
             m["template"], (m["nombre"], m["tiles"]) = "dashboard/mod/frente.html", frentes[mod]
             m["empty"] = not m["tiles"]
+            m["item"] = frente_items.get(mod)  # its methodology text, for the "?"
         if mod == "avance":
             m["tile"], m["empty"] = general, general is None  # deactivated in configuration
         return m

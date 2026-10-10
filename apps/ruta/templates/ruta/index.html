@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n ruta_tags %}
+{% load i18n ruta_tags guia %}
 {% block title %}{% translate "Ruta" %} · {{ request.client.name }}{% endblock %}
 {% block content %}
   <p><a href="{% url 'client_home' request.client.slug %}">← {{ request.client.name }}</a></p>
@@ -18,9 +18,9 @@
   {% if resumen %}
   <ul class="stats">
     <li><strong>{{ resumen.total }}</strong> {% translate "actividades" %}</li>
-    <li class="{% if resumen.no_realizadas %}alert{% endif %}"><a href="?cumplimiento=no_realizada"><strong>{{ resumen.no_realizadas }}</strong> {% translate "no realizadas (vencidas)" %}</a></li>
-    <li class="{% if resumen.huerfanas %}warn{% endif %}"><a href="?huerfanas=on"><strong>{{ resumen.huerfanas }}</strong> {% translate "huérfanas (sin impacto)" %}</a></li>
-    <li class="{% if resumen.descubiertos %}warn{% endif %}"><a href="{% url 'matriz:index' request.client.slug %}?alerta=descubiertos"><strong>{{ resumen.descubiertos }}</strong> {% translate "impactos descubiertos" %}</a></li>
+    <li class="{% if resumen.no_realizadas %}alert{% endif %}"><a href="?cumplimiento=no_realizada"><strong>{{ resumen.no_realizadas }}</strong> {% translate "no realizadas (vencidas)" %}</a>{% ayuda "no_realizada" %}</li>
+    <li class="{% if resumen.huerfanas %}warn{% endif %}"><a href="?huerfanas=on"><strong>{{ resumen.huerfanas }}</strong> {% translate "huérfanas (sin impacto)" %}</a>{% ayuda "huerfana" %}</li>
+    <li class="{% if resumen.descubiertos %}warn{% endif %}"><a href="{% url 'matriz:index' request.client.slug %}?alerta=descubiertos"><strong>{{ resumen.descubiertos }}</strong> {% translate "impactos descubiertos" %}</a>{% ayuda "descubierto" %}</li>
   </ul>
   {% endif %}
 
@@ -35,7 +35,7 @@
     <thead><tr>
       <th>{% translate "ID" %}</th><th>{% translate "Actividad" %}</th><th>{% translate "Frente" %}</th>
       <th>{% translate "Grupos" %}</th><th>{% translate "Planificada" %}</th><th>{% translate "Real" %}</th>
-      <th>{% translate "Estado" %}</th><th>{% translate "Cumplimiento" %}</th><th>{% translate "Responsable" %}</th>
+      <th>{% translate "Estado" %}</th><th>{% translate "Cumplimiento" %} {% ayuda "cumplimiento" %}</th><th>{% translate "Responsable" %}</th>
     </tr></thead>
     <tbody>
     {% for a in actividades %}

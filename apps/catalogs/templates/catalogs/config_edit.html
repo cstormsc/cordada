@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% block title %}{{ item.name }} · {% translate "Configuración" %} · {{ request.client.name }}{% endblock %}
 {% block content %}
 <div class="narrow">
   <p><a href="{% url 'catalogs:list' request.client.slug catalog %}">← {{ name|capfirst }}</a></p>

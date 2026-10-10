@@ -1,8 +1,9 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n guia %}
+{% block title %}{% translate "Enlaces personales" %} · {{ c.codigo }} · {{ request.client.name }}{% endblock %}
 {% block content %}
   <p><a href="{% url 'formularios:cuestionario' request.client.slug c.numero %}">← {{ c.codigo }}</a></p>
-  <h1>{% translate "Enlaces personales" %}</h1>
+  <h1>{% translate "Enlaces personales" %} {% ayuda "enlace_personal" %}</h1>
   <p class="muted">{% translate "Un enlace por persona. En esta etapa, exporta el archivo y envíalo desde el correo del cliente; la invitación debe decir que las respuestas son confidenciales, no anónimas." %}</p>
   <p class="muted">{% blocktranslate count dias=enlace_dias %}Cada enlace vale {{ dias }} día desde que se exporta (o hasta el cierre del cuestionario, si es antes). Si vence, expórtalo de nuevo.{% plural %}Cada enlace vale {{ dias }} días desde que se exporta (o hasta el cierre del cuestionario, si es antes). Si vence, expórtalo de nuevo.{% endblocktranslate %}</p>
   <div class="grid-2">

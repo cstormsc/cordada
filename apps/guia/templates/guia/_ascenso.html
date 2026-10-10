@@ -1,12 +1,15 @@
 <div class="ascent">
-  <svg viewBox="0 0 800 150" aria-hidden="true" focusable="false">
-    <path d="M0 150 L120 110 L210 120 L330 70 L420 85 L560 30 L640 50 L720 18 L800 40 L800 150 Z" fill="#e4effb"/>
-    <path d="M720 18 L735 30 L724 28 L712 33 L704 28 Z" fill="#fff"/>
-    <path d="M100 125 C 180 118, 200 108, 300 92 S 450 70, 520 52 S 650 36, 715 26" fill="none" stroke="#c8763a" stroke-width="2.5" stroke-dasharray="6 5" stroke-linecap="round"/>
-    <g fill="#384959"><circle cx="100" cy="125" r="6"/><circle cx="300" cy="92" r="6"/><circle cx="520" cy="52" r="6"/></g>
-    <g fill="#c8763a"><circle cx="715" cy="26" r="7"/><path d="M715 26 V4 L731 9 L715 14"/></g>
+  {# Four stops over the four label columns (x = 100, 300, 500, 700). Cumbre is the summit and #}
+  {# the goal, with the flag; Legado is the way down the other side, making the change stay.  #}
+  <svg viewBox="0 0 800 170" aria-hidden="true" focusable="false">
+    <path d="M0 170 L70 150 L160 132 L240 118 L300 106 L370 82 L440 58 L500 34 L555 56 L620 80 L690 104 L750 122 L800 132 L800 170 Z" fill="#e4effb"/>
+    <path d="M500 34 L517 47 L506 45 L497 50 L489 45 L482 48 Z" fill="#fff"/>
+    <path d="M100 141 C 170 135, 230 121, 300 108 S 446 64, 497 41" fill="none" stroke="#c8763a" stroke-width="2.5" stroke-dasharray="6 5" stroke-linecap="round"/>
+    <path d="M503 41 C 548 58, 612 80, 700 104" fill="none" stroke="#c8763a" stroke-width="2.5" stroke-dasharray="2 6" stroke-linecap="round" stroke-opacity="0.75"/>
+    <g fill="#384959"><circle cx="100" cy="141" r="6"/><circle cx="300" cy="108" r="6"/><circle cx="700" cy="104" r="6"/></g>
+    <g><path d="M500 40 V6" stroke="#384959" stroke-width="2" stroke-linecap="round"/><path d="M501 6 L524 12 L501 18 Z" fill="#c8763a"/><circle cx="500" cy="40" r="7.5" fill="#c8763a"/></g>
   </svg>
   <ol class="camps" style="list-style:none;padding:0;margin:.25rem 0 1rem">
-    {% for t in tiempos %}<li{% if forloop.last %} class="last"{% endif %}><b>{{ t.label }}</b>{% if t.pregunta %}<span class="muted">{{ t.pregunta|capfirst }}</span>{% endif %}</li>{% endfor %}
+    {% for t in tiempos %}<li{% if t.code == "cumbre" %} class="summit"{% endif %}><b>{{ t.label }}</b>{% if t.pregunta %}<span class="muted">{{ t.pregunta|capfirst }}</span>{% endif %}</li>{% endfor %}
   </ol>
 </div>

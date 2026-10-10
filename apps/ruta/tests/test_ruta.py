@@ -1,5 +1,6 @@
 import datetime
 import io
+import re
 
 import pytest
 from openpyxl import load_workbook
@@ -231,6 +232,13 @@ class TestViews:
         assert ws.cell(2, 1).value == "ACT-001"
         assert ws.cell(2, 2).value == "'@SUM(1)"
         assert ws.cell(2, 11).value == "Hecha a tiempo"
+
+    def test_filters_apply_on_change_except_the_text_search(self, client, equipo):
+        client.force_login(equipo)
+        body = client.get("/c/acme/ruta/").content.decode()
+        auto = re.findall(r'name="(\w+)"[^>]*onchange="this.form.submit\(\)"', body)
+        assert sorted(auto) == ["cumplimiento", "estado", "frente", "grupo", "huerfanas", "tiempo"]
+        assert 'name="q"' in body
 
     def test_orphan_filter(self, client, equipo, make_actividad, make_impacto):
         make_actividad(titulo="Con impacto", impactos=[make_impacto()])

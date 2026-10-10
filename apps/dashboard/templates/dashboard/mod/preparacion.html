@@ -1,6 +1,6 @@
-{% load i18n %}
+{% load i18n guia %}
     <div class="panel chart-card">
-      <h2 id="mod-preparacion">{% translate "Índice de preparación por grupo" %} <span class="tag small">{% translate "provisional" %}</span></h2>
+      <h2 id="mod-preparacion">{% translate "Índice de preparación por grupo" %} {% ayuda "indice_preparacion" %} <span class="tag small">{% translate "provisional" %}</span></h2>
       <p class="muted small">{% translate "0 a 100." %}{% if chart_readiness.threshold is not None %} {% blocktranslate with u=chart_readiness.threshold|floatformat:"-2" %}La línea vertical marca el umbral de atención ({{ u }}).{% endblocktranslate %}{% endif %}</p>
       <div class="chart" id="chart-readiness" role="img" aria-label="{% translate 'Índice de preparación por grupo' %}"></div>
       <details><summary>{% translate "Ver tabla" %}</summary>

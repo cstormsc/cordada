@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n guia %}
+{% block title %}{% translate "Personas" %} · {% translate "Configuración" %} · {{ request.client.name }}{% endblock %}
 {% block content %}
   <p>{% if can_configure %}<a href="{% url 'catalogs:index' request.client.slug %}">← {% translate "Configuración" %}</a>{% else %}<a href="{% url 'client_home' request.client.slug %}">← {{ request.client.name }}</a>{% endif %}</p>
   <h1>{% translate "Personas" %}</h1>
@@ -9,7 +10,7 @@
       <div class="row">
         <div><strong>{{ m.user.display_name }}</strong> <span class="muted">{{ m.user.email }}</span>
           {% if m.puesto %}<div class="small">{{ m.puesto }}</div>{% endif %}</div>
-        <span class="tag">{{ m.get_role_display }}</span>
+        <span><span class="tag">{{ m.get_role_display }}</span>{% ayuda "rol_"|add:m.role %}</span>
       </div>
       <form method="post" action="{% url 'catalogs:persona_grupos' request.client.slug m.pk %}" class="form">
         {% csrf_token %}

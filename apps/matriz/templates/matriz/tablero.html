@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n static assets %}
+{% load i18n static assets guia %}
 {% block title %}{% translate "Tablero de impactos" %} · {{ request.client.name }}{% endblock %}
 {% block head %}
   <script src="{% static 'vendor/sortable.min.js' %}" defer></script>
@@ -25,6 +25,8 @@
   </form>
   {% if can_edit %}<p class="muted small">{% translate "Arrastra una tarjeta para cambiar su estado. Solo se iluminan las columnas permitidas." %}</p>{% endif %}
 
+  <p class="muted small leyenda">{% translate "Marcas en las tarjetas" %}: {% translate "Bloqueado" %} {% ayuda "bloqueado" %} · {% translate "Extrema" %} {% ayuda "severidad_extrema" %} · {% translate "P1 sin criterio" %} {% ayuda "p1_sin_criterio" %} · {% translate "Descubierto" %} {% ayuda "descubierto" %}</p>
+
   <div id="board-msg" class="board-msg" aria-live="polite"></div>
   {% include "matriz/_tablero_columnas.html" %}
 
@@ -33,7 +35,7 @@
     <form method="dialog">
       <h2 id="reason-title">{% translate "Motivo" %}</h2>
       <p class="muted small">{% translate "Este cambio de estado requiere un motivo; queda en el historial." %}</p>
-      <textarea name="motivo" rows="3" required></textarea>
+      <textarea name="motivo" rows="3" aria-label="{% translate 'Motivo' %}" required></textarea>
       <div class="row">
         <button value="cancel" formnovalidate class="btn secondary">{% translate "Cancelar" %}</button>
         <button value="ok" class="btn">{% translate "Confirmar" %}</button>

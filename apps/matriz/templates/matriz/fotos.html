@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% block title %}{% translate "Fotos por etapa" %} · {{ request.client.name }}{% endblock %}
 {% block content %}
   <p><a href="{% url 'matriz:tablero' request.client.slug %}">← {% translate "Matriz de Impactos" %}</a></p>
   <h1>{% translate "Fotos de la matriz por etapa" %}</h1>

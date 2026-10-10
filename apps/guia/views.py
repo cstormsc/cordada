@@ -11,7 +11,7 @@ from apps.core.models import Module
 from apps.core.permissions import Action, can
 from apps.scoring import rules
 
-from . import anchors
+from . import anchors, glosario
 from .forms import DocumentoForm
 from .models import Documento, Plantilla, Tema
 
@@ -88,6 +88,7 @@ def index(request, client_slug):
         "guia/index.html",
         {
             "temas": Tema.objects.filter(is_active=True),
+            "glosario": glosario.SECCIONES,
             "catalogos": _catalogos(),
             "escalas": scales,
             "calculos": _calculos(scales),

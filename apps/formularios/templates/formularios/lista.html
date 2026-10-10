@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% block title %}{{ lista.titulo }} · {{ request.client.name }}{% endblock %}
 {% block content %}
   <p><a href="{% url 'formularios:listas' request.client.slug %}">← {% translate "Evaluación práctica" %}</a></p>
   <div class="row">
