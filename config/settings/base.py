@@ -9,6 +9,12 @@ env = environ.Env()
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=[])
+# Sites that may post forms over HTTPS, e.g. "https://*.trycloudflare.com" for a tunnel.
+CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS", default=[])
+# Behind a tunnel or proxy that terminates HTTPS, trust its X-Forwarded-Proto header so
+# links built for emails (invitations) start with https://. Only set it behind one.
+if env.bool("DJANGO_BEHIND_HTTPS_PROXY", default=False):
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 INSTALLED_APPS = [
     "django.contrib.admin",

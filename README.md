@@ -25,12 +25,28 @@ son relativas al día en que se ejecuta, así que conviene recrearla justo antes
 cuenta indicada entra como Administración; el resto de las personas no tiene contraseña
 (`apps/plataforma/demo.py`).
 
+## Compartir el entorno local (túnel)
+
+Para que alguien fuera de tu red use la app mientras tu computador está encendido:
+
+```sh
+brew install cloudflared                               # una vez
+cloudflared tunnel --url http://localhost:8000         # muestra una dirección https://….trycloudflare.com
+```
+
+`.env` debe aceptar esa dirección (ver `.env.example`: `DJANGO_ALLOWED_HOSTS`,
+`DJANGO_CSRF_TRUSTED_ORIGINS`, `DJANGO_BEHIND_HTTPS_PROXY`). La dirección cambia cada vez y el
+acceso termina al cerrar `cloudflared` (Ctrl+C). Comparte solo clientes de demostración: con
+`DJANGO_DEBUG=true` un error muestra detalles técnicos.
+
 ## Respaldos
 
 Con `make up` corre también el servicio `backup`: al arrancar y luego cada
 `BACKUP_INTERVAL_HOURS` (24) guarda en `./backups` la base de datos
 (`cordada-<fecha>.dump`) y los archivos subidos (`cordada-<fecha>-media.tar.gz`), y borra
-los de más de `BACKUP_KEEP_DAYS` (14) días. Solo respalda mientras Docker está corriendo.
+los de más de `BACKUP_KEEP_DAYS` (14) días. Solo respalda mientras Docker está corriendo. Si un
+respaldo falla (por ejemplo, la base aún no arranca tras reactivar el computador), lo registra como
+`backup FAILED` y reintenta a los 10 minutos; nunca deja un archivo vacío.
 
 Restaurar (con la app detenida: `docker compose stop web`):
 
