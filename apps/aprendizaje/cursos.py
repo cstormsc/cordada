@@ -6,7 +6,9 @@ from django.utils.translation import gettext as _
 
 from apps.formularios.models import EstadoCuestionario
 
-from .models import TipoLeccion
+from .models import TipoBloque
+
+T = TipoBloque
 
 
 def dependency_graph(curso):
@@ -32,15 +34,28 @@ def creates_cycle(graph, leccion_id, depende_de_ids):
     return False
 
 
-def lesson_errors(leccion):
-    """Content a lesson needs for its type."""
-    if leccion.tipo == TipoLeccion.TEXTO and not leccion.contenido.strip():
-        return [_("escribe el contenido")]
-    if leccion.tipo == TipoLeccion.VIDEO and not leccion.url:
+def block_errors(bloque, items=()):
+    """What a block still needs for its type. `items`: (titulo, texto) of its steps or
+    sections."""
+    if bloque.tipo in (T.TEXTO, T.NOTA) and not bloque.texto.strip():
+        return [_("escribe el texto")]
+    if bloque.tipo == T.IMAGEN and not bloque.archivo:
+        return [_("sube la imagen")]
+    if bloque.tipo == T.VIDEO and not bloque.url:
         return [_("pega el enlace del video")]
-    if leccion.tipo == TipoLeccion.DOCUMENTO and not (leccion.archivo or leccion.url):
+    if bloque.tipo == T.DOCUMENTO and not (bloque.archivo or bloque.url):
         return [_("sube el documento o pega su enlace")]
+    if bloque.tipo == T.PASOS and len(items) < 2:
+        return [_("agrega al menos dos pasos")]
+    if bloque.tipo == T.ACORDEON and not items:
+        return [_("agrega al menos una sección")]
+    if bloque.tipo == T.ACORDEON and not all(titulo for titulo, _texto in items):
+        return [_("cada sección necesita un título")]
     return []
+
+
+def _items(bloque):
+    return [(i.titulo, i.texto) for i in bloque.items.all()]
 
 
 def publish_errors(curso):
@@ -50,8 +65,12 @@ def publish_errors(curso):
         return [_("Agrega al menos una lección.")]
     errors = []
     for i, leccion in enumerate(lecciones, start=1):
-        for e in lesson_errors(leccion):
-            errors.append(_("Lección %(n)s: %(e)s.") % {"n": i, "e": e})
+        bloques = list(leccion.bloques.prefetch_related("items"))
+        if not bloques:
+            errors.append(_("Lección %(n)s: agrega al menos un bloque.") % {"n": i})
+        for j, bloque in enumerate(bloques, start=1):
+            for e in block_errors(bloque, _items(bloque)):
+                errors.append(_("Lección %(n)s, bloque %(b)s: %(e)s.") % {"n": i, "b": j, "e": e})
     if curso.evaluacion_id and curso.evaluacion.estado != EstadoCuestionario.PUBLICADO:
         errors.append(
             _("La evaluación %(c)s debe estar publicada en Formularios.")
@@ -67,16 +86,16 @@ def publish_errors(curso):
     return errors
 
 
-def renumber(curso, ids=None):
-    """Sets orden 1..n, following `ids` (lesson ids in the new order) when given."""
-    lecciones = {leccion.pk: leccion for leccion in curso.lecciones.all()}
-    order = [pk for pk in (ids or []) if pk in lecciones]
-    order += [pk for pk in lecciones if pk not in order]
+def renumber(queryset, ids=None):
+    """Sets orden 1..n on the rows (lessons, blocks), following `ids` when given."""
+    rows = {row.pk: row for row in queryset}
+    order = [pk for pk in (ids or []) if pk in rows]
+    order += [pk for pk in rows if pk not in order]
     for i, pk in enumerate(order, start=1):
-        leccion = lecciones[pk]
-        if leccion.orden != i:
-            leccion.orden = i
-            leccion.save(update_fields=["orden"])
+        row = rows[pk]
+        if row.orden != i:
+            row.orden = i
+            row.save(update_fields=["orden"])
 
 
 def recorrido(curso, vistas=frozenset()):
@@ -104,3 +123,16 @@ def video_embed(url):
     if m := _VIMEO.match(url or ""):
         return f"https://player.vimeo.com/video/{m[1]}" + (f"?h={m[2]}" if m[2] else "")
     return None
+
+
+def para_mostrar(leccion, archivo_url, imagen_url):
+    """The lesson's blocks ready for the page: player URL for videos and the URLs the
+    files are served at (they differ between the preview and the person's link)."""
+    bloques = list(leccion.bloques.prefetch_related("items"))
+    for b in bloques:
+        b.embed = video_embed(b.url) if b.tipo == T.VIDEO else None
+        b.archivo_url = archivo_url(b) if b.archivo else None
+        b.lista = list(b.items.all())
+        for item in b.lista:
+            item.imagen_url = imagen_url(item) if item.imagen else None
+    return bloques

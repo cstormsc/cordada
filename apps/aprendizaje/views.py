@@ -17,8 +17,8 @@ from apps.core.models import Module
 from apps.core.permissions import Action, role_actions
 
 from . import cursos
-from .forms import CursoForm, LeccionForm
-from .models import Curso, EstadoCurso, Leccion
+from .forms import BLOCK_HELP, BloqueForm, CursoForm, LeccionForm, item_formset, kept_items
+from .models import CON_ITEMS, Bloque, BloqueItem, Curso, EstadoCurso, Leccion, TipoBloque
 
 A = Action
 
@@ -88,7 +88,11 @@ def editar(request, client_slug, numero):
 def curso(request, client_slug, numero):
     _require(request, A.EDIT, A.DESIGN)
     c = _curso(numero)
-    lecciones = list(c.lecciones.prefetch_related("depende_de"))
+    lecciones = list(c.lecciones.prefetch_related("depende_de", "bloques"))
+    for leccion in lecciones:
+        bloques = list(leccion.bloques.all())
+        leccion.n_bloques = len(bloques)
+        leccion.tipos = list(dict.fromkeys(str(b.get_tipo_display()) for b in bloques))
     return render(
         request,
         "aprendizaje/curso.html",
@@ -103,8 +107,26 @@ def curso(request, client_slug, numero):
     )
 
 
+def _curso_url(client_slug, numero):
+    return reverse("aprendizaje:curso", kwargs={"client_slug": client_slug, "numero": numero})
+
+
+def _leccion_url(client_slug, numero, pk):
+    return reverse(
+        "aprendizaje:leccion", kwargs={"client_slug": client_slug, "numero": numero, "pk": pk}
+    )
+
+
+def _json_ids(request):
+    try:
+        return [int(pk) for pk in json.loads(request.body)["ids"]]
+    except (ValueError, KeyError, TypeError):
+        return None
+
+
 @client_member_required
 def leccion(request, client_slug, numero, pk=None):
+    """New lesson (its settings), or an existing one: its settings and its blocks."""
     _require(request, A.DESIGN)
     c = _curso(numero)
     if pk is None and (resp := _draft_or_redirect(request, c, client_slug)) is not None:
@@ -114,18 +136,30 @@ def leccion(request, client_slug, numero, pk=None):
         if pk
         else Leccion(curso=c, orden=c.lecciones.count() + 1)
     )
-    form = LeccionForm(request.POST or None, request.FILES or None, instance=obj, curso=c)
+    form = LeccionForm(request.POST or None, instance=obj, curso=c)
     if request.method == "POST" and form.is_valid():
+        is_new = obj.pk is None
         obj = form.save()
+        if is_new:
+            messages.success(request, _("Lección creada. Ahora agrégale bloques."))
+            return redirect(_leccion_url(client_slug, numero, obj.pk))
         messages.success(request, _("Lección guardada."))
         return redirect(f"{_curso_url(client_slug, numero)}#l{obj.pk}")
+    bloques = list(obj.bloques.prefetch_related("items")) if obj.pk else []
+    for b in bloques:
+        b.errores = cursos.block_errors(b, [(i.titulo, i.texto) for i in b.items.all()])
     return render(
-        request, "aprendizaje/leccion_form.html", {"curso": c, "leccion": obj, "form": form}
+        request,
+        "aprendizaje/leccion_form.html",
+        {
+            "curso": c,
+            "leccion": obj,
+            "form": form,
+            "bloques": bloques,
+            "tipos": TipoBloque.choices,
+            "tipo_help": BLOCK_HELP,
+        },
     )
-
-
-def _curso_url(client_slug, numero):
-    return reverse("aprendizaje:curso", kwargs={"client_slug": client_slug, "numero": numero})
 
 
 @client_member_required
@@ -137,7 +171,7 @@ def borrar_leccion(request, client_slug, numero, pk):
         return resp
     with transaction.atomic():
         get_object_or_404(Leccion.objects, curso=c, pk=pk).delete()
-        cursos.renumber(c)
+        cursos.renumber(c.lecciones.all())
     messages.success(request, _("Lección eliminada."))
     return redirect("aprendizaje:curso", client_slug=client_slug, numero=numero)
 
@@ -150,31 +184,114 @@ def ordenar(request, client_slug, numero):
     c = _curso(numero)
     if not c.is_draft:
         return HttpResponseBadRequest(_("El curso ya está publicado."))
-    try:
-        ids = [int(pk) for pk in json.loads(request.body)["ids"]]
-    except (ValueError, KeyError, TypeError):
+    if (ids := _json_ids(request)) is None:
         return HttpResponseBadRequest()
     with transaction.atomic():
-        cursos.renumber(c, ids)
+        cursos.renumber(c.lecciones.all(), ids)
     return HttpResponse(status=204)
 
 
+# --- Blocks (content can change after publishing: progress is kept per lesson) ---
+
+
+def _leccion(numero, pk):
+    return get_object_or_404(Leccion.objects.select_related("curso"), curso__numero=numero, pk=pk)
+
+
 @client_member_required
-def archivo(request, client_slug, numero, pk):
-    _require(request, A.EDIT, A.DESIGN)
-    leccion = get_object_or_404(Leccion.objects, curso__numero=numero, pk=pk)
-    if not leccion.archivo:
+def bloque(request, client_slug, numero, pk, bloque_pk=None, tipo=None):
+    _require(request, A.DESIGN)
+    lec = _leccion(numero, pk)
+    if bloque_pk:
+        obj = get_object_or_404(Bloque.objects, leccion=lec, pk=bloque_pk)
+    elif tipo in TipoBloque.values:
+        obj = Bloque(leccion=lec, tipo=tipo, orden=lec.bloques.count() + 1)
+    else:
         raise Http404
-    ext = os.path.splitext(leccion.archivo.name)[1]
-    return FileResponse(
-        leccion.archivo.open("rb"), as_attachment=True, filename=f"{leccion.titulo}{ext}"
+    data, files = (request.POST, request.FILES) if request.method == "POST" else (None, None)
+    form = BloqueForm(data, files, instance=obj)
+    formset = item_formset(obj, data, files) if obj.tipo in CON_ITEMS else None
+    if request.method == "POST" and form.is_valid() and (formset is None or formset.is_valid()):
+        kept = kept_items(formset) if formset else []
+        probe = form.save(commit=False)
+        if errors := cursos.block_errors(probe, [(t, x) for _f, t, x in kept]):
+            form.add_error(None, errors[0][:1].upper() + errors[0][1:] + ".")
+        else:
+            with transaction.atomic():
+                obj = form.save()
+                if formset:
+                    keep = set()
+                    for n, (item_form, _t, _x) in enumerate(kept, start=1):
+                        item = item_form.save(commit=False)
+                        item.bloque, item.orden = obj, n
+                        item.save()
+                        keep.add(item.pk)
+                    obj.items.exclude(pk__in=keep).delete()
+            messages.success(request, _("Bloque guardado."))
+            return redirect(f"{_leccion_url(client_slug, numero, pk)}#b{obj.pk}")
+    return render(
+        request,
+        "aprendizaje/bloque_form.html",
+        {
+            "curso": lec.curso,
+            "leccion": lec,
+            "bloque": obj,
+            "form": form,
+            "formset": formset,
+            "ayuda": BLOCK_HELP.get(obj.tipo),
+        },
     )
+
+
+@client_member_required
+@require_POST
+def borrar_bloque(request, client_slug, numero, pk, bloque_pk):
+    _require(request, A.DESIGN)
+    lec = _leccion(numero, pk)
+    with transaction.atomic():
+        get_object_or_404(Bloque.objects, leccion=lec, pk=bloque_pk).delete()
+        cursos.renumber(lec.bloques.all())
+    messages.success(request, _("Bloque eliminado."))
+    return redirect(_leccion_url(client_slug, numero, pk))
+
+
+@client_member_required
+@require_POST
+def ordenar_bloques(request, client_slug, numero, pk):
+    _require(request, A.DESIGN)
+    lec = _leccion(numero, pk)
+    if (ids := _json_ids(request)) is None:
+        return HttpResponseBadRequest()
+    with transaction.atomic():
+        cursos.renumber(lec.bloques.all(), ids)
+    return HttpResponse(status=204)
+
+
+def _serve(f, name, *, inline):
+    if not f:
+        raise Http404
+    ext = os.path.splitext(f.name)[1]
+    return FileResponse(f.open("rb"), as_attachment=not inline, filename=f"{name}{ext}")
+
+
+@client_member_required
+def archivo(request, client_slug, numero, bloque_pk):
+    _require(request, A.EDIT, A.DESIGN)
+    b = get_object_or_404(Bloque.objects, leccion__curso__numero=numero, pk=bloque_pk)
+    return _serve(b.archivo, b.titulo or b.leccion.titulo, inline=b.tipo == TipoBloque.IMAGEN)
+
+
+@client_member_required
+def imagen(request, client_slug, numero, item_pk):
+    _require(request, A.EDIT, A.DESIGN)
+    item = get_object_or_404(BloqueItem.objects, bloque__leccion__curso__numero=numero, pk=item_pk)
+    return _serve(item.imagen, item.titulo or "imagen", inline=True)
 
 
 # --- Preview: the course as the person will see it ---
 
 
-def _preview_items(request, client_slug, c):
+def _preview_items(client_slug, c):
     items = cursos.recorrido(c)
     for item in items:
         item["url"] = reverse(
@@ -188,7 +305,7 @@ def _preview_items(request, client_slug, c):
 def vista_previa(request, client_slug, numero):
     _require(request, A.EDIT, A.DESIGN)
     c = _curso(numero)
-    items = _preview_items(request, client_slug, c)
+    items = _preview_items(client_slug, c)
     abiertas = [i for i in items if not i["faltan"]]
     return render(
         request,
@@ -208,11 +325,24 @@ def vista_previa(request, client_slug, numero):
 def vista_previa_leccion(request, client_slug, numero, pk):
     _require(request, A.EDIT, A.DESIGN)
     c = _curso(numero)
-    items = _preview_items(request, client_slug, c)
+    items = _preview_items(client_slug, c)
     pos = next((n for n, i in enumerate(items) if i["leccion"].pk == pk), None)
     if pos is None:
         raise Http404
     leccion = items[pos]["leccion"]
+
+    def archivo_url(b):
+        return reverse(
+            "aprendizaje:archivo",
+            kwargs={"client_slug": client_slug, "numero": numero, "bloque_pk": b.pk},
+        )
+
+    def imagen_url(item):
+        return reverse(
+            "aprendizaje:imagen",
+            kwargs={"client_slug": client_slug, "numero": numero, "item_pk": item.pk},
+        )
+
     return render(
         request,
         "aprendizaje/aprende/leccion.html",
@@ -220,6 +350,7 @@ def vista_previa_leccion(request, client_slug, numero, pk):
             "curso": c,
             "item": items[pos],
             "leccion": leccion,
+            "bloques": cursos.para_mostrar(leccion, archivo_url, imagen_url),
             "numero": pos + 1,
             "total": len(items),
             "anterior": items[pos - 1]["url"] if pos else None,
@@ -227,13 +358,6 @@ def vista_previa_leccion(request, client_slug, numero, pk):
             "portada": reverse(
                 "aprendizaje:vista_previa", kwargs={"client_slug": client_slug, "numero": numero}
             ),
-            "embed": cursos.video_embed(leccion.url) if leccion.tipo == "video" else None,
-            "archivo_url": reverse(
-                "aprendizaje:archivo",
-                kwargs={"client_slug": client_slug, "numero": numero, "pk": pk},
-            )
-            if leccion.archivo
-            else None,
             "preview": True,
             "volver": _curso_url(client_slug, numero),
         },

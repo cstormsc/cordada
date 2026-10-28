@@ -6,7 +6,7 @@ from apps.formularios.models import Cuestionario, EstadoCuestionario
 from apps.matriz.models import Estado, Impacto
 
 from . import cursos
-from .models import Curso, Leccion, TipoLeccion
+from .models import IMAGE_EXTENSIONS, Bloque, BloqueItem, Curso, Leccion, TipoBloque
 
 
 class ImpactosField(forms.ModelMultipleChoiceField):
@@ -57,12 +57,6 @@ class CursoForm(forms.ModelForm):
 
 
 class LeccionForm(forms.ModelForm):
-    url = forms.URLField(
-        label=_("Enlace"),
-        required=False,
-        assume_scheme="https",
-        help_text=Leccion._meta.get_field("url").help_text,
-    )
     depende_de = forms.ModelMultipleChoiceField(
         label=_("Depende de"),
         queryset=Leccion.unscoped.none(),
@@ -73,23 +67,7 @@ class LeccionForm(forms.ModelForm):
 
     class Meta:
         model = Leccion
-        fields = [
-            "titulo",
-            "tipo",
-            "contenido",
-            "url",
-            "archivo",
-            "minutos",
-            "obligatoria",
-            "depende_de",
-        ]
-        widgets = {
-            "contenido": forms.Textarea(attrs={"rows": 10}),
-        }
-        help_texts = {
-            "archivo": _("PDF, Office, imagen, CSV o texto. Máximo %(mb)s MB.")
-            % {"mb": MAX_UPLOAD_MB},
-        }
+        fields = ["titulo", "minutos", "obligatoria", "depende_de"]
 
     def __init__(self, *args, curso, **kwargs):
         super().__init__(*args, **kwargs)
@@ -103,15 +81,9 @@ class LeccionForm(forms.ModelForm):
             del self.fields["depende_de"]
         if not curso.is_draft:
             # Published: content can be corrected; the course's structure stays.
-            for name in ("tipo", "obligatoria", "depende_de"):
+            for name in ("obligatoria", "depende_de"):
                 if name in self.fields:
                     self.fields[name].disabled = True
-
-    def clean_archivo(self):
-        archivo = self.cleaned_data.get("archivo")
-        if archivo and archivo.size > MAX_UPLOAD_MB * 1024 * 1024:
-            raise forms.ValidationError(_("El archivo supera %(mb)s MB.") % {"mb": MAX_UPLOAD_MB})
-        return archivo
 
     def clean_depende_de(self):
         deps = self.cleaned_data.get("depende_de")
@@ -126,16 +98,116 @@ class LeccionForm(forms.ModelForm):
                 )
         return deps
 
-    def clean(self):
-        cleaned = super().clean()
-        tipo = cleaned.get("tipo")
-        probe = Leccion(
-            tipo=tipo,
-            contenido=cleaned.get("contenido") or "",
-            url=cleaned.get("url") or "",
-            archivo=cleaned.get("archivo") or self.instance.archivo,
-        )
-        for e in cursos.lesson_errors(probe):
-            field = {TipoLeccion.TEXTO: "contenido", TipoLeccion.VIDEO: "url"}.get(tipo, "archivo")
-            self.add_error(field, e.capitalize() + ".")
-        return cleaned
+
+def _check_size(f):
+    if f and f.size > MAX_UPLOAD_MB * 1024 * 1024:
+        raise forms.ValidationError(_("El archivo supera %(mb)s MB.") % {"mb": MAX_UPLOAD_MB})
+    return f
+
+
+T = TipoBloque
+# Fields each block type shows, and how they are labelled there.
+BLOCK_FIELDS = {
+    T.TEXTO: {"titulo": None, "texto": None},
+    T.NOTA: {"titulo": None, "texto": None},
+    T.IMAGEN: {"archivo": _("Imagen"), "titulo": None, "texto": _("Pie de imagen (opcional)")},
+    T.VIDEO: {"titulo": None, "url": _("Enlace del video"), "texto": _("Texto (opcional)")},
+    T.DOCUMENTO: {
+        "titulo": None,
+        "archivo": _("Documento"),
+        "url": _("o enlace al documento"),
+        "texto": _("Texto (opcional)"),
+    },
+    T.PASOS: {"titulo": None, "texto": _("Introducción (opcional)")},
+    T.ACORDEON: {"titulo": None, "texto": _("Introducción (opcional)")},
+}
+BLOCK_HELP = {
+    T.NOTA: _("Un texto resaltado: una advertencia, un dato clave, un recordatorio."),
+    T.IMAGEN: _("PNG, JPG, GIF o WebP. Máximo %(mb)s MB.") % {"mb": MAX_UPLOAD_MB},
+    T.VIDEO: _("YouTube y Vimeo se ven dentro de la lección; otros enlaces, como botón."),
+    T.PASOS: _("Un carrusel: la persona avanza paso a paso con Anterior y Siguiente."),
+    T.ACORDEON: _("Secciones que la persona abre y cierra."),
+}
+
+
+class BloqueForm(forms.ModelForm):
+    url = forms.URLField(label=_("Enlace"), required=False, assume_scheme="https")
+
+    class Meta:
+        model = Bloque
+        fields = ["titulo", "texto", "url", "archivo"]
+        widgets = {"texto": forms.Textarea(attrs={"rows": 8})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        shown = BLOCK_FIELDS[self.instance.tipo]
+        for name in list(self.fields):
+            if name not in shown:
+                del self.fields[name]
+            elif shown[name]:
+                self.fields[name].label = shown[name]
+        if self.instance.tipo in (T.TEXTO, T.NOTA):
+            self.fields["texto"].required = True
+        if self.instance.tipo == T.VIDEO:
+            self.fields["url"].required = True
+        if self.instance.tipo == T.IMAGEN:
+            self.fields["archivo"].widget.attrs["accept"] = "image/*"
+
+    def clean_archivo(self):
+        f = _check_size(self.cleaned_data.get("archivo"))
+        if f and self.instance.tipo == T.IMAGEN:
+            ext = f.name.rsplit(".", 1)[-1].lower()
+            if ext not in IMAGE_EXTENSIONS:
+                raise forms.ValidationError(_("Sube una imagen PNG, JPG, GIF o WebP."))
+        return f
+
+
+class BloqueItemForm(forms.ModelForm):
+    class Meta:
+        model = BloqueItem
+        fields = ["titulo", "texto", "imagen"]
+        widgets = {
+            "texto": forms.Textarea(attrs={"rows": 3}),
+            "imagen": forms.ClearableFileInput(attrs={"accept": "image/*"}),
+        }
+
+    def clean_imagen(self):
+        return _check_size(self.cleaned_data.get("imagen"))
+
+
+MAX_ITEMS = 12
+ItemFormSet = forms.inlineformset_factory(
+    Bloque,
+    BloqueItem,
+    form=BloqueItemForm,
+    extra=0,
+    max_num=MAX_ITEMS,
+    validate_max=True,
+    can_delete=True,
+)
+
+
+def item_formset(bloque, data=None, files=None):
+    existing = bloque.items.count() if bloque.pk else 0
+    formset = ItemFormSet(
+        data,
+        files,
+        instance=bloque,
+        prefix="it",
+        queryset=bloque.items.all() if bloque.pk else BloqueItem.unscoped.none(),
+    )
+    formset.extra = min(MAX_ITEMS - existing, max(2, 4 - existing))
+    return formset
+
+
+def kept_items(formset):
+    """The (form, titulo, texto) the formset keeps: not deleted and not left empty."""
+    kept = []
+    for form in formset.forms:
+        data = getattr(form, "cleaned_data", None) or {}
+        if not data or data.get("DELETE"):
+            continue
+        titulo, texto = data.get("titulo", ""), data.get("texto", "")
+        if titulo or texto or data.get("imagen"):
+            kept.append((form, titulo, texto))
+    return kept

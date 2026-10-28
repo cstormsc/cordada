@@ -97,13 +97,19 @@ def purge():
             Evidencia,
             Documento,
             apps.get_model("formularios", "Acta"),
-            apps.get_model("aprendizaje", "Leccion"),
+            apps.get_model("aprendizaje", "Bloque"),
         ):
             files += [o.archivo.name for o in model.unscoped.filter(client=client) if o.archivo]
+        files += [
+            o.imagen.name
+            for o in apps.get_model("aprendizaje", "BloqueItem").unscoped.filter(client=client)
+            if o.imagen
+        ]
         order = [
             "bitacora.TicketAfectado", "bitacora.TicketComentario", "bitacora.TicketTransicion",
             "bitacora.Ticket", "aprendizaje.LeccionVista", "aprendizaje.Inscripcion",
-            "aprendizaje.Leccion", "aprendizaje.Curso", "formularios.Evaluacion", "formularios.Acta", "formularios.Criterio",
+            "aprendizaje.BloqueItem", "aprendizaje.Bloque", "aprendizaje.Leccion",
+            "aprendizaje.Curso", "formularios.Evaluacion", "formularios.Acta", "formularios.Criterio",
             "formularios.ListaObservacion", "formularios.Respuesta", "formularios.Enlace",
             "formularios.Opcion", "formularios.Pregunta", "formularios.Cuestionario",
             "formularios.Carga", "formularios.Persona", "dashboard.Preferencia", "dashboard.ValorManual",

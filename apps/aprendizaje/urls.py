@@ -12,7 +12,24 @@ urlpatterns = [
     path("<int:numero>/lecciones/nueva/", views.leccion, name="leccion_nueva"),
     path("<int:numero>/lecciones/<int:pk>/", views.leccion, name="leccion"),
     path("<int:numero>/lecciones/<int:pk>/borrar/", views.borrar_leccion, name="borrar_leccion"),
-    path("<int:numero>/lecciones/<int:pk>/archivo/", views.archivo, name="archivo"),
+    path(
+        "<int:numero>/lecciones/<int:pk>/bloques/nuevo/<str:tipo>/",
+        views.bloque,
+        name="bloque_nuevo",
+    ),
+    path("<int:numero>/lecciones/<int:pk>/bloques/<int:bloque_pk>/", views.bloque, name="bloque"),
+    path(
+        "<int:numero>/lecciones/<int:pk>/bloques/<int:bloque_pk>/borrar/",
+        views.borrar_bloque,
+        name="borrar_bloque",
+    ),
+    path(
+        "<int:numero>/lecciones/<int:pk>/bloques/ordenar/",
+        views.ordenar_bloques,
+        name="ordenar_bloques",
+    ),
+    path("<int:numero>/archivos/<int:bloque_pk>/", views.archivo, name="archivo"),
+    path("<int:numero>/imagenes/<int:item_pk>/", views.imagen, name="imagen"),
     path("<int:numero>/vista-previa/", views.vista_previa, name="vista_previa"),
     path(
         "<int:numero>/vista-previa/<int:pk>/",

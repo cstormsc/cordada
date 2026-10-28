@@ -1,14 +1,49 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n static assets %}
 {% block title %}{% if leccion.pk %}{{ leccion.titulo }}{% else %}{% translate "Nueva lección" %}{% endif %} · {{ curso.codigo }}{% endblock %}
+{% block head %}{% if leccion.pk %}<script src="{% static 'vendor/sortable.min.js' %}" defer></script><script src="{% asset 'js/lecciones.js' %}" defer></script>{% endif %}{% endblock %}
 {% block content %}
-<div class="narrow-wide">
   <p><a href="{% url 'aprendizaje:curso' request.client.slug curso.numero %}">← {{ curso.codigo }} {{ curso.titulo }}</a></p>
-  <h1>{% if leccion.pk %}{% translate "Lección" %} {{ leccion.orden }}{% else %}{% translate "Nueva lección" %}{% endif %}</h1>
-  {% if not curso.is_draft %}<p class="msg msg-warning">{% translate "Curso publicado: puedes corregir el contenido, pero no el tipo, si es obligatoria ni sus dependencias." %}</p>{% endif %}
-  <form method="post" enctype="multipart/form-data" class="form panel">{% csrf_token %}
-    {{ form }}
-    {% if leccion.archivo %}<p class="small"><a href="{% url 'aprendizaje:archivo' request.client.slug curso.numero leccion.pk %}">{% translate "Descargar el archivo actual" %}</a></p>{% endif %}
-    <button class="btn">{% translate "Guardar" %}</button></form>
-</div>
+  <div class="row">
+    <h1>{% if leccion.pk %}<span class="muted">{% translate "Lección" %} {{ leccion.orden }}</span> {{ leccion.titulo }}{% else %}{% translate "Nueva lección" %}{% endif %}</h1>
+    {% if leccion.pk and bloques %}<a class="btn secondary" href="{% url 'aprendizaje:vista_previa_leccion' request.client.slug curso.numero leccion.pk %}">{% translate "Vista previa" %}</a>{% endif %}
+  </div>
+
+  {% if leccion.pk %}
+  <section class="panel">
+    <h2>{% translate "Contenido" %}</h2>
+    {% if bloques %}
+      {% if bloques|length > 1 %}<p class="muted small">{% translate "Arrastra los bloques para cambiar su orden." %}</p>{% endif %}
+      <ol class="lecciones bloques" data-sortable="{% url 'aprendizaje:ordenar_bloques' request.client.slug curso.numero leccion.pk %}">
+      {% for b in bloques %}
+        <li id="b{{ b.pk }}" data-id="{{ b.pk }}">
+          <div class="row">
+            <strong>{{ b.get_tipo_display }}{% if b.titulo %}: {{ b.titulo }}{% endif %}</strong>
+            {% if b.items.all %}<span class="muted small">{% blocktranslate count n=b.items.all|length %}{{ n }} elemento{% plural %}{{ n }} elementos{% endblocktranslate %}</span>{% endif %}
+          </div>
+          {% if b.texto %}<p class="small">{{ b.texto|truncatewords:25 }}</p>{% elif b.url %}<p class="small">{{ b.url }}</p>{% endif %}
+          {% if b.errores %}<p class="small error">{{ b.errores|first|capfirst }}.</p>{% endif %}
+          <div class="row small">
+            <a href="{% url 'aprendizaje:bloque' request.client.slug curso.numero leccion.pk b.pk %}">{% translate "Editar" %}</a>
+            <button type="submit" form="delb-{{ b.pk }}" class="link danger small">{% translate "Eliminar" %}</button>
+          </div>
+        </li>
+      {% endfor %}
+      </ol>
+      {% for b in bloques %}<form id="delb-{{ b.pk }}" method="post" action="{% url 'aprendizaje:borrar_bloque' request.client.slug curso.numero leccion.pk b.pk %}">{% csrf_token %}</form>{% endfor %}
+    {% else %}<p class="muted">{% translate "La lección todavía no tiene contenido. Agrega el primer bloque." %}</p>{% endif %}
+    <h3>{% translate "Agregar un bloque" %}</h3>
+    <ul class="tipos-bloque">
+      {% for value, label in tipos %}<li><a class="btn secondary small" href="{% url 'aprendizaje:bloque_nuevo' request.client.slug curso.numero leccion.pk value %}">+ {{ label }}</a></li>{% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  <section class="narrow-wide">
+    <h2>{% translate "Datos de la lección" %}</h2>
+    {% if not curso.is_draft %}<p class="msg msg-warning">{% translate "Curso publicado: puedes cambiar el título y el contenido, pero no si es obligatoria ni sus dependencias." %}</p>{% endif %}
+    <form method="post" class="form panel">{% csrf_token %}
+      {{ form }}
+      <button class="btn">{% if leccion.pk %}{% translate "Guardar" %}{% else %}{% translate "Crear y agregar contenido" %}{% endif %}</button></form>
+  </section>
 {% endblock %}

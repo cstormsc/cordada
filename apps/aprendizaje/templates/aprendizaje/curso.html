@@ -34,20 +34,18 @@
     </div>
     {% if lecciones %}
       {% if curso.is_draft and can_design and lecciones|length > 1 %}<p class="muted small">{% translate "Arrastra las lecciones para cambiar su orden. Las dependencias definen qué se abre primero para la persona." %}</p>{% endif %}
-      <ol class="lecciones"{% if curso.is_draft and can_design %} id="lecciones" data-url="{% url 'aprendizaje:ordenar' request.client.slug curso.numero %}"{% endif %}>
+      <ol class="lecciones"{% if curso.is_draft and can_design %} data-sortable="{% url 'aprendizaje:ordenar' request.client.slug curso.numero %}"{% endif %}>
       {% for l in lecciones %}
         <li id="l{{ l.pk }}" data-id="{{ l.pk }}">
           <div class="row">
             <strong>{{ l.titulo }}</strong>
-            <span class="muted small">{{ l.get_tipo_display }}{% if l.minutos %} · {{ l.minutos }} min{% endif %}{% if not l.obligatoria %} · {% translate "opcional" %}{% endif %}</span>
+            <span class="muted small">{% blocktranslate count n=l.n_bloques %}{{ n }} bloque{% plural %}{{ n }} bloques{% endblocktranslate %}{% if l.minutos %} · {{ l.minutos }} min{% endif %}{% if not l.obligatoria %} · {% translate "opcional" %}{% endif %}</span>
           </div>
           {% with deps=l.depende_de.all %}{% if deps %}<p class="muted small">{% translate "Depende de" %}: {% for d in deps %}{{ d.orden }}. {{ d.titulo }}{% if not forloop.last %}; {% endif %}{% endfor %}</p>{% endif %}{% endwith %}
-          {% if l.tipo == "texto" %}<p class="small">{{ l.contenido|truncatewords:30 }}</p>
-          {% elif l.url %}<p class="small"><a href="{{ l.url }}" target="_blank" rel="noopener noreferrer">{{ l.url }}</a></p>
-          {% elif l.archivo %}<p class="small"><a href="{% url 'aprendizaje:archivo' request.client.slug curso.numero l.pk %}">{% translate "Descargar el documento" %}</a></p>{% endif %}
+          {% if l.tipos %}<p class="small muted">{{ l.tipos|join:" · " }}</p>{% endif %}
           {% if can_design %}
             <div class="row small">
-              <a href="{% url 'aprendizaje:leccion' request.client.slug curso.numero l.pk %}">{% translate "Editar" %}</a>
+              <a href="{% url 'aprendizaje:leccion' request.client.slug curso.numero l.pk %}">{% translate "Editar contenido" %}</a>
               {% if curso.is_draft %}<button type="submit" form="del-{{ l.pk }}" class="link danger small">{% translate "Eliminar" %}</button>{% endif %}
             </div>
           {% endif %}

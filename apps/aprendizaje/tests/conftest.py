@@ -1,6 +1,6 @@
 import pytest
 
-from apps.aprendizaje.models import Curso, Leccion
+from apps.aprendizaje.models import Bloque, Curso, Leccion
 from apps.core.tenancy import tenant_context
 from apps.formularios.models import Cuestionario, EstadoCuestionario
 
@@ -11,8 +11,9 @@ def make_curso(acme, equipo):
         with tenant_context(acme):
             c = Curso.objects.create(titulo="Nuevo flujo de cobranza", creado_por=equipo, **kwargs)
             for i in range(n_lecciones):
-                Leccion.objects.create(
-                    curso=c, orden=i + 1, titulo=f"L{i + 1}", contenido=f"Texto {i + 1}"
+                leccion = Leccion.objects.create(curso=c, orden=i + 1, titulo=f"L{i + 1}")
+                Bloque.objects.create(
+                    leccion=leccion, orden=1, tipo="texto", texto=f"Texto {i + 1}"
                 )
         return c
 

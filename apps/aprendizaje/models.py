@@ -99,37 +99,12 @@ class Curso(TenantScopedModel):
             super().save(*args, **kwargs)
 
 
-class TipoLeccion(models.TextChoices):
-    TEXTO = "texto", _("Texto")
-    VIDEO = "video", _("Video (enlace)")
-    DOCUMENTO = "documento", _("Documento")
-
-
 class Leccion(TenantScopedModel):
-    UPLOAD_DIR = "lecciones"
+    """A lesson is a sequence of blocks (text, image, video, steps...)."""
 
     curso = models.ForeignKey(Curso, on_delete=models.CASCADE, related_name="lecciones")
     orden = models.PositiveSmallIntegerField(default=0)
     titulo = models.CharField(_("título"), max_length=200)
-    tipo = models.CharField(
-        _("tipo"), max_length=10, choices=TipoLeccion.choices, default=TipoLeccion.TEXTO
-    )
-    contenido = models.TextField(
-        _("contenido"),
-        blank=True,
-        help_text=_("Texto plano. Los saltos de línea y los enlaces se respetan."),
-    )
-    url = models.URLField(
-        _("enlace"),
-        blank=True,
-        help_text=_("YouTube (no listado), Vimeo, Stream, Drive u otro enlace al video."),
-    )
-    archivo = models.FileField(
-        _("archivo"),
-        upload_to=attachment_path,
-        blank=True,
-        validators=[FileExtensionValidator(ALLOWED_EXTENSIONS)],
-    )
     minutos = models.PositiveSmallIntegerField(_("minutos estimados"), null=True, blank=True)
     obligatoria = models.BooleanField(
         _("obligatoria"),
@@ -150,6 +125,75 @@ class Leccion(TenantScopedModel):
     class Meta(TenantScopedModel.Meta):
         verbose_name = _("lección")
         verbose_name_plural = _("lecciones")
+        ordering = ["orden", "pk"]
+
+    def __str__(self):
+        return self.titulo
+
+
+class TipoBloque(models.TextChoices):
+    TEXTO = "texto", _("Texto")
+    NOTA = "nota", _("Nota destacada")
+    IMAGEN = "imagen", _("Imagen")
+    VIDEO = "video", _("Video")
+    DOCUMENTO = "documento", _("Documento")
+    PASOS = "pasos", _("Paso a paso")
+    ACORDEON = "acordeon", _("Acordeón")
+
+
+# Blocks whose content is a list of items (steps, accordion sections).
+CON_ITEMS = (TipoBloque.PASOS, TipoBloque.ACORDEON)
+IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp"]
+
+
+class Bloque(TenantScopedModel):
+    UPLOAD_DIR = "lecciones"
+
+    leccion = models.ForeignKey(Leccion, on_delete=models.CASCADE, related_name="bloques")
+    orden = models.PositiveSmallIntegerField(default=0)
+    tipo = models.CharField(_("tipo"), max_length=10, choices=TipoBloque.choices)
+    titulo = models.CharField(
+        _("título"), max_length=200, blank=True, help_text=_("Opcional. Encabezado del bloque.")
+    )
+    texto = models.TextField(
+        _("texto"),
+        blank=True,
+        help_text=_("Texto plano. Los saltos de línea y los enlaces se respetan."),
+    )
+    url = models.URLField(_("enlace"), blank=True)
+    archivo = models.FileField(
+        _("archivo"),
+        upload_to=attachment_path,
+        blank=True,
+        validators=[FileExtensionValidator(sorted({*ALLOWED_EXTENSIONS, *IMAGE_EXTENSIONS}))],
+    )
+
+    class Meta(TenantScopedModel.Meta):
+        verbose_name = _("bloque")
+        verbose_name_plural = _("bloques")
+        ordering = ["orden", "pk"]
+
+    def __str__(self):
+        return self.titulo or self.get_tipo_display()
+
+
+class BloqueItem(TenantScopedModel):
+    """One step of a step-by-step block, or one section of an accordion."""
+
+    UPLOAD_DIR = "lecciones"
+
+    bloque = models.ForeignKey(Bloque, on_delete=models.CASCADE, related_name="items")
+    orden = models.PositiveSmallIntegerField(default=0)
+    titulo = models.CharField(_("título"), max_length=200, blank=True)
+    texto = models.TextField(_("texto"), blank=True)
+    imagen = models.FileField(
+        _("imagen"),
+        upload_to=attachment_path,
+        blank=True,
+        validators=[FileExtensionValidator(IMAGE_EXTENSIONS)],
+    )
+
+    class Meta(TenantScopedModel.Meta):
         ordering = ["orden", "pk"]
 
     def __str__(self):

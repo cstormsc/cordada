@@ -21,7 +21,7 @@
         <span class="estado" aria-hidden="true">{% if i.vista %}✓{% elif i.faltan %}🔒{% else %}{{ forloop.counter }}{% endif %}</span>
         <div>
           {% if not i.faltan or preview %}<a href="{{ i.url }}"><strong>{{ i.leccion.titulo }}</strong></a>{% else %}<strong>{{ i.leccion.titulo }}</strong>{% endif %}
-          <span class="muted small">{{ i.leccion.get_tipo_display }}{% if i.leccion.minutos %} · {{ i.leccion.minutos }} min{% endif %}{% if not i.leccion.obligatoria %} · {% translate "opcional" %}{% endif %}</span>
+          {% if i.leccion.minutos or not i.leccion.obligatoria %}<span class="muted small">{% if i.leccion.minutos %}{{ i.leccion.minutos }} min{% endif %}{% if i.leccion.minutos and not i.leccion.obligatoria %} · {% endif %}{% if not i.leccion.obligatoria %}{% translate "opcional" %}{% endif %}</span>{% endif %}
           {% if i.faltan %}<p class="muted small">{% translate "Se abre al ver" %}: {% for d in i.faltan %}{{ d.titulo }}{% if not forloop.last %}; {% endif %}{% endfor %}</p>{% endif %}
         </div>
       </li>

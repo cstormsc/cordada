@@ -4,7 +4,14 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from apps.aprendizaje import cursos
-from apps.aprendizaje.models import Curso, EstadoCurso, Inscripcion, Leccion
+from apps.aprendizaje.models import (
+    Bloque,
+    BloqueItem,
+    Curso,
+    EstadoCurso,
+    Inscripcion,
+    Leccion,
+)
 from apps.core.models import Module, Role
 from apps.core.tenancy import tenant_context
 from apps.formularios.models import EstadoCuestionario, Persona
@@ -63,33 +70,17 @@ class TestCurso:
 
 
 class TestLecciones:
-    def post_lesson(self, client, c, **data):
-        data = {"titulo": "Qué cambia", "tipo": "texto", "obligatoria": "on", **data}
-        return client.post(f"{base(c)}lecciones/nueva/", data)
-
-    def test_each_type_needs_its_content(self, client, equipo, acme, make_curso):
+    def test_new_lesson_needs_no_link_and_goes_to_its_blocks(
+        self, client, equipo, acme, make_curso
+    ):
         c = make_curso()
         client.force_login(equipo)
-        r = self.post_lesson(client, c)
-        assert "Escribe el contenido" in r.content.decode()
-        r = self.post_lesson(client, c, tipo="video")
-        assert "Pega el enlace del video" in r.content.decode()
-        r = self.post_lesson(client, c, tipo="documento")
-        assert "Sube el documento o pega su enlace" in r.content.decode()
-        assert lecciones(acme, c) == []
-
-        self.post_lesson(client, c, contenido="El cobro pasa al nuevo sistema.")
-        self.post_lesson(client, c, titulo="Demo", tipo="video", url="youtu.be/abc", minutos="5")
-        pdf = SimpleUploadedFile("guia.pdf", b"%PDF-1.4 x", content_type="application/pdf")
-        self.post_lesson(client, c, titulo="Guía", tipo="documento", archivo=pdf)
-        ls = lecciones(acme, c)
-        assert [(x.orden, x.tipo) for x in ls] == [(1, "texto"), (2, "video"), (3, "documento")]
-        assert ls[1].url == "https://youtu.be/abc"
-        assert ls[2].archivo.name.startswith(f"clientes/{acme.pk}/lecciones/")
-
-        r = client.get(f"{base(c)}lecciones/{ls[2].pk}/archivo/")
-        assert r.status_code == 200
-        assert b"".join(r.streaming_content) == b"%PDF-1.4 x"
+        r = client.post(f"{base(c)}lecciones/nueva/", {"titulo": "Qué cambia", "minutos": "5"})
+        (leccion,) = lecciones(acme, c)
+        assert r.url == f"{base(c)}lecciones/{leccion.pk}/"
+        body = client.get(r.url).content.decode()
+        assert "Agrega el primer bloque" in body
+        assert "Paso a paso" in body
 
     def test_dependencies_refuse_cycles(self, client, equipo, acme, make_curso):
         c = make_curso(3)
@@ -101,8 +92,6 @@ class TestLecciones:
                 f"{base(c)}lecciones/{leccion.pk}/",
                 {
                     "titulo": leccion.titulo,
-                    "tipo": "texto",
-                    "contenido": "x",
                     "obligatoria": "on",
                     "depende_de": [d.pk for d in depende_de],
                 },
@@ -146,15 +135,126 @@ class TestLecciones:
         assert [(x.orden, x.titulo) for x in lecciones(acme, c)] == [(1, "L1"), (2, "L2")]
 
 
+def items(*pairs, prefix="it", initial=0):
+    """POST data for the steps / sections formset."""
+    total = max(len(pairs), 2)
+    data = {
+        f"{prefix}-TOTAL_FORMS": str(total),
+        f"{prefix}-INITIAL_FORMS": str(initial),
+        f"{prefix}-MIN_NUM_FORMS": "0",
+        f"{prefix}-MAX_NUM_FORMS": "12",
+    }
+    for n, (titulo, texto) in enumerate(pairs):
+        data[f"{prefix}-{n}-titulo"] = titulo
+        data[f"{prefix}-{n}-texto"] = texto
+    return data
+
+
+class TestBloques:
+    def url(self, c, leccion, tipo):
+        return f"{base(c)}lecciones/{leccion.pk}/bloques/nuevo/{tipo}/"
+
+    def bloques(self, acme, leccion):
+        with tenant_context(acme):
+            return list(Bloque.objects.filter(leccion=leccion).prefetch_related("items"))
+
+    def test_each_type_and_what_it_needs(self, client, equipo, acme, make_curso):
+        c = make_curso(1)
+        (leccion,) = lecciones(acme, c)
+        client.force_login(equipo)
+
+        r = client.post(self.url(c, leccion, "video"), {"titulo": "Demo"})
+        assert r.status_code == 200 and "obligatorio" in r.content.decode()
+        client.post(self.url(c, leccion, "video"), {"url": "youtu.be/dQw4w9WgXcQ"})
+        client.post(self.url(c, leccion, "nota"), {"texto": "Ojo con el cierre de caja."})
+
+        png = SimpleUploadedFile("caja.png", b"\x89PNG fake", content_type="image/png")
+        client.post(self.url(c, leccion, "imagen"), {"archivo": png, "texto": "La caja"})
+        pdf = SimpleUploadedFile("guia.pdf", b"%PDF-1.4 x", content_type="application/pdf")
+        r = client.post(self.url(c, leccion, "imagen"), {"archivo": pdf})
+        assert "Sube una imagen" in r.content.decode()
+        pdf = SimpleUploadedFile("guia.pdf", b"%PDF-1.4 x", content_type="application/pdf")
+        client.post(self.url(c, leccion, "documento"), {"archivo": pdf})
+
+        r = client.post(self.url(c, leccion, "pasos"), items(("Abrir", "Entra al Núcleo")))
+        assert "Agrega al menos dos pasos" in r.content.decode()
+        client.post(
+            self.url(c, leccion, "pasos"),
+            {"titulo": "Cobrar", **items(("Abrir", "Entra"), ("", ""), ("Cobrar", "Marca"))},
+        )
+        r = client.post(self.url(c, leccion, "acordeon"), items(("", "Sin título")))
+        assert "Cada sección necesita un título" in r.content.decode()
+        client.post(self.url(c, leccion, "acordeon"), items(("¿Y si falla?", "Llama a TI")))
+
+        bs = self.bloques(acme, leccion)
+        assert [b.tipo for b in bs] == [
+            "texto", "video", "nota", "imagen", "documento", "pasos", "acordeon",
+        ]  # fmt: skip
+        assert [b.orden for b in bs] == list(range(1, 8))
+        assert bs[1].url == "https://youtu.be/dQw4w9WgXcQ"
+        assert [(i.orden, i.titulo) for i in bs[5].items.all()] == [(1, "Abrir"), (2, "Cobrar")]
+
+        r = client.get(f"{base(c)}archivos/{bs[3].pk}/")
+        assert r.status_code == 200 and "inline" in r["Content-Disposition"]
+        r = client.get(f"{base(c)}archivos/{bs[4].pk}/")
+        assert "attachment" in r["Content-Disposition"]
+        assert b"".join(r.streaming_content) == b"%PDF-1.4 x"
+
+    def test_edit_steps_reorder_and_delete(self, client, equipo, acme, make_curso):
+        c = make_curso(1)
+        (leccion,) = lecciones(acme, c)
+        client.force_login(equipo)
+        client.post(self.url(c, leccion, "pasos"), items(("A", "1"), ("B", "2"), ("C", "3")))
+        texto, pasos = self.bloques(acme, leccion)
+        a, b, _c = pasos.items.all()
+        data = items(("A", "1"), ("B", "2 bis"), ("C", "3"), initial=3)
+        data.update({"it-0-id": a.pk, "it-1-id": b.pk, "it-2-id": _c.pk, "it-0-DELETE": "on"})
+        client.post(f"{base(c)}lecciones/{leccion.pk}/bloques/{pasos.pk}/", data)
+        assert [(i.orden, i.texto) for i in self.bloques(acme, leccion)[1].items.all()] == [
+            (1, "2 bis"),
+            (2, "3"),
+        ]
+
+        r = client.post(
+            f"{base(c)}lecciones/{leccion.pk}/bloques/ordenar/",
+            json.dumps({"ids": [pasos.pk, texto.pk]}),
+            content_type="application/json",
+        )
+        assert r.status_code == 204
+        assert [b.tipo for b in self.bloques(acme, leccion)] == ["pasos", "texto"]
+        client.post(f"{base(c)}lecciones/{leccion.pk}/bloques/{pasos.pk}/borrar/")
+        assert [(b.orden, b.tipo) for b in self.bloques(acme, leccion)] == [(1, "texto")]
+
+    def test_unknown_type_and_other_lessons_blocks(self, client, equipo, acme, make_curso):
+        c, otro = make_curso(1), make_curso(1)
+        (leccion,) = lecciones(acme, c)
+        (ajena,) = lecciones(acme, otro)
+        (bloque,) = self.bloques(acme, ajena)
+        client.force_login(equipo)
+        assert client.get(self.url(c, leccion, "quiz")).status_code == 404
+        r = client.get(f"{base(c)}lecciones/{leccion.pk}/bloques/{bloque.pk}/")
+        assert r.status_code == 404
+
+    def test_old_lessons_become_blocks(self):
+        """Migration 0002 turns each lesson's single content into blocks."""
+        from importlib import import_module
+
+        migration = import_module("apps.aprendizaje.migrations.0002_bloques")
+        assert callable(migration.lessons_to_blocks)
+
+
 class TestPublicar:
     def test_publish_errors(self, acme, make_curso, make_evaluacion):
         c = make_curso()
         with tenant_context(acme):
             assert cursos.publish_errors(c) == ["Agrega al menos una lección."]
-            Leccion.objects.create(curso=c, titulo="Video", tipo="video", obligatoria=False)
+            leccion = Leccion.objects.create(curso=c, titulo="Video", obligatoria=False)
             c.evaluacion = make_evaluacion(EstadoCuestionario.BORRADOR)
             errors = cursos.publish_errors(c)
-            assert "Lección 1: pega el enlace del video." in errors
+            assert "Lección 1: agrega al menos un bloque." in errors
+            Bloque.objects.create(leccion=leccion, tipo="video")
+            errors = cursos.publish_errors(c)
+            assert "Lección 1, bloque 1: pega el enlace del video." in errors
             assert any("debe estar publicada" in e for e in errors)
 
             c.evaluacion = None
@@ -181,24 +281,19 @@ class TestPublicar:
         )
         assert r.status_code == 400
 
-        # Content can still be corrected; type and dependencies stay.
+        # The title and the blocks can still change; obligatoria and dependencies stay.
         client.post(
-            f"{base(c)}lecciones/{l2.pk}/",
-            {
-                "titulo": "L2 corregida",
-                "tipo": "video",
-                "contenido": "Texto nuevo",
-                "depende_de": [l1.pk],
-            },
+            f"{base(c)}lecciones/{l2.pk}/", {"titulo": "L2 corregida", "depende_de": [l1.pk]}
         )
+        with tenant_context(acme):
+            bloque = l2.bloques.get()
+        client.post(f"{base(c)}lecciones/{l2.pk}/bloques/{bloque.pk}/", {"texto": "Texto nuevo"})
+        client.post(f"{base(c)}lecciones/{l2.pk}/bloques/nuevo/nota/", {"texto": "Ojo"})
         (_, l2) = lecciones(acme, c)
-        assert (l2.titulo, l2.tipo, l2.contenido, l2.obligatoria) == (
-            "L2 corregida",
-            "texto",
-            "Texto nuevo",
-            True,
-        )
+        assert (l2.titulo, l2.obligatoria) == ("L2 corregida", True)
         assert deps(acme, l2) == set()
+        with tenant_context(acme):
+            assert [b.texto for b in l2.bloques.all()] == ["Texto nuevo", "Ojo"]
 
         client.post(f"{base(c)}cerrar/")
         with tenant_context(acme):
@@ -273,9 +368,11 @@ class TestVistaPrevia:
         l1, l2 = lecciones(acme, c)
         with tenant_context(acme):
             l2.depende_de.add(l1)
-            Leccion.objects.create(
-                curso=c, orden=3, titulo="Demo", tipo="video", url="https://youtu.be/dQw4w9WgXcQ"
-            )
+            demo = Leccion.objects.create(curso=c, orden=3, titulo="Demo")
+            Bloque.objects.create(leccion=demo, tipo="video", url="https://youtu.be/dQw4w9WgXcQ")
+            pasos = Bloque.objects.create(leccion=demo, orden=2, tipo="pasos", titulo="Cobrar")
+            BloqueItem.objects.create(bloque=pasos, orden=1, titulo="Abrir", texto="Entra")
+            BloqueItem.objects.create(bloque=pasos, orden=2, titulo="Cobrar", texto="Marca")
         client.force_login(equipo)
         assert "Vista previa" in client.get(base(c)).content.decode()
 
@@ -293,6 +390,7 @@ class TestVistaPrevia:
         ls = lecciones(acme, c)
         body = client.get(f"{base(c)}vista-previa/{ls[2].pk}/").content.decode()
         assert "youtube-nocookie.com/embed/dQw4w9WgXcQ" in body
+        assert "Paso 1 de 2" in body and "Paso 2 de 2" in body
 
     def test_preview_is_for_the_team_only(self, client, member, acme, make_curso):
         c = make_curso(1)
