@@ -88,6 +88,7 @@ class Module(models.TextChoices):
     RUTA = "ruta", _("Ruta")
     BITACORA = "bitacora", _("Bitácora")
     FORMULARIOS = "formularios", _("Formularios")
+    APRENDIZAJE = "aprendizaje", _("Ascenso y Aprendizaje")
     DASHBOARD = "dashboard", _("Dashboard")
     GUIA = "guia", _("Guía de campo")
 

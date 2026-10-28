@@ -15,12 +15,14 @@ CELLS = {
     (Role.ADMINISTRACION, M.BITACORA): ({A.EDIT, A.VIEW}, set()),
     (Role.ADMINISTRACION, M.DASHBOARD): ({A.EDIT, A.VIEW}, set()),
     (Role.ADMINISTRACION, M.FORMULARIOS): ({A.EDIT, A.DESIGN}, {A.VIEW_INDIVIDUAL}),
+    (Role.ADMINISTRACION, M.APRENDIZAJE): ({A.EDIT, A.DESIGN}, {A.VIEW_INDIVIDUAL}),
     (Role.ADMINISTRACION, M.GUIA): ({A.EDIT}, set()),
     (Role.EQUIPO_CAMBIO, M.MATRIZ): ({A.EDIT, A.LINK}, set()),
     (Role.EQUIPO_CAMBIO, M.RUTA): ({A.EDIT}, set()),
     (Role.EQUIPO_CAMBIO, M.BITACORA): ({A.EDIT}, set()),
     (Role.EQUIPO_CAMBIO, M.DASHBOARD): ({A.VIEW}, {A.EDIT}),
     (Role.EQUIPO_CAMBIO, M.FORMULARIOS): ({A.EDIT, A.VIEW_INDIVIDUAL}, set()),
+    (Role.EQUIPO_CAMBIO, M.APRENDIZAJE): ({A.EDIT, A.DESIGN, A.VIEW_INDIVIDUAL}, set()),
     (Role.EQUIPO_CAMBIO, M.GUIA): ({A.VIEW}, {A.EDIT}),
     (Role.CAPITAN, M.MATRIZ): ({A.PROPOSE}, {A.VIEW, A.EDIT}),
     (Role.CAPITAN, M.RUTA): ({A.VIEW_OWN_GROUP}, {A.VIEW, A.EDIT}),
@@ -31,6 +33,7 @@ CELLS = {
     (Role.GUIA, M.BITACORA): ({A.REGISTER, A.CLASSIFY}, {A.EDIT, A.EDIT_DERIVED}),
     (Role.GUIA, M.DASHBOARD): ({A.VIEW}, {A.EDIT}),
     (Role.GUIA, M.FORMULARIOS): ({A.DESIGN}, {A.EDIT, A.VIEW_INDIVIDUAL}),
+    (Role.GUIA, M.APRENDIZAJE): ({A.DESIGN}, {A.EDIT, A.VIEW_INDIVIDUAL}),
     (Role.GUIA, M.GUIA): ({A.VIEW}, {A.EDIT}),
     (Role.EQUIPO_TECNICO, M.MATRIZ): ({A.PROPOSE}, {A.VIEW, A.EDIT}),
     (Role.EQUIPO_TECNICO, M.BITACORA): ({A.VIEW, A.EDIT_DERIVED}, {A.EDIT, A.CLASSIFY}),
@@ -55,6 +58,10 @@ NO_ACCESS = [
     (Role.LIDER_AREA, M.RUTA),
     (Role.LIDER_AREA, M.BITACORA),
     (Role.LIDER_AREA, M.DASHBOARD),
+    (Role.CAPITAN, M.APRENDIZAJE),
+    (Role.EQUIPO_TECNICO, M.APRENDIZAJE),
+    (Role.PATROCINADOR, M.APRENDIZAJE),
+    (Role.LIDER_AREA, M.APRENDIZAJE),
 ]
 
 
@@ -81,8 +88,9 @@ def test_only_change_team_and_administracion_manage_dependencies():
     assert holders == {Role.ADMINISTRACION, Role.EQUIPO_CAMBIO}
 
 
-def test_only_change_team_sees_individual_results():
-    holders = {r for r in Role if A.VIEW_INDIVIDUAL in role_actions(r, M.FORMULARIOS)}
+@pytest.mark.parametrize("module", [M.FORMULARIOS, M.APRENDIZAJE])
+def test_only_change_team_sees_individual_results(module):
+    holders = {r for r in Role if A.VIEW_INDIVIDUAL in role_actions(r, module)}
     assert holders == {Role.EQUIPO_CAMBIO}
 
 

@@ -64,6 +64,10 @@ def client_home(request, client_slug):
                 "formularios": bool({Action.EDIT, Action.DESIGN} & form_actions),
                 "evaluar": Action.LEADER_EVAL in form_actions,
                 "matriz": Action.VIEW in role_actions(request.membership.role, Module.MATRIZ),
+                "aprendizaje": bool(
+                    {Action.EDIT, Action.DESIGN}
+                    & role_actions(request.membership.role, Module.APRENDIZAJE)
+                ),
             },
         },
     )

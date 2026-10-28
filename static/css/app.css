@@ -386,3 +386,45 @@ section[id], article[id] { scroll-margin-top: 1rem; }
 .login form { padding: 2rem; display: flex; flex-direction: column; justify-content: center; }
 .login form .btn { align-self: flex-start; }
 @media (max-width: 40rem) { .login { grid-template-columns: 1fr; } .login-art { min-height: 190px; } }
+
+/* Ascenso y Aprendizaje: course lessons */
+.lecciones { margin: 0.5rem 0; padding-left: 1.4rem; }
+.lecciones > li { border-bottom: 1px solid var(--line); padding: 0.75rem 0; }
+.lecciones > li .row { align-items: flex-start; }
+[data-sortable] > li { cursor: grab; }
+[data-sortable] > li.sortable-ghost { opacity: 0.4; }
+.preview-banner a { margin-left: 0.5rem; }
+.avance { height: 0.5rem; background: var(--line); border-radius: 999px; overflow: hidden; margin: 0.25rem 0 0.75rem; }
+.avance span { display: block; height: 100%; background: var(--accent); }
+.recorrido { list-style: none; padding: 0; margin: 0 0 1rem; }
+.recorrido li { display: flex; gap: 0.75rem; align-items: flex-start; padding: 0.6rem 0; border-bottom: 1px solid var(--line); }
+.recorrido li > div { display: flex; flex-direction: column; gap: 0.15rem; }
+.recorrido li p { margin: 0; }
+.recorrido .estado { flex: none; width: 1.75rem; height: 1.75rem; border-radius: 50%; display: grid; place-items: center; font-size: 0.85rem; border: 1px solid var(--line); }
+.recorrido li.vista .estado { background: #e3f4ea; color: #1e6b3a; border-color: #b9e0c6; }
+.recorrido li.bloqueada { opacity: 0.75; }
+.leccion-contenido .video { position: relative; aspect-ratio: 16 / 9; margin-bottom: 1rem; }
+.leccion-contenido .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; border-radius: 8px; }
+.leccion-nav { justify-content: space-between; align-items: center; margin-top: 1rem; }
+button.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.tipos-bloque { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.item-bloque legend { font-weight: 600; }
+.bloque { margin-bottom: 1rem; }
+.bloque h2 { margin-top: 0; }
+.bloque img { max-width: 100%; height: auto; border-radius: 8px; display: block; }
+.bloque figure { margin: 0; }
+.bloque figcaption { margin-top: 0.5rem; font-size: 0.9rem; color: var(--muted); }
+.bloque-nota { border-left: 4px solid var(--accent); }
+.pasos .paso h3 { margin: 0.25rem 0 0.5rem; }
+.pasos .paso img { margin: 0.5rem 0; }
+.pasos-nav { justify-content: space-between; align-items: center; margin-top: 0.75rem; }
+.puntos { display: flex; gap: 0.4rem; }
+.puntos span { width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--line); cursor: pointer; }
+.puntos span.on { background: var(--accent); }
+.acordeon { border-top: 1px solid var(--line); padding: 0.6rem 0; }
+.acordeon:last-child { border-bottom: 1px solid var(--line); }
+.acordeon summary { font-weight: 600; cursor: pointer; }
+.acordeon img { margin: 0.5rem 0; }
+.banner { width: 100%; background: var(--surface); line-height: 0; }
+.banner img { display: block; width: 100%; height: auto; max-height: 22rem; object-fit: cover; }
+.banner-muestra { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-bottom: 0.75rem; }

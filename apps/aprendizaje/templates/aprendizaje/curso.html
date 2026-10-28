@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load i18n static assets %}
+{% block title %}{{ curso.codigo }} · {{ request.client.name }}{% endblock %}
+{% block head %}{% if curso.is_draft and can_design %}<script src="{% static 'vendor/sortable.min.js' %}" defer></script><script src="{% asset 'js/lecciones.js' %}" defer></script>{% endif %}{% endblock %}
+{% block content %}
+  <p><a href="{% url 'aprendizaje:index' request.client.slug %}">← {% translate "Ascenso y Aprendizaje" %}</a></p>
+  <div class="row">
+    <h1><span class="muted">{{ curso.codigo }}</span> {{ curso.titulo }}</h1>
+    <div class="row">
+      {% if can_design %}<a href="{% url 'aprendizaje:editar' request.client.slug curso.numero %}">{% translate "Configurar" %}</a>{% endif %}
+      {% if lecciones %}<a class="btn secondary" href="{% url 'aprendizaje:vista_previa' request.client.slug curso.numero %}">{% translate "Vista previa" %}</a>{% endif %}
+    </div>
+  </div>
+  <p><span class="tag">{{ curso.get_estado_display }}</span>
+    <span class="muted">{{ lecciones|length }} {% translate "lección(es)" %}{% if minutos %} · {% blocktranslate %}unos {{ minutos }} min{% endblocktranslate %}{% endif %}{% if curso.fecha_limite %} · {% translate "fecha límite" %} {{ curso.fecha_limite|date:"SHORT_DATE_FORMAT" }}{% endif %}{% for i in impactos %}{% if forloop.first %} · {% translate "prepara" %} {% endif %}{{ i.codigo }}{% if not forloop.last %}, {% endif %}{% endfor %}</span></p>
+  {% if curso.descripcion %}<p>{{ curso.descripcion|linebreaksbr }}</p>{% endif %}
+
+  {% if curso.is_draft and can_design %}
+    {% if errors %}
+      <section class="panel attention"><h2>{% translate "Antes de publicar" %}</h2>
+        <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></section>
+    {% else %}
+      <section class="panel attention"><h2>{% translate "Listo para publicar" %}</h2>
+        <p>{% translate "Al publicar, las lecciones, su orden y sus dependencias quedan fijos. El contenido de cada una todavía se puede corregir." %}</p>
+        <form method="post" action="{% url 'aprendizaje:publicar' request.client.slug curso.numero %}">{% csrf_token %}<button class="btn">{% translate "Publicar" %}</button></form>
+      </section>
+    {% endif %}
+  {% endif %}
+
+  <section class="panel">
+    <div class="row">
+      <h2>{% translate "Lecciones" %}</h2>
+      {% if curso.is_draft and can_design %}<a class="btn" href="{% url 'aprendizaje:leccion_nueva' request.client.slug curso.numero %}">{% translate "Agregar lección" %}</a>{% endif %}
+    </div>
+    {% if lecciones %}
+      {% if curso.is_draft and can_design and lecciones|length > 1 %}<p class="muted small">{% translate "Arrastra las lecciones para cambiar su orden. Las dependencias definen qué se abre primero para la persona." %}</p>{% endif %}
+      <ol class="lecciones"{% if curso.is_draft and can_design %} data-sortable="{% url 'aprendizaje:ordenar' request.client.slug curso.numero %}"{% endif %}>
+      {% for l in lecciones %}
+        <li id="l{{ l.pk }}" data-id="{{ l.pk }}">
+          <div class="row">
+            <strong>{{ l.titulo }}</strong>
+            <span class="muted small">{% blocktranslate count n=l.n_bloques %}{{ n }} bloque{% plural %}{{ n }} bloques{% endblocktranslate %}{% if l.minutos %} · {{ l.minutos }} min{% endif %}{% if not l.obligatoria %} · {% translate "opcional" %}{% endif %}</span>
+          </div>
+          {% with deps=l.depende_de.all %}{% if deps %}<p class="muted small">{% translate "Depende de" %}: {% for d in deps %}{{ d.orden }}. {{ d.titulo }}{% if not forloop.last %}; {% endif %}{% endfor %}</p>{% endif %}{% endwith %}
+          {% if l.tipos %}<p class="small muted">{{ l.tipos|join:" · " }}</p>{% endif %}
+          {% if can_design %}
+            <div class="row small">
+              <a href="{% url 'aprendizaje:leccion' request.client.slug curso.numero l.pk %}">{% translate "Editar contenido" %}</a>
+              {% if curso.is_draft %}<button type="submit" form="del-{{ l.pk }}" class="link danger small">{% translate "Eliminar" %}</button>{% endif %}
+            </div>
+          {% endif %}
+        </li>
+      {% endfor %}
+      </ol>
+      {% if curso.is_draft and can_design %}{% for l in lecciones %}<form id="del-{{ l.pk }}" method="post" action="{% url 'aprendizaje:borrar_leccion' request.client.slug curso.numero l.pk %}">{% csrf_token %}</form>{% endfor %}{% endif %}
+    {% else %}<p class="muted">{% translate "Sin lecciones todavía." %}</p>{% endif %}
+  </section>
+
+  <section class="panel">
+    <h2>{% translate "Evaluación" %}</h2>
+    {% if curso.evaluacion %}
+      <p><a href="{% url 'formularios:cuestionario' request.client.slug curso.evaluacion.numero %}">{{ curso.evaluacion.codigo }} {{ curso.evaluacion.titulo }}</a> <span class="tag">{{ curso.evaluacion.get_estado_display }}</span></p>
+      <p class="muted small">{% translate "La persona puede rendirla sin ver las lecciones si confirma que va directo; queda registrado. El curso se completa al aprobarla." %}</p>
+    {% else %}
+      <p class="muted">{% translate "Sin evaluación: el curso se completa al ver todas las lecciones obligatorias." %}</p>
+    {% endif %}
+  </section>
+
+  {% if curso.estado == "publicado" and can_design %}
+    <form method="post" action="{% url 'aprendizaje:cerrar' request.client.slug curso.numero %}">{% csrf_token %}<button class="link danger small">{% translate "Cerrar el curso" %}</button></form>
+  {% endif %}
+{% endblock %}

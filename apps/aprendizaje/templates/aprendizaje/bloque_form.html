@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ bloque.get_tipo_display }} · {{ leccion.titulo }}{% endblock %}
+{% block content %}
+<div class="narrow-wide">
+  <p><a href="{% url 'aprendizaje:leccion' request.client.slug curso.numero leccion.pk %}">← {% translate "Lección" %} {{ leccion.orden }}: {{ leccion.titulo }}</a></p>
+  <h1>{% if bloque.pk %}{% translate "Editar bloque" %}{% else %}{% translate "Nuevo bloque" %}{% endif %}: {{ bloque.get_tipo_display|lower }}</h1>
+  {% if ayuda %}<p class="muted">{{ ayuda }}</p>{% endif %}
+  <form method="post" enctype="multipart/form-data" class="form panel">{% csrf_token %}
+    {{ form }}
+    {% if formset %}
+      {{ formset.management_form }}
+      {% if formset.non_form_errors %}<p class="error">{{ formset.non_form_errors|join:" " }}</p>{% endif %}
+      <h2>{% if bloque.tipo == "pasos" %}{% translate "Pasos" %}{% else %}{% translate "Secciones" %}{% endif %}</h2>
+      <p class="muted small">{% if bloque.tipo == "pasos" %}{% translate "Cada paso es una tarjeta del carrusel. Los que dejes vacíos no se guardan." %}{% else %}{% translate "Cada sección tiene un título que se abre para mostrar su texto. Las que dejes vacías no se guardan." %}{% endif %}</p>
+      {% for f in formset %}
+        <fieldset class="panel item-bloque">
+          <legend>{% if bloque.tipo == "pasos" %}{% translate "Paso" %}{% else %}{% translate "Sección" %}{% endif %} {{ forloop.counter }}</legend>
+          {{ f.id }}
+          {% for field in f.visible_fields %}{% if field.name != "DELETE" %}{{ field.as_field_group }}{% endif %}{% endfor %}
+          {% if f.instance.pk %}<label class="small">{{ f.DELETE }} {% translate "Quitar" %}</label>{% endif %}
+        </fieldset>
+      {% endfor %}
+      <p class="muted small">{% translate "¿Necesitas más? Guarda y vuelve a editar: aparecen espacios nuevos (hasta 12)." %}</p>
+    {% endif %}
+    <button class="btn">{% translate "Guardar" %}</button>
+  </form>
+</div>
+{% endblock %}

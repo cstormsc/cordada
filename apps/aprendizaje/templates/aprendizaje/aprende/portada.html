@@ -1,0 +1,45 @@
+{% extends "public_base.html" %}
+{% load i18n %}
+{% block title %}{{ curso.titulo }}{% endblock %}
+{% block brand %}{{ curso.client.name }}{% endblock %}
+{% block banner %}{% include "aprendizaje/aprende/_banner.html" %}{% endblock %}
+{% block content %}
+  {% include "aprendizaje/aprende/_preview.html" %}
+  <h1>{{ curso.titulo }}</h1>
+  <p class="muted">{% if preview %}{% translate "Hola, (nombre de la persona)." %}{% else %}{% blocktranslate with name=persona %}Hola, {{ name }}.{% endblocktranslate %}{% endif %}
+    {% if curso.fecha_limite %}{% blocktranslate with fecha=curso.fecha_limite|date:"j \d\e F" %}Complétalo antes del {{ fecha }}.{% endblocktranslate %}{% endif %}</p>
+  {% if curso.descripcion %}<p>{{ curso.descripcion|urlize|linebreaksbr }}</p>{% endif %}
+
+  <section class="panel">
+    <div class="row">
+      <h2>{% translate "Lecciones" %}</h2>
+      <span class="muted small">{% blocktranslate count n=items|length %}{{ vistas }} de {{ n }} lección vista{% plural %}{{ vistas }} de {{ n }} lecciones vistas{% endblocktranslate %}</span>
+    </div>
+    <div class="avance" role="progressbar" aria-valuemin="0" aria-valuemax="{{ items|length }}" aria-valuenow="{{ vistas }}"><span style="width: {% widthratio vistas items|length 100 %}%"></span></div>
+    <ol class="recorrido">
+    {% for i in items %}
+      <li class="{% if i.vista %}vista{% elif i.faltan %}bloqueada{% endif %}">
+        <span class="estado" aria-hidden="true">{% if i.vista %}✓{% elif i.faltan %}🔒{% else %}{{ forloop.counter }}{% endif %}</span>
+        <div>
+          {% if not i.faltan or preview %}<a href="{{ i.url }}"><strong>{{ i.leccion.titulo }}</strong></a>{% else %}<strong>{{ i.leccion.titulo }}</strong>{% endif %}
+          {% if i.leccion.minutos or not i.leccion.obligatoria %}<span class="muted small">{% if i.leccion.minutos %}{{ i.leccion.minutos }} min{% endif %}{% if i.leccion.minutos and not i.leccion.obligatoria %} · {% endif %}{% if not i.leccion.obligatoria %}{% translate "opcional" %}{% endif %}</span>{% endif %}
+          {% if i.faltan %}<p class="muted small">{% translate "Se abre al ver" %}: {% for d in i.faltan %}{{ d.titulo }}{% if not forloop.last %}; {% endif %}{% endfor %}</p>{% endif %}
+        </div>
+      </li>
+    {% endfor %}
+    </ol>
+    {% if continuar %}<a class="btn" href="{{ continuar }}">{% if vistas %}{% translate "Continuar" %}{% else %}{% translate "Empezar" %}{% endif %}</a>{% endif %}
+  </section>
+
+  {% if curso.evaluacion %}
+    <section class="panel">
+      <h2>{% translate "Evaluación" %}</h2>
+      <p>{% translate "El curso se completa al aprobar la evaluación." %}</p>
+      <p class="muted small">{% translate "¿Ya dominas el tema? Puedes ir directo a la evaluación sin ver las lecciones. Te pediremos confirmarlo y quedará registrado." %}</p>
+      <button class="btn secondary" type="button"{% if preview %} disabled title="{% translate 'No disponible en la vista previa' %}"{% endif %}>{% translate "Ir directo a la evaluación" %}</button>
+    </section>
+  {% else %}
+    <p class="muted small">{% translate "El curso se completa al ver todas las lecciones obligatorias." %}</p>
+  {% endif %}
+  <p class="muted small">{% translate "Tu avance es confidencial, no anónimo: la plataforma sabe quién avanzó. Solo el equipo de cambio ve el detalle individual." %}</p>
+{% endblock %}
