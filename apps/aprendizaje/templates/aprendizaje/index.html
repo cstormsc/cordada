@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Ascenso y Aprendizaje" %} · {{ request.client.name }}{% endblock %}
+{% block content %}
+  <p><a href="{% url 'client_home' request.client.slug %}">← {{ request.client.name }}</a></p>
+  <div class="row">
+    <h1>{% translate "Ascenso y Aprendizaje" %}</h1>
+    {% if can_design %}<a class="btn" href="{% url 'aprendizaje:crear' request.client.slug %}">{% translate "Nuevo curso" %}</a>{% endif %}
+  </div>
+  {% if cursos %}
+  <div class="table-wrap panel"><table>
+    <thead><tr><th>{% translate "ID" %}</th><th>{% translate "Curso" %}</th><th>{% translate "Impactos" %}</th><th>{% translate "Lecciones" %}</th><th>{% translate "Evaluación" %}</th><th>{% translate "Inscritos" %}</th><th>{% translate "Estado" %}</th></tr></thead>
+    <tbody>{% for c in cursos %}
+      <tr><td class="nowrap"><a href="{% url 'aprendizaje:curso' request.client.slug c.numero %}">{{ c.codigo }}</a></td>
+        <td><a href="{% url 'aprendizaje:curso' request.client.slug c.numero %}">{{ c.titulo }}</a></td>
+        <td>{% for i in c.impactos.all %}{{ i.codigo }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
+        <td>{{ c.n_lecciones }}</td><td>{{ c.evaluacion.codigo|default:"—" }}</td><td>{{ c.n_inscritos }}</td>
+        <td><span class="tag">{{ c.get_estado_display }}</span></td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}{% translate "Sin cursos aún" as t %}{% translate "Un curso reúne las lecciones que preparan a cada grupo para un impacto, y puede terminar en un cuestionario de Formularios." as x %}{% include "includes/empty.html" with titulo=t texto=x %}{% endif %}
+{% endblock %}

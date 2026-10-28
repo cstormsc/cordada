@@ -92,11 +92,18 @@ def purge():
         return False
     with transaction.atomic(), tenant_context(client):
         files = []
-        for model in (Adjunto, Evidencia, Documento, apps.get_model("formularios", "Acta")):
+        for model in (
+            Adjunto,
+            Evidencia,
+            Documento,
+            apps.get_model("formularios", "Acta"),
+            apps.get_model("aprendizaje", "Leccion"),
+        ):
             files += [o.archivo.name for o in model.unscoped.filter(client=client) if o.archivo]
         order = [
             "bitacora.TicketAfectado", "bitacora.TicketComentario", "bitacora.TicketTransicion",
-            "bitacora.Ticket", "formularios.Evaluacion", "formularios.Acta", "formularios.Criterio",
+            "bitacora.Ticket", "aprendizaje.LeccionVista", "aprendizaje.Inscripcion",
+            "aprendizaje.Leccion", "aprendizaje.Curso", "formularios.Evaluacion", "formularios.Acta", "formularios.Criterio",
             "formularios.ListaObservacion", "formularios.Respuesta", "formularios.Enlace",
             "formularios.Opcion", "formularios.Pregunta", "formularios.Cuestionario",
             "formularios.Carga", "formularios.Persona", "dashboard.Preferencia", "dashboard.ValorManual",

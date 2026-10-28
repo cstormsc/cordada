@@ -60,6 +60,9 @@
       {% elif module == "formularios" and module_links.formularios %}
         {% url 'formularios:index' request.client.slug as href %}{% translate "¿Listos para subir? Verificación de competencias" as desc %}
         {% include "core/_module_card.html" with title=module.label %}
+      {% elif module == "aprendizaje" and module_links.aprendizaje %}
+        {% url 'aprendizaje:index' request.client.slug as href %}{% translate "Cursos para prepararse antes de subir" as desc %}
+        {% include "core/_module_card.html" with title=module.label %}
       {% elif module == "formularios" and module_links.evaluar %}
         {% url 'formularios:evaluar_index' request.client.slug as href %}{% translate "Evaluación práctica" as title %}{% translate "Evalúa a tu equipo" as desc %}
         {% include "core/_module_card.html" %}

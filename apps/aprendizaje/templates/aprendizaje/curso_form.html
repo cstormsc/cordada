@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% if curso %}{% translate "Configurar" %} {{ curso.codigo }}{% else %}{% translate "Nuevo curso" %}{% endif %} · {{ request.client.name }}{% endblock %}
+{% block content %}
+<div class="narrow-wide">
+  <p>{% if curso %}<a href="{% url 'aprendizaje:curso' request.client.slug curso.numero %}">← {{ curso.codigo }}</a>{% else %}<a href="{% url 'aprendizaje:index' request.client.slug %}">← {% translate "Ascenso y Aprendizaje" %}</a>{% endif %}</p>
+  <h1>{% if curso %}{% translate "Configurar" %} {{ curso.codigo }}{% else %}{% translate "Nuevo curso" %}{% endif %}</h1>
+  {% if curso and not curso.is_draft %}<p class="msg msg-warning">{% translate "Publicado: los impactos y la evaluación quedan fijos." %}</p>{% endif %}
+  <form method="post" class="form panel">{% csrf_token %}{{ form }}
+    <button class="btn">{% translate "Guardar" %}</button></form>
+</div>
+{% endblock %}

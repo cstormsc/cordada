@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "apps.ruta",
     "apps.bitacora",
     "apps.formularios",
+    "apps.aprendizaje",
     "apps.dashboard",
     "apps.guia",
     "apps.plataforma",

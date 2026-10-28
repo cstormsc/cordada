@@ -34,6 +34,7 @@ ROLE_PERMISSIONS: dict[str, dict[str, frozenset[Action]]] = {
         M.BITACORA: frozenset({A.EDIT}),
         M.DASHBOARD: frozenset({A.EDIT}),
         M.FORMULARIOS: frozenset({A.EDIT}),
+        M.APRENDIZAJE: frozenset({A.EDIT}),
         M.GUIA: frozenset({A.EDIT}),
     },
     Role.EQUIPO_CAMBIO: {
@@ -42,6 +43,7 @@ ROLE_PERMISSIONS: dict[str, dict[str, frozenset[Action]]] = {
         M.BITACORA: frozenset({A.EDIT}),
         M.DASHBOARD: frozenset({A.VIEW}),
         M.FORMULARIOS: frozenset({A.EDIT, A.VIEW_INDIVIDUAL}),
+        M.APRENDIZAJE: frozenset({A.EDIT, A.VIEW_INDIVIDUAL}),
         M.GUIA: frozenset({A.VIEW}),
     },
     Role.CAPITAN: {
@@ -56,6 +58,7 @@ ROLE_PERMISSIONS: dict[str, dict[str, frozenset[Action]]] = {
         M.BITACORA: frozenset({A.REGISTER, A.CLASSIFY}),
         M.DASHBOARD: frozenset({A.VIEW}),
         M.FORMULARIOS: frozenset({A.DESIGN}),
+        M.APRENDIZAJE: frozenset({A.DESIGN}),
         M.GUIA: frozenset({A.VIEW}),
     },
     Role.EQUIPO_TECNICO: {

@@ -386,3 +386,10 @@ section[id], article[id] { scroll-margin-top: 1rem; }
 .login form { padding: 2rem; display: flex; flex-direction: column; justify-content: center; }
 .login form .btn { align-self: flex-start; }
 @media (max-width: 40rem) { .login { grid-template-columns: 1fr; } .login-art { min-height: 190px; } }
+
+/* Ascenso y Aprendizaje: course lessons */
+.lecciones { margin: 0.5rem 0; padding-left: 1.4rem; }
+.lecciones > li { border-bottom: 1px solid var(--line); padding: 0.75rem 0; }
+.lecciones > li .row { align-items: flex-start; }
+#lecciones > li { cursor: grab; }
+#lecciones > li.sortable-ghost { opacity: 0.4; }

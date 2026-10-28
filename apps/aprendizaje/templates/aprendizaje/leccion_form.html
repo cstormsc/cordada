@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% if leccion.pk %}{{ leccion.titulo }}{% else %}{% translate "Nueva lección" %}{% endif %} · {{ curso.codigo }}{% endblock %}
+{% block content %}
+<div class="narrow-wide">
+  <p><a href="{% url 'aprendizaje:curso' request.client.slug curso.numero %}">← {{ curso.codigo }} {{ curso.titulo }}</a></p>
+  <h1>{% if leccion.pk %}{% translate "Lección" %} {{ leccion.orden }}{% else %}{% translate "Nueva lección" %}{% endif %}</h1>
+  {% if not curso.is_draft %}<p class="msg msg-warning">{% translate "Curso publicado: puedes corregir el contenido, pero no el tipo, si es obligatoria ni sus dependencias." %}</p>{% endif %}
+  <form method="post" enctype="multipart/form-data" class="form panel">{% csrf_token %}
+    {{ form }}
+    {% if leccion.archivo %}<p class="small"><a href="{% url 'aprendizaje:archivo' request.client.slug curso.numero leccion.pk %}">{% translate "Descargar el archivo actual" %}</a></p>{% endif %}
+    <button class="btn">{% translate "Guardar" %}</button></form>
+</div>
+{% endblock %}
