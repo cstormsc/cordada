@@ -1,12 +1,21 @@
 from django import forms
 from django.utils.translation import gettext_lazy as _
+from PIL import Image
 
 from apps.core.attachments import MAX_UPLOAD_MB
 from apps.formularios.models import Cuestionario, EstadoCuestionario
 from apps.matriz.models import Estado, Impacto
 
 from . import cursos
-from .models import IMAGE_EXTENSIONS, Bloque, BloqueItem, Curso, Leccion, TipoBloque
+from .models import (
+    IMAGE_EXTENSIONS,
+    Bloque,
+    BloqueItem,
+    Curso,
+    Encabezado,
+    Leccion,
+    TipoBloque,
+)
 
 
 class ImpactosField(forms.ModelMultipleChoiceField):
@@ -211,3 +220,30 @@ def kept_items(formset):
         if titulo or texto or data.get("imagen"):
             kept.append((form, titulo, texto))
     return kept
+
+
+class EncabezadoForm(forms.ModelForm):
+    class Meta:
+        model = Encabezado
+        fields = ["imagen", "texto_alternativo"]
+        widgets = {"imagen": forms.FileInput(attrs={"accept": "image/png,image/jpeg,image/webp"})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.dimensiones = None
+        self.fields["imagen"].help_text = _(
+            "Recomendado: %(w)s × %(h)s px (proporción 6:1), PNG o JPG, hasta %(mb)s MB. Se "
+            "muestra completa a todo el ancho de la página; en el celular se ve más pequeña, "
+            "así que evita letras chicas y deja el logo lejos de los bordes."
+        ) % {"w": Encabezado.ANCHO, "h": Encabezado.ALTO, "mb": MAX_UPLOAD_MB}
+
+    def clean_imagen(self):
+        f = _check_size(self.cleaned_data.get("imagen"))
+        if f and f is not getattr(self.instance, "imagen", None):
+            try:
+                with Image.open(f) as img:
+                    self.dimensiones = img.size
+            except (OSError, Image.DecompressionBombError):
+                raise forms.ValidationError(_("No se pudo leer la imagen.")) from None
+            f.seek(0)
+        return f

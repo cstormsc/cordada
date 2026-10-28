@@ -100,15 +100,17 @@ def purge():
             apps.get_model("aprendizaje", "Bloque"),
         ):
             files += [o.archivo.name for o in model.unscoped.filter(client=client) if o.archivo]
-        files += [
-            o.imagen.name
-            for o in apps.get_model("aprendizaje", "BloqueItem").unscoped.filter(client=client)
-            if o.imagen
-        ]
+        for label in ("aprendizaje.BloqueItem", "aprendizaje.Encabezado"):
+            files += [
+                o.imagen.name
+                for o in apps.get_model(label).unscoped.filter(client=client)
+                if o.imagen
+            ]
         order = [
             "bitacora.TicketAfectado", "bitacora.TicketComentario", "bitacora.TicketTransicion",
             "bitacora.Ticket", "aprendizaje.LeccionVista", "aprendizaje.Inscripcion",
-            "aprendizaje.BloqueItem", "aprendizaje.Bloque", "aprendizaje.Leccion",
+            "aprendizaje.Encabezado", "aprendizaje.BloqueItem", "aprendizaje.Bloque",
+            "aprendizaje.Leccion",
             "aprendizaje.Curso", "formularios.Evaluacion", "formularios.Acta", "formularios.Criterio",
             "formularios.ListaObservacion", "formularios.Respuesta", "formularios.Enlace",
             "formularios.Opcion", "formularios.Pregunta", "formularios.Cuestionario",

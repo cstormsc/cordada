@@ -17,8 +17,25 @@ from apps.core.models import Module
 from apps.core.permissions import Action, role_actions
 
 from . import cursos
-from .forms import BLOCK_HELP, BloqueForm, CursoForm, LeccionForm, item_formset, kept_items
-from .models import CON_ITEMS, Bloque, BloqueItem, Curso, EstadoCurso, Leccion, TipoBloque
+from .forms import (
+    BLOCK_HELP,
+    BloqueForm,
+    CursoForm,
+    EncabezadoForm,
+    LeccionForm,
+    item_formset,
+    kept_items,
+)
+from .models import (
+    CON_ITEMS,
+    Bloque,
+    BloqueItem,
+    Curso,
+    Encabezado,
+    EstadoCurso,
+    Leccion,
+    TipoBloque,
+)
 
 A = Action
 
@@ -55,7 +72,11 @@ def index(request, client_slug):
     return render(
         request,
         "aprendizaje/index.html",
-        {"cursos": lista.prefetch_related("impactos"), "can_design": A.DESIGN in _actions(request)},
+        {
+            "cursos": lista.prefetch_related("impactos"),
+            "can_design": A.DESIGN in _actions(request),
+            "can_edit": A.EDIT in _actions(request),
+        },
     )
 
 
@@ -288,6 +309,62 @@ def imagen(request, client_slug, numero, item_pk):
     return _serve(item.imagen, item.titulo or "imagen", inline=True)
 
 
+# --- The client's banner over the course pages ---
+
+
+@client_member_required
+def encabezado(request, client_slug):
+    _require(request, A.EDIT)
+    actual = Encabezado.objects.first()
+    if request.method == "POST" and "quitar" in request.POST:
+        if actual:
+            actual.delete()
+        messages.success(request, _("Encabezado quitado."))
+        return redirect("aprendizaje:encabezado", client_slug=client_slug)
+    form = EncabezadoForm(
+        request.POST or None, request.FILES or None, instance=actual or Encabezado()
+    )
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, _("Encabezado guardado."))
+        if form.dimensiones and form.dimensiones[0] < Encabezado.ANCHO_MINIMO:
+            messages.warning(
+                request,
+                _(
+                    "La imagen mide %(w)s × %(h)s px: en pantallas grandes puede verse "
+                    "borrosa. Lo ideal es %(rw)s × %(rh)s px."
+                )
+                % {
+                    "w": form.dimensiones[0],
+                    "h": form.dimensiones[1],
+                    "rw": Encabezado.ANCHO,
+                    "rh": Encabezado.ALTO,
+                },
+            )
+        return redirect("aprendizaje:encabezado", client_slug=client_slug)
+    return render(
+        request,
+        "aprendizaje/encabezado.html",
+        {"form": form, "actual": actual, "banner": _banner(client_slug)},
+    )
+
+
+def _banner(client_slug):
+    """{url, alt} of the client's banner, or None. The URL changes with each upload."""
+    actual = Encabezado.objects.first()
+    if actual is None:
+        return None
+    url = reverse("aprendizaje:encabezado_imagen", kwargs={"client_slug": client_slug})
+    return {"url": f"{url}?v={int(actual.updated_at.timestamp())}", "alt": actual.texto_alternativo}
+
+
+@client_member_required
+def encabezado_imagen(request, client_slug):
+    _require(request, A.EDIT, A.DESIGN)
+    actual = Encabezado.objects.first()
+    return _serve(actual.imagen if actual else None, "encabezado", inline=True)
+
+
 # --- Preview: the course as the person will see it ---
 
 
@@ -315,6 +392,7 @@ def vista_previa(request, client_slug, numero):
             "items": items,
             "vistas": 0,
             "continuar": abiertas[0]["url"] if abiertas else None,
+            "banner": _banner(client_slug),
             "preview": True,
             "volver": _curso_url(client_slug, numero),
         },
@@ -355,6 +433,7 @@ def vista_previa_leccion(request, client_slug, numero, pk):
             "total": len(items),
             "anterior": items[pos - 1]["url"] if pos else None,
             "siguiente": items[pos + 1]["url"] if pos + 1 < len(items) else None,
+            "banner": _banner(client_slug),
             "portada": reverse(
                 "aprendizaje:vista_previa", kwargs={"client_slug": client_slug, "numero": numero}
             ),

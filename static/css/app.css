@@ -425,3 +425,6 @@ button.btn:disabled { opacity: 0.55; cursor: not-allowed; }
 .acordeon:last-child { border-bottom: 1px solid var(--line); }
 .acordeon summary { font-weight: 600; cursor: pointer; }
 .acordeon img { margin: 0.5rem 0; }
+.banner { width: 100%; background: var(--surface); line-height: 0; }
+.banner img { display: block; width: 100%; height: auto; max-height: 22rem; object-fit: cover; }
+.banner-muestra { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-bottom: 0.75rem; }

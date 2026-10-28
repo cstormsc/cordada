@@ -5,7 +5,10 @@
   <p><a href="{% url 'client_home' request.client.slug %}">← {{ request.client.name }}</a></p>
   <div class="row">
     <h1>{% translate "Ascenso y Aprendizaje" %}</h1>
-    {% if can_design %}<a class="btn" href="{% url 'aprendizaje:crear' request.client.slug %}">{% translate "Nuevo curso" %}</a>{% endif %}
+    <div class="row">
+      {% if can_edit %}<a href="{% url 'aprendizaje:encabezado' request.client.slug %}">{% translate "Encabezado" %}</a>{% endif %}
+      {% if can_design %}<a class="btn" href="{% url 'aprendizaje:crear' request.client.slug %}">{% translate "Nuevo curso" %}</a>{% endif %}
+    </div>
   </div>
   {% if cursos %}
   <div class="table-wrap panel"><table>

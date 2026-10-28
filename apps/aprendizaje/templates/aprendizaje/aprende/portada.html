@@ -2,6 +2,7 @@
 {% load i18n %}
 {% block title %}{{ curso.titulo }}{% endblock %}
 {% block brand %}{{ curso.client.name }}{% endblock %}
+{% block banner %}{% include "aprendizaje/aprende/_banner.html" %}{% endblock %}
 {% block content %}
   {% include "aprendizaje/aprende/_preview.html" %}
   <h1>{{ curso.titulo }}</h1>

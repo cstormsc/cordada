@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Encabezado de los cursos" %} · {{ request.client.name }}{% endblock %}
+{% block content %}
+  <p><a href="{% url 'aprendizaje:index' request.client.slug %}">← {% translate "Ascenso y Aprendizaje" %}</a></p>
+  <h1>{% translate "Encabezado de los cursos" %}</h1>
+  <p class="muted">{% translate "Un banner con la marca del cliente, a todo el ancho de la página, sobre la portada y cada lección de todos sus cursos." %}</p>
+  {% if banner %}
+    <section class="panel">
+      <h2>{% translate "Así se ve" %}</h2>
+      <div class="banner banner-muestra"><img src="{{ banner.url }}" alt="{{ banner.alt|default:request.client.name }}"></div>
+      <form method="post">{% csrf_token %}<button class="link danger small" name="quitar" value="1">{% translate "Quitar el encabezado" %}</button></form>
+    </section>
+  {% endif %}
+  <div class="narrow-wide">
+    <form method="post" enctype="multipart/form-data" class="form panel">{% csrf_token %}
+      {{ form }}
+      <button class="btn">{% if actual %}{% translate "Reemplazar" %}{% else %}{% translate "Guardar" %}{% endif %}</button>
+    </form>
+  </div>
+{% endblock %}

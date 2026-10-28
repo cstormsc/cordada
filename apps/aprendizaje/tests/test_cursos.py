@@ -8,6 +8,7 @@ from apps.aprendizaje.models import (
     Bloque,
     BloqueItem,
     Curso,
+    Encabezado,
     EstadoCurso,
     Inscripcion,
     Leccion,
@@ -423,3 +424,61 @@ class TestVistaPrevia:
 )
 def test_video_embed(url, embed):
     assert cursos.video_embed(url) == embed
+
+
+def png(width, height):
+    from io import BytesIO
+
+    from PIL import Image
+
+    buf = BytesIO()
+    Image.new("RGB", (width, height), (56, 73, 89)).save(buf, "PNG")
+    return SimpleUploadedFile("marca.png", buf.getvalue(), content_type="image/png")
+
+
+class TestEncabezado:
+    URL = f"{BASE}encabezado/"
+
+    def test_banner_over_the_course_pages(self, client, equipo, acme, make_curso):
+        c = make_curso(1)
+        (leccion,) = lecciones(acme, c)
+        client.force_login(equipo)
+        body = client.get(self.URL).content.decode()
+        assert "1920 × 320 px" in body
+
+        r = client.post(
+            self.URL, {"imagen": png(1920, 320), "texto_alternativo": "Acme"}, follow=True
+        )
+        assert "Encabezado guardado" in r.content.decode()
+        assert "borrosa" not in r.content.decode()
+        with tenant_context(acme):
+            assert Encabezado.objects.get().imagen.name.startswith(
+                f"clientes/{acme.pk}/aprendizaje/"
+            )
+
+        for url in (f"{base(c)}vista-previa/", f"{base(c)}vista-previa/{leccion.pk}/"):
+            body = client.get(url).content.decode()
+            assert f"{BASE}encabezado/imagen/?v=" in body and 'alt="Acme"' in body
+        r = client.get(f"{BASE}encabezado/imagen/")
+        assert r.status_code == 200 and "inline" in r["Content-Disposition"]
+
+        client.post(self.URL, {"quitar": "1"})
+        with tenant_context(acme):
+            assert not Encabezado.objects.exists()
+        assert "encabezado/imagen" not in client.get(f"{base(c)}vista-previa/").content.decode()
+
+    def test_small_or_broken_images(self, client, equipo, acme):
+        client.force_login(equipo)
+        r = client.post(self.URL, {"imagen": png(800, 200)}, follow=True)
+        assert "puede verse borrosa" in r.content.decode()
+        broken = SimpleUploadedFile("x.png", b"no soy una imagen", content_type="image/png")
+        r = client.post(self.URL, {"imagen": broken})
+        assert "No se pudo leer la imagen" in r.content.decode()
+        with tenant_context(acme):
+            assert Encabezado.objects.count() == 1  # the replacement was refused
+
+    def test_only_editors_configure_it(self, client, member, acme):
+        guia, _ = member(Role.GUIA, client=acme, email="guia@example.com")
+        client.force_login(guia)
+        assert client.get(self.URL).status_code == 403
+        assert "encabezado/" not in client.get(BASE).content.decode()

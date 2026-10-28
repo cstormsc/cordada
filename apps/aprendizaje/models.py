@@ -262,3 +262,29 @@ class LeccionVista(TenantScopedModel):
         constraints = [
             models.UniqueConstraint(fields=["inscripcion", "leccion"], name="unique_vista"),
         ]
+
+
+class Encabezado(TenantScopedModel):
+    """The client's banner over the course pages, one per client."""
+
+    UPLOAD_DIR = "aprendizaje"
+    ANCHO, ALTO = 1920, 320  # recommended, 6:1
+    ANCHO_MINIMO = 1200
+
+    imagen = models.FileField(
+        _("imagen del encabezado"),
+        upload_to=attachment_path,
+        validators=[FileExtensionValidator(IMAGE_EXTENSIONS)],
+    )
+    texto_alternativo = models.CharField(
+        _("texto alternativo"),
+        max_length=200,
+        blank=True,
+        help_text=_("Lo que lee un lector de pantalla, por ejemplo «Banco Altiplano»."),
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta(TenantScopedModel.Meta):
+        constraints = [
+            models.UniqueConstraint(fields=["client"], name="unique_encabezado"),
+        ]

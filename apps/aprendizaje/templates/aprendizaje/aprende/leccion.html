@@ -3,6 +3,7 @@
 {% block title %}{{ leccion.titulo }} · {{ curso.titulo }}{% endblock %}
 {% block brand %}{{ curso.client.name }}{% endblock %}
 {% block head %}<script src="{% static 'vendor/alpine.min.js' %}" defer></script>{% endblock %}
+{% block banner %}{% include "aprendizaje/aprende/_banner.html" %}{% endblock %}
 {% block content %}
   {% include "aprendizaje/aprende/_preview.html" %}
   <p><a href="{{ portada }}">← {{ curso.titulo }}</a></p>

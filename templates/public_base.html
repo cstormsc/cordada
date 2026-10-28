@@ -11,6 +11,7 @@
 </head>
 <body>
   <header class="topbar">{% include "includes/ridges.html" %}<div class="topbar-inner"><span class="brand">{% include "includes/logo.html" %}{% block brand %}Cordada{% endblock %}</span></div></header>
+  {% block banner %}{% endblock %}
   <main class="container public">{% block content %}{% endblock %}</main>
 </body>
 </html>
