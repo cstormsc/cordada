@@ -20,6 +20,22 @@ class EstadoCurso(models.TextChoices):
     CERRADO = "cerrado", _("Cerrado")
 
 
+class Montana(models.TextChoices):
+    BARU = "baru", _("Volcán Barú")
+    CHIRRIPO = "chirripo", _("Cerro Chirripó")
+    ACONCAGUA = "aconcagua", _("Aconcagua")
+    EVEREST = "everest", _("Everest")
+
+
+# (base camp, summit) in meters: the climb a course's progress is shown on.
+ALTURAS = {
+    Montana.BARU: (1900, 3474),
+    Montana.CHIRRIPO: (1520, 3821),
+    Montana.ACONCAGUA: (4300, 6961),
+    Montana.EVEREST: (5364, 8849),
+}
+
+
 class Curso(TenantScopedModel):
     """Lessons that prepare people for one or more impacts, optionally ending in a
     Formularios questionnaire."""
@@ -53,6 +69,16 @@ class Curso(TenantScopedModel):
         help_text=_(
             "Opcional. Quien completa el curso hasta esta fecha cuenta como formado antes "
             "de la salida."
+        ),
+    )
+    montana = models.CharField(
+        _("montaña"),
+        max_length=10,
+        choices=Montana.choices,
+        default=Montana.BARU,
+        help_text=_(
+            "La montaña de la expedición: el avance se muestra en metros. Las más altas "
+            "quedan mejor en cursos largos."
         ),
     )
     estado = models.CharField(
@@ -139,10 +165,12 @@ class TipoBloque(models.TextChoices):
     DOCUMENTO = "documento", _("Documento")
     PASOS = "pasos", _("Paso a paso")
     ACORDEON = "acordeon", _("Acordeón")
+    PREGUNTA = "pregunta", _("Pregunta rápida")
+    ORDENAR = "ordenar", _("Ordenar pasos")
 
 
-# Blocks whose content is a list of items (steps, accordion sections).
-CON_ITEMS = (TipoBloque.PASOS, TipoBloque.ACORDEON)
+# Blocks whose content is a list of items (steps, sections, options).
+CON_ITEMS = (TipoBloque.PASOS, TipoBloque.ACORDEON, TipoBloque.PREGUNTA, TipoBloque.ORDENAR)
 IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp"]
 
 
@@ -178,7 +206,8 @@ class Bloque(TenantScopedModel):
 
 
 class BloqueItem(TenantScopedModel):
-    """One step of a step-by-step block, or one section of an accordion."""
+    """One step of a step-by-step block, a section of an accordion, an option of a quick
+    question, or a step to put in order (saved in the right order)."""
 
     UPLOAD_DIR = "lecciones"
 
@@ -192,6 +221,7 @@ class BloqueItem(TenantScopedModel):
         blank=True,
         validators=[FileExtensionValidator(IMAGE_EXTENSIONS)],
     )
+    correcta = models.BooleanField(_("es la correcta"), default=False)
 
     class Meta(TenantScopedModel.Meta):
         ordering = ["orden", "pk"]
@@ -288,3 +318,25 @@ class Encabezado(TenantScopedModel):
         constraints = [
             models.UniqueConstraint(fields=["client"], name="unique_encabezado"),
         ]
+
+
+class Ajustes(TenantScopedModel):
+    """How the client's courses look, one row per client. No row means the defaults."""
+
+    expedicion = models.BooleanField(
+        _("mostrar los cursos como una expedición"),
+        default=True,
+        help_text=_(
+            "Mapa de ruta, avance en metros, mochila, ventana de buen tiempo y juegos con "
+            "motivo de montaña. Desactívalo para una presentación más sobria."
+        ),
+    )
+
+    class Meta(TenantScopedModel.Meta):
+        constraints = [
+            models.UniqueConstraint(fields=["client"], name="unique_ajustes_aprendizaje"),
+        ]
+
+    @classmethod
+    def actuales(cls):
+        return cls.objects.first() or cls()

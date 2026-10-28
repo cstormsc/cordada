@@ -11,11 +11,11 @@
     {% if formset %}
       {{ formset.management_form }}
       {% if formset.non_form_errors %}<p class="error">{{ formset.non_form_errors|join:" " }}</p>{% endif %}
-      <h2>{% if bloque.tipo == "pasos" %}{% translate "Pasos" %}{% else %}{% translate "Secciones" %}{% endif %}</h2>
-      <p class="muted small">{% if bloque.tipo == "pasos" %}{% translate "Cada paso es una tarjeta del carrusel. Los que dejes vacíos no se guardan." %}{% else %}{% translate "Cada sección tiene un título que se abre para mostrar su texto. Las que dejes vacías no se guardan." %}{% endif %}</p>
+      <h2>{% if bloque.tipo == "pasos" or bloque.tipo == "ordenar" %}{% translate "Pasos" %}{% elif bloque.tipo == "pregunta" %}{% translate "Opciones" %}{% else %}{% translate "Secciones" %}{% endif %}</h2>
+      <p class="muted small">{% if bloque.tipo == "pasos" %}{% translate "Cada paso es una tarjeta del carrusel. Los que dejes vacíos no se guardan." %}{% elif bloque.tipo == "ordenar" %}{% translate "Escríbelos en el orden correcto; la persona los verá desordenados. Los que dejes vacíos no se guardan." %}{% elif bloque.tipo == "pregunta" %}{% translate "Marca una sola opción como correcta. La explicación se muestra al elegir cada opción, también las incorrectas. Las que dejes vacías no se guardan." %}{% else %}{% translate "Cada sección tiene un título que se abre para mostrar su texto. Las que dejes vacías no se guardan." %}{% endif %}</p>
       {% for f in formset %}
         <fieldset class="panel item-bloque">
-          <legend>{% if bloque.tipo == "pasos" %}{% translate "Paso" %}{% else %}{% translate "Sección" %}{% endif %} {{ forloop.counter }}</legend>
+          <legend>{% if bloque.tipo == "pasos" or bloque.tipo == "ordenar" %}{% translate "Paso" %}{% elif bloque.tipo == "pregunta" %}{% translate "Opción" %}{% else %}{% translate "Sección" %}{% endif %} {{ forloop.counter }}</legend>
           {{ f.id }}
           {% for field in f.visible_fields %}{% if field.name != "DELETE" %}{{ field.as_field_group }}{% endif %}{% endfor %}
           {% if f.instance.pk %}<label class="small">{{ f.DELETE }} {% translate "Quitar" %}</label>{% endif %}

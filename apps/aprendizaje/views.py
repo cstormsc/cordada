@@ -19,6 +19,7 @@ from apps.core.permissions import Action, role_actions
 from . import cursos
 from .forms import (
     BLOCK_HELP,
+    AjustesForm,
     BloqueForm,
     CursoForm,
     EncabezadoForm,
@@ -28,6 +29,7 @@ from .forms import (
 )
 from .models import (
     CON_ITEMS,
+    Ajustes,
     Bloque,
     BloqueItem,
     Curso,
@@ -83,7 +85,7 @@ def index(request, client_slug):
 @client_member_required
 def crear(request, client_slug):
     _require(request, A.DESIGN)
-    form = CursoForm(request.POST or None)
+    form = CursoForm(request.POST or None, expedicion=Ajustes.actuales().expedicion)
     if request.method == "POST" and form.is_valid():
         curso = form.save(commit=False)
         curso.creado_por = request.user
@@ -97,7 +99,7 @@ def crear(request, client_slug):
 def editar(request, client_slug, numero):
     _require(request, A.DESIGN)
     curso = _curso(numero)
-    form = CursoForm(request.POST or None, instance=curso)
+    form = CursoForm(request.POST or None, instance=curso, expedicion=Ajustes.actuales().expedicion)
     if request.method == "POST" and form.is_valid():
         form.save()
         messages.success(request, _("Cambios guardados."))
@@ -235,14 +237,14 @@ def bloque(request, client_slug, numero, pk, bloque_pk=None, tipo=None):
     if request.method == "POST" and form.is_valid() and (formset is None or formset.is_valid()):
         kept = kept_items(formset) if formset else []
         probe = form.save(commit=False)
-        if errors := cursos.block_errors(probe, [(t, x) for _f, t, x in kept]):
+        if errors := cursos.block_errors(probe, [(t, x, ok) for _f, t, x, ok in kept]):
             form.add_error(None, errors[0][:1].upper() + errors[0][1:] + ".")
         else:
             with transaction.atomic():
                 obj = form.save()
                 if formset:
                     keep = set()
-                    for n, (item_form, _t, _x) in enumerate(kept, start=1):
+                    for n, (item_form, *_data) in enumerate(kept, start=1):
                         item = item_form.save(commit=False)
                         item.bloque, item.orden = obj, n
                         item.save()
@@ -316,6 +318,14 @@ def imagen(request, client_slug, numero, item_pk):
 def encabezado(request, client_slug):
     _require(request, A.EDIT)
     actual = Encabezado.objects.first()
+    ajustes = AjustesForm(
+        request.POST if "ajustes" in request.POST else None, instance=Ajustes.actuales()
+    )
+    if "ajustes" in request.POST:
+        if ajustes.is_valid():
+            ajustes.save()
+            messages.success(request, _("Ajustes guardados."))
+        return redirect("aprendizaje:encabezado", client_slug=client_slug)
     if request.method == "POST" and "quitar" in request.POST:
         if actual:
             actual.delete()
@@ -345,7 +355,7 @@ def encabezado(request, client_slug):
     return render(
         request,
         "aprendizaje/encabezado.html",
-        {"form": form, "actual": actual, "banner": _banner(client_slug)},
+        {"form": form, "actual": actual, "banner": _banner(client_slug), "ajustes": ajustes},
     )
 
 
@@ -368,8 +378,8 @@ def encabezado_imagen(request, client_slug):
 # --- Preview: the course as the person will see it ---
 
 
-def _preview_items(client_slug, c):
-    items = cursos.recorrido(c)
+def _preview_items(client_slug, c, vistas=frozenset()):
+    items = cursos.recorrido(c, vistas)
     for item in items:
         item["url"] = reverse(
             "aprendizaje:vista_previa_leccion",
@@ -378,20 +388,50 @@ def _preview_items(client_slug, c):
     return items
 
 
+def _preview_vistas(request, c):
+    """The progress the preview pretends: ?simular=n sees the first n lessons, and one
+    more than the lessons passes the evaluation."""
+    try:
+        n = max(0, int(request.GET.get("simular", 0)))
+    except ValueError:
+        n = 0
+    total = c.lecciones.count()
+    vistas = cursos.simular(c, n)
+    completado = n > total if c.evaluacion_id else total > 0 and len(vistas) == total
+    return n, vistas, completado
+
+
+def _expedicion(c, items, completado):
+    if not Ajustes.actuales().expedicion:
+        return None
+    exp = cursos.expedicion(c, items, completado)
+    exp["ventana"] = cursos.ventana(c.fecha_limite, timezone.localdate())
+    exp["montana"] = c.get_montana_display()
+    return exp
+
+
 @client_member_required
 def vista_previa(request, client_slug, numero):
     _require(request, A.EDIT, A.DESIGN)
     c = _curso(numero)
-    items = _preview_items(client_slug, c)
-    abiertas = [i for i in items if not i["faltan"]]
+    n, vistas, completado = _preview_vistas(request, c)
+    items = _preview_items(client_slug, c, vistas)
+    abiertas = [i for i in items if not i["faltan"] and not i["vista"]]
+    url = reverse("aprendizaje:vista_previa", kwargs={"client_slug": client_slug, "numero": numero})
+    pasos = len(items) + (1 if c.evaluacion_id else 0)
     return render(
         request,
         "aprendizaje/aprende/portada.html",
         {
             "curso": c,
             "items": items,
-            "vistas": 0,
+            "vistas": len(vistas),
             "continuar": abiertas[0]["url"] if abiertas else None,
+            "expedicion": _expedicion(c, items, completado),
+            "simular": n,
+            "simulaciones": [
+                {"n": k, "url": f"{url}?simular={k}" if k else url} for k in range(pasos + 1)
+            ],
             "banner": _banner(client_slug),
             "preview": True,
             "volver": _curso_url(client_slug, numero),
@@ -408,6 +448,7 @@ def vista_previa_leccion(request, client_slug, numero, pk):
     if pos is None:
         raise Http404
     leccion = items[pos]["leccion"]
+    expedicion = _expedicion(c, items, False)
 
     def archivo_url(b):
         return reverse(
@@ -431,6 +472,7 @@ def vista_previa_leccion(request, client_slug, numero, pk):
             "bloques": cursos.para_mostrar(leccion, archivo_url, imagen_url),
             "numero": pos + 1,
             "total": len(items),
+            "expedicion": expedicion,
             "anterior": items[pos - 1]["url"] if pos else None,
             "siguiente": items[pos + 1]["url"] if pos + 1 < len(items) else None,
             "banner": _banner(client_slug),

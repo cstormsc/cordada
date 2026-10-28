@@ -1,0 +1,17 @@
+{% load i18n %}<div class="juego grieta" x-data="{ elegida: null, ok: false }">
+  {% if expedicion %}<p class="juego-tag"><span aria-hidden="true">⛏️</span> {% translate "Cruzar la grieta" %}</p>{% endif %}
+  <p class="pregunta-juego"><strong>{{ b.texto|linebreaksbr }}</strong></p>
+  {% if expedicion %}<div class="grieta-escena" aria-hidden="true" :class="{ cruzada: ok, fallo: elegida !== null && !ok }"><span class="borde izq"></span><span class="borde der"></span><span class="puente"></span><span class="escalador">🧗</span></div>{% endif %}
+  <ul class="opciones">
+    {% for o in b.lista %}<li><button type="button" class="opcion" :disabled="ok" @click="elegida = {{ forloop.counter0 }}; ok = {{ o.correcta|yesno:'true,false' }}" :class="{ correcta: ok && elegida === {{ forloop.counter0 }}, incorrecta: !ok && elegida === {{ forloop.counter0 }} }" :aria-pressed="elegida === {{ forloop.counter0 }}">{{ o.titulo }}</button></li>{% endfor %}
+  </ul>
+  <div aria-live="polite">
+    {% for o in b.lista %}
+      <div class="feedback {% if o.correcta %}bien{% else %}mal{% endif %}" x-show="elegida === {{ forloop.counter0 }}" x-cloak>
+        <p><strong>{% if o.correcta %}{% if expedicion %}{% translate "¡Cruzaste la grieta!" %}{% else %}{% translate "¡Correcto!" %}{% endif %}{% else %}{% if expedicion %}{% translate "Todavía no: esa no te lleva al otro lado." %}{% else %}{% translate "No es esa." %}{% endif %}{% endif %}</strong></p>
+        {% if o.texto %}{{ o.texto|urlize|linebreaks }}{% endif %}
+        {% if not o.correcta %}<p class="small">{% translate "Elige otra opción." %}</p>{% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</div>

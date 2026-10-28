@@ -40,7 +40,9 @@ def test_demo_builds_every_module_and_rebuilds(client, make_user):
     pages = [
         "", "matriz/", "matriz/lista/", "ruta/", "ruta/informe/", "bitacora/",
         "bitacora/metricas/", "formularios/", "formularios/1/resultados/",
-        "formularios/listas/", "dashboard/", "guia/", "configuracion/personas/",
+        "formularios/listas/", "aprendizaje/", "aprendizaje/1/", "aprendizaje/1/vista-previa/",
+        "aprendizaje/encabezado/", "aprendizaje/encabezado/imagen/", "dashboard/", "guia/",
+        "configuracion/personas/",
     ]  # fmt: skip
     for path in pages:
         assert client.get(f"/c/{demo.SLUG}/{path}").status_code == 200, path

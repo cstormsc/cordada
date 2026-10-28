@@ -428,3 +428,82 @@ button.btn:disabled { opacity: 0.55; cursor: not-allowed; }
 .banner { width: 100%; background: var(--surface); line-height: 0; }
 .banner img { display: block; width: 100%; height: auto; max-height: 22rem; object-fit: cover; }
 .banner-muestra { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-bottom: 0.75rem; }
+
+/* Ascenso y Aprendizaje: the expedition */
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.simular { display: flex; flex-wrap: wrap; gap: 0.35rem 0.75rem; align-items: center; margin: -0.25rem 0 1rem; }
+.simular a[aria-current] { font-weight: 700; text-decoration: none; color: var(--fg); }
+.expedicion .exp-titulo { margin: 0; }
+.exp-altura { margin: 0; font-size: 1.1rem; }
+.exp-altura strong { font-size: 1.6rem; color: var(--accent); }
+.ventana { margin: 0; padding: 0.35rem 0.75rem; border-radius: 999px; font-size: 0.85rem; background: #fff6d6; border: 1px solid #f0d98a; }
+.ventana-cerrando { background: #eef1f4; border-color: var(--line); }
+.ventana-cerrada { background: #e4e8ed; border-color: #c3cbd4; }
+.ruta { display: block; width: 100%; height: auto; margin: 0.75rem 0; border-radius: 8px; }
+.ruta .cielo { fill: #e4effb; }
+.ruta.ventana-cerrando .cielo { fill: #dfe5ec; }
+.ruta.ventana-cerrada .cielo { fill: #cfd6de; }
+.ruta .nubes ellipse { fill: #fff; opacity: 0.8; }
+.ruta.ventana-cerrando .nubes ellipse, .ruta.ventana-cerrada .nubes ellipse { fill: #9aa7b4; }
+.ruta .monte-atras { fill: #bdddfc; }
+.ruta .monte { fill: #6a89a7; }
+.ruta .nieve { fill: #fff; }
+.ruta .sendero { fill: none; stroke: var(--rope); stroke-width: 3; stroke-dasharray: 6 5; stroke-linecap: round; stroke-linejoin: round; }
+.ruta .campo circle { fill: #fff; stroke: var(--accent); stroke-width: 2.5; }
+.ruta .campo text { font-size: 12px; font-weight: 700; text-anchor: middle; fill: var(--accent); }
+.ruta .campo.vista circle { fill: var(--rope); stroke: #fff; }
+.ruta .campo.vista text { fill: #fff; }
+.ruta .campo.bloqueada circle { fill: #d5dbe1; stroke: #9aa7b4; stroke-dasharray: 3 3; }
+.ruta .campo.bloqueada text { fill: #56616d; }
+.ruta .campo.inicio { fill: var(--accent); stroke: #fff; stroke-width: 2; }
+.ruta .cima line { stroke: var(--accent); stroke-width: 2.5; }
+.ruta .cima path { fill: #fff; stroke: var(--accent); stroke-width: 1.5; }
+.ruta .cima.lograda path { fill: var(--rope); stroke: var(--rope); }
+.ruta .escalador { font-size: 30px; }
+.mochila { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.mochila ul { list-style: none; display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0; padding: 0; }
+.mochila li { width: 2.25rem; height: 2.25rem; display: grid; place-items: center; border-radius: 8px; border: 1px dashed #b6c0ca; font-size: 1.15rem; filter: grayscale(1); opacity: 0.45; }
+.mochila li.ganado { border: 1px solid var(--rope); background: #fbefe5; filter: none; opacity: 1; }
+.mochila .mosqueton { color: var(--accent); }
+.mochila li.ganado .mosqueton { color: var(--rope); }
+.cumbre-msg { margin: 0.75rem 0 0; padding: 0.6rem 0.9rem; border-radius: 8px; background: #fbefe5; border: 1px solid var(--rope); }
+.equipo-msg { display: flex; gap: 0.6rem; align-items: center; padding: 0.6rem 0.9rem; border-radius: 8px; background: #fbefe5; border: 1px dashed var(--rope); }
+.equipo-msg span { font-size: 1.4rem; }
+
+/* Learning games */
+.juego-tag { display: inline-block; margin: 0 0 0.5rem; padding: 0.15rem 0.6rem; border-radius: 999px; background: #fbefe5; color: #8a4a1c; font-size: 0.8rem; font-weight: 700; }
+.opciones { list-style: none; padding: 0; margin: 0.75rem 0; display: grid; gap: 0.5rem; }
+.opcion { width: 100%; text-align: left; padding: 0.65rem 0.9rem; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font: inherit; color: var(--fg); cursor: pointer; }
+.opcion:hover:not(:disabled) { border-color: var(--accent-mid); background: var(--tint); }
+.opcion:focus-visible { outline: 2px solid var(--accent-mid); outline-offset: 2px; }
+.opcion:disabled { cursor: default; }
+.opciones .opcion.correcta { border-color: #1e6b3a; background: #e3f4ea; font-weight: 600; }
+.opciones .opcion.incorrecta { border-color: #b03a2e; background: #fbeaea; }
+.feedback { padding: 0.6rem 0.9rem; border-radius: 8px; }
+.feedback p { margin: 0.25rem 0; }
+.feedback.bien { background: #e3f4ea; }
+.feedback.mal { background: #fbeaea; }
+.grieta-escena { position: relative; height: 84px; margin: 0.5rem 0; border-radius: 8px; overflow: hidden; background: linear-gradient(180deg, #e4effb 0 55%, #2c3a48 55% 100%); }
+.grieta-escena .borde { position: absolute; bottom: 0; height: 38px; width: 40%; background: linear-gradient(180deg, #fff, #dce9f5); border-top: 3px solid #bdddfc; }
+.grieta-escena .izq { left: 0; border-radius: 0 6px 0 0; }
+.grieta-escena .der { right: 0; border-radius: 6px 0 0 0; }
+.grieta-escena .puente { position: absolute; bottom: 35px; left: 40%; width: 20%; height: 4px; background: var(--rope); transform: scaleX(0); transition: transform 0.4s ease; }
+.grieta-escena .escalador { position: absolute; bottom: 38px; left: 18%; font-size: 28px; line-height: 1; transition: left 1s ease 0.3s; }
+.grieta-escena.cruzada .puente { transform: scaleX(1); }
+.grieta-escena.cruzada .escalador { left: 74%; }
+.grieta-escena.fallo .escalador { animation: tambaleo 0.4s ease; }
+@keyframes tambaleo { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+@media (prefers-reduced-motion: reduce) {
+  .grieta-escena .puente, .grieta-escena .escalador { transition: none; }
+  .grieta-escena.fallo .escalador { animation: none; }
+}
+.ordenar { list-style: none; padding: 0; margin: 0.75rem 0; display: grid; gap: 0.4rem; }
+.ordenar li { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.6rem; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.ordenar li.bien { border-color: #1e6b3a; background: #e3f4ea; }
+.ordenar li.mal { border-color: #b03a2e; background: #fbeaea; }
+.ordenar .n { flex: none; width: 1.6rem; height: 1.6rem; border-radius: 50%; display: grid; place-items: center; background: var(--tint); font-weight: 700; font-size: 0.85rem; }
+.ordenar .texto { flex: 1; min-width: 0; }
+.ordenar .mover { flex: none; display: flex; gap: 0.25rem; }
+.ordenar .mover .btn { padding: 0.2rem 0.55rem; min-width: 2.25rem; }
+.resultado { margin: 0; }
+.resultado .bien { color: #1e6b3a; }
