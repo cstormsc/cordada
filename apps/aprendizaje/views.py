@@ -171,6 +171,75 @@ def archivo(request, client_slug, numero, pk):
     )
 
 
+# --- Preview: the course as the person will see it ---
+
+
+def _preview_items(request, client_slug, c):
+    items = cursos.recorrido(c)
+    for item in items:
+        item["url"] = reverse(
+            "aprendizaje:vista_previa_leccion",
+            kwargs={"client_slug": client_slug, "numero": c.numero, "pk": item["leccion"].pk},
+        )
+    return items
+
+
+@client_member_required
+def vista_previa(request, client_slug, numero):
+    _require(request, A.EDIT, A.DESIGN)
+    c = _curso(numero)
+    items = _preview_items(request, client_slug, c)
+    abiertas = [i for i in items if not i["faltan"]]
+    return render(
+        request,
+        "aprendizaje/aprende/portada.html",
+        {
+            "curso": c,
+            "items": items,
+            "vistas": 0,
+            "continuar": abiertas[0]["url"] if abiertas else None,
+            "preview": True,
+            "volver": _curso_url(client_slug, numero),
+        },
+    )
+
+
+@client_member_required
+def vista_previa_leccion(request, client_slug, numero, pk):
+    _require(request, A.EDIT, A.DESIGN)
+    c = _curso(numero)
+    items = _preview_items(request, client_slug, c)
+    pos = next((n for n, i in enumerate(items) if i["leccion"].pk == pk), None)
+    if pos is None:
+        raise Http404
+    leccion = items[pos]["leccion"]
+    return render(
+        request,
+        "aprendizaje/aprende/leccion.html",
+        {
+            "curso": c,
+            "item": items[pos],
+            "leccion": leccion,
+            "numero": pos + 1,
+            "total": len(items),
+            "anterior": items[pos - 1]["url"] if pos else None,
+            "siguiente": items[pos + 1]["url"] if pos + 1 < len(items) else None,
+            "portada": reverse(
+                "aprendizaje:vista_previa", kwargs={"client_slug": client_slug, "numero": numero}
+            ),
+            "embed": cursos.video_embed(leccion.url) if leccion.tipo == "video" else None,
+            "archivo_url": reverse(
+                "aprendizaje:archivo",
+                kwargs={"client_slug": client_slug, "numero": numero, "pk": pk},
+            )
+            if leccion.archivo
+            else None,
+            "preview": True,
+            "volver": _curso_url(client_slug, numero),
+        },
+    )
+
+
 @client_member_required
 @require_POST
 def publicar(request, client_slug, numero):

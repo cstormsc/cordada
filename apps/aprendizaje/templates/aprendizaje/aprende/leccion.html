@@ -1,0 +1,28 @@
+{% extends "public_base.html" %}
+{% load i18n %}
+{% block title %}{{ leccion.titulo }} · {{ curso.titulo }}{% endblock %}
+{% block brand %}{{ curso.client.name }}{% endblock %}
+{% block content %}
+  {% include "aprendizaje/aprende/_preview.html" %}
+  <p><a href="{{ portada }}">← {{ curso.titulo }}</a></p>
+  <p class="muted small">{% blocktranslate %}Lección {{ numero }} de {{ total }}{% endblocktranslate %}{% if leccion.minutos %} · {{ leccion.minutos }} min{% endif %}{% if not leccion.obligatoria %} · {% translate "opcional" %}{% endif %}</p>
+  <h1>{{ leccion.titulo }}</h1>
+  {% if preview and item.faltan %}<p class="msg">{% translate "La persona verá esta lección bloqueada hasta ver" %}: {% for d in item.faltan %}{{ d.titulo }}{% if not forloop.last %}; {% endif %}{% endfor %}.</p>{% endif %}
+
+  <article class="panel leccion-contenido">
+    {% if leccion.tipo == "video" %}
+      {% if embed %}<div class="video"><iframe src="{{ embed }}" title="{{ leccion.titulo }}" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
+      {% else %}<p><a class="btn" href="{{ leccion.url }}" target="_blank" rel="noopener noreferrer">{% translate "Ver el video" %}</a></p>{% endif %}
+    {% elif leccion.tipo == "documento" %}
+      {% if archivo_url %}<p><a class="btn" href="{{ archivo_url }}">{% translate "Descargar el documento" %}</a></p>{% endif %}
+      {% if leccion.url %}<p><a class="btn" href="{{ leccion.url }}" target="_blank" rel="noopener noreferrer">{% translate "Abrir el documento" %}</a></p>{% endif %}
+    {% endif %}
+    {% if leccion.contenido %}{{ leccion.contenido|urlize|linebreaks }}{% endif %}
+  </article>
+
+  <div class="row leccion-nav">
+    {% if anterior %}<a href="{{ anterior }}">← {% translate "Anterior" %}</a>{% else %}<span></span>{% endif %}
+    <button class="btn" type="button"{% if preview %} disabled title="{% translate 'No disponible en la vista previa' %}"{% endif %}>{% translate "Marcar como vista" %}</button>
+    {% if siguiente %}<a href="{{ siguiente }}">{% translate "Siguiente" %} →</a>{% else %}<a href="{{ portada }}">{% translate "Volver al curso" %}</a>{% endif %}
+  </div>
+{% endblock %}

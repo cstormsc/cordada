@@ -13,6 +13,12 @@ urlpatterns = [
     path("<int:numero>/lecciones/<int:pk>/", views.leccion, name="leccion"),
     path("<int:numero>/lecciones/<int:pk>/borrar/", views.borrar_leccion, name="borrar_leccion"),
     path("<int:numero>/lecciones/<int:pk>/archivo/", views.archivo, name="archivo"),
+    path("<int:numero>/vista-previa/", views.vista_previa, name="vista_previa"),
+    path(
+        "<int:numero>/vista-previa/<int:pk>/",
+        views.vista_previa_leccion,
+        name="vista_previa_leccion",
+    ),
     path("<int:numero>/ordenar/", views.ordenar, name="ordenar"),
     path("<int:numero>/publicar/", views.publicar, name="publicar"),
     path("<int:numero>/cerrar/", views.cerrar, name="cerrar"),

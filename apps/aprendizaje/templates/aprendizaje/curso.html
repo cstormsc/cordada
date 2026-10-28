@@ -6,7 +6,10 @@
   <p><a href="{% url 'aprendizaje:index' request.client.slug %}">← {% translate "Ascenso y Aprendizaje" %}</a></p>
   <div class="row">
     <h1><span class="muted">{{ curso.codigo }}</span> {{ curso.titulo }}</h1>
-    {% if can_design %}<a href="{% url 'aprendizaje:editar' request.client.slug curso.numero %}">{% translate "Configurar" %}</a>{% endif %}
+    <div class="row">
+      {% if can_design %}<a href="{% url 'aprendizaje:editar' request.client.slug curso.numero %}">{% translate "Configurar" %}</a>{% endif %}
+      {% if lecciones %}<a class="btn secondary" href="{% url 'aprendizaje:vista_previa' request.client.slug curso.numero %}">{% translate "Vista previa" %}</a>{% endif %}
+    </div>
   </div>
   <p><span class="tag">{{ curso.get_estado_display }}</span>
     <span class="muted">{{ lecciones|length }} {% translate "lección(es)" %}{% if minutos %} · {% blocktranslate %}unos {{ minutos }} min{% endblocktranslate %}{% endif %}{% if curso.fecha_limite %} · {% translate "fecha límite" %} {{ curso.fecha_limite|date:"SHORT_DATE_FORMAT" }}{% endif %}{% for i in impactos %}{% if forloop.first %} · {% translate "prepara" %} {% endif %}{{ i.codigo }}{% if not forloop.last %}, {% endif %}{% endfor %}</span></p>

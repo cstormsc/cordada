@@ -265,3 +265,63 @@ class TestInscripcion:
             i.save()
         assert Inscripcion.from_token(old) is None
         assert Inscripcion.from_token("basura") is None
+
+
+class TestVistaPrevia:
+    def test_course_as_the_person_sees_it(self, client, equipo, acme, make_curso, make_evaluacion):
+        c = make_curso(2, evaluacion=make_evaluacion())
+        l1, l2 = lecciones(acme, c)
+        with tenant_context(acme):
+            l2.depende_de.add(l1)
+            Leccion.objects.create(
+                curso=c, orden=3, titulo="Demo", tipo="video", url="https://youtu.be/dQw4w9WgXcQ"
+            )
+        client.force_login(equipo)
+        assert "Vista previa" in client.get(base(c)).content.decode()
+
+        body = client.get(f"{base(c)}vista-previa/").content.decode()
+        assert "Así verá la persona este curso" in body
+        assert "0 de 3 lecciones vistas" in body
+        assert "Se abre al ver: L1" in body
+        assert "Ir directo a la evaluación" in body
+        assert f"{base(c)}vista-previa/{l1.pk}/" in body  # Empezar goes to the first open one
+
+        body = client.get(f"{base(c)}vista-previa/{l2.pk}/").content.decode()
+        assert "Lección 2 de 3" in body
+        assert "bloqueada hasta ver: L1" in body
+        assert "Texto 2" in body
+        ls = lecciones(acme, c)
+        body = client.get(f"{base(c)}vista-previa/{ls[2].pk}/").content.decode()
+        assert "youtube-nocookie.com/embed/dQw4w9WgXcQ" in body
+
+    def test_preview_is_for_the_team_only(self, client, member, acme, make_curso):
+        c = make_curso(1)
+        (leccion,) = lecciones(acme, c)
+        user, _ = member(Role.CAPITAN, client=acme, email="cap@example.com")
+        client.force_login(user)
+        assert client.get(f"{base(c)}vista-previa/").status_code == 403
+        assert client.get(f"{base(c)}vista-previa/{leccion.pk}/").status_code == 403
+
+    def test_lesson_of_another_course_is_not_found(self, client, equipo, acme, make_curso):
+        c, otro = make_curso(1), make_curso(1)
+        (leccion,) = lecciones(acme, otro)
+        client.force_login(equipo)
+        assert client.get(f"{base(c)}vista-previa/{leccion.pk}/").status_code == 404
+
+
+@pytest.mark.parametrize(
+    ("url", "embed"),
+    [
+        ("https://youtu.be/dQw4w9WgXcQ", "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"),
+        (
+            "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=3",
+            "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
+        ),
+        ("https://vimeo.com/76979871", "https://player.vimeo.com/video/76979871"),
+        ("https://vimeo.com/76979871/abc123", "https://player.vimeo.com/video/76979871?h=abc123"),
+        ("https://drive.google.com/file/d/x/view", None),
+        ("", None),
+    ],
+)
+def test_video_embed(url, embed):
+    assert cursos.video_embed(url) == embed

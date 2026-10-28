@@ -1,5 +1,7 @@
 """Course design rules: lesson dependencies and what must be fixed before publishing."""
 
+import re
+
 from django.utils.translation import gettext as _
 
 from apps.formularios.models import EstadoCuestionario
@@ -75,3 +77,30 @@ def renumber(curso, ids=None):
         if leccion.orden != i:
             leccion.orden = i
             leccion.save(update_fields=["orden"])
+
+
+def recorrido(curso, vistas=frozenset()):
+    """The course as a person sees it: each lesson with whether it was seen and, if
+    locked, the lessons still missing. `vistas` holds the ids of the lessons seen."""
+    lecciones = list(curso.lecciones.prefetch_related("depende_de"))
+    items = []
+    for leccion in lecciones:
+        faltan = [d for d in leccion.depende_de.all() if d.pk not in vistas]
+        items.append({"leccion": leccion, "vista": leccion.pk in vistas, "faltan": faltan})
+    return items
+
+
+_YOUTUBE = re.compile(
+    r"^https?://(?:www\.|m\.)?(?:youtube\.com/(?:watch\?(?:.*&)?v=|embed/|shorts/|live/)"
+    r"|youtu\.be/)([\w-]{11})"
+)
+_VIMEO = re.compile(r"^https?://(?:www\.)?vimeo\.com/(\d+)(?:/(\w+))?")
+
+
+def video_embed(url):
+    """Player URL for YouTube and Vimeo links, or None (shown as a plain link)."""
+    if m := _YOUTUBE.match(url or ""):
+        return f"https://www.youtube-nocookie.com/embed/{m[1]}"
+    if m := _VIMEO.match(url or ""):
+        return f"https://player.vimeo.com/video/{m[1]}" + (f"?h={m[2]}" if m[2] else "")
+    return None
