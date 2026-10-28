@@ -3,10 +3,11 @@
 import re
 
 from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 
 from apps.formularios.models import EstadoCuestionario
 
-from .models import TipoBloque
+from .models import ALTURAS, TipoBloque
 
 T = TipoBloque
 
@@ -35,8 +36,8 @@ def creates_cycle(graph, leccion_id, depende_de_ids):
 
 
 def block_errors(bloque, items=()):
-    """What a block still needs for its type. `items`: (titulo, texto) of its steps or
-    sections."""
+    """What a block still needs for its type. `items`: (titulo, texto, correcta) of its
+    steps, sections or options."""
     if bloque.tipo in (T.TEXTO, T.NOTA) and not bloque.texto.strip():
         return [_("escribe el texto")]
     if bloque.tipo == T.IMAGEN and not bloque.archivo:
@@ -49,13 +50,22 @@ def block_errors(bloque, items=()):
         return [_("agrega al menos dos pasos")]
     if bloque.tipo == T.ACORDEON and not items:
         return [_("agrega al menos una sección")]
-    if bloque.tipo == T.ACORDEON and not all(titulo for titulo, _texto in items):
+    if bloque.tipo == T.ACORDEON and not all(titulo for titulo, *_rest in items):
         return [_("cada sección necesita un título")]
+    if bloque.tipo == T.PREGUNTA:
+        if not bloque.texto.strip():
+            return [_("escribe la pregunta")]
+        if len(items) < 2 or not all(titulo for titulo, *_rest in items):
+            return [_("agrega al menos dos opciones, cada una con su texto")]
+        if sum(1 for *_rest, correcta in items if correcta) != 1:
+            return [_("marca una sola opción como correcta")]
+    if bloque.tipo == T.ORDENAR and (len(items) < 3 or not all(titulo for titulo, *_rest in items)):
+        return [_("agrega al menos tres pasos, cada uno con su texto")]
     return []
 
 
 def _items(bloque):
-    return [(i.titulo, i.texto) for i in bloque.items.all()]
+    return [(i.titulo, i.texto, i.correcta) for i in bloque.items.all()]
 
 
 def publish_errors(curso):
@@ -133,6 +143,101 @@ def para_mostrar(leccion, archivo_url, imagen_url):
         b.embed = video_embed(b.url) if b.tipo == T.VIDEO else None
         b.archivo_url = archivo_url(b) if b.archivo else None
         b.lista = list(b.items.all())
+        if b.tipo == T.ORDENAR:
+            b.pasos, b.json_id = [i.titulo for i in b.lista], f"ordenar-{b.pk}"
         for item in b.lista:
             item.imagen_url = imagen_url(item) if item.imagen else None
     return bloques
+
+
+# --- The expedition: how a course looks with the mountain theme ---
+
+# One piece of gear per lesson, in order (and around again in long courses).
+EQUIPO = [
+    ("🥾", gettext_lazy("Botas")),
+    ("🧭", gettext_lazy("Brújula")),
+    ("⛑️", gettext_lazy("Casco")),
+    ("🪢", gettext_lazy("Cuerda")),
+    ("⛏️", gettext_lazy("Piolet")),
+    ("🧤", gettext_lazy("Guantes")),
+    ("🔦", gettext_lazy("Linterna frontal")),
+    ("🗺️", gettext_lazy("Mapa")),
+]
+
+# The route drawing (viewBox 600 × 300): a peak at (300, 30) over a base from x 40 to 560.
+_PIE, _CIMA_Y, _MEDIO, _ALTO = 280, 40, 300, 250
+
+
+def _punto(t, lado):
+    """Where the trail is at height t (0 trailhead, 1 summit), zigzagging side to side."""
+    if t >= 1:
+        return _MEDIO, _CIMA_Y
+    y = _PIE - t * (_PIE - _CIMA_Y)
+    media = 260 * (y - 30) / _ALTO
+    return round(_MEDIO + lado * 0.55 * media), round(y)
+
+
+def simular(curso, n):
+    """Ids of the first `n` lessons a person could have seen, respecting dependencies.
+    Lets the preview show the course partway up."""
+    lecciones = list(curso.lecciones.prefetch_related("depende_de"))
+    vistas = []
+    while len(vistas) < n:
+        siguiente = next(
+            (
+                lec
+                for lec in lecciones
+                if lec.pk not in vistas and all(d.pk in vistas for d in lec.depende_de.all())
+            ),
+            None,
+        )
+        if siguiente is None:
+            break
+        vistas.append(siguiente.pk)
+    return set(vistas)
+
+
+def expedicion(curso, items, completado=False):
+    """Adds camp, altitude and gear to each item of `recorrido` and returns the route:
+    lessons are camps on the way up; the evaluation, when there is one, is the summit."""
+    base, cumbre = ALTURAS[curso.montana]
+    tramos = len(items) + (1 if curso.evaluacion_id else 0) or 1
+    vistas = sum(1 for i in items if i["vista"])
+    puntos = [{"x": _punto(0, -1)[0], "y": _punto(0, -1)[1], "clase": "inicio"}]
+    for k, item in enumerate(items, start=1):
+        t = k / tramos
+        item["altura"] = round(base + (cumbre - base) * t)
+        item["campo"] = _("Cumbre") if t >= 1 else _("Campo %(n)s") % {"n": k}
+        item["equipo"] = EQUIPO[(k - 1) % len(EQUIPO)]
+        x, y = _punto(t, 1 if k % 2 else -1)
+        clase = "vista" if item["vista"] else "bloqueada" if item["faltan"] else "abierta"
+        puntos.append({"x": x, "y": y, "clase": clase, "n": k})
+    if curso.evaluacion_id:
+        puntos.append({"x": _MEDIO, "y": _CIMA_Y, "clase": "vista" if completado else "cima"})
+    if completado:
+        altura, avance = cumbre, tramos
+    else:
+        # Summit only by completing: without an evaluation, the last required lesson.
+        avance = min(vistas, tramos - 1) if tramos > 1 else 0
+        altura = round(base + (cumbre - base) * avance / tramos)
+    escalador = puntos[avance] if avance < len(puntos) else puntos[-1]
+    return {
+        "base": base,
+        "cumbre": cumbre,
+        "altura": altura,
+        "porcentaje": round(100 * avance / tramos),
+        "puntos": puntos,
+        "ruta": " ".join(f"{p['x']},{p['y']}" for p in puntos),
+        "escalador": escalador,
+        "completado": completado,
+        "mochila": [(item["equipo"], item["vista"]) for item in items],
+    }
+
+
+def ventana(fecha_limite, hoy):
+    """The deadline as a weather window: abierta, cerrando (a week or less) or cerrada."""
+    if not fecha_limite:
+        return None
+    dias = (fecha_limite - hoy).days
+    estado = "cerrada" if dias < 0 else "cerrando" if dias <= 7 else "abierta"
+    return {"estado": estado, "dias": dias, "fecha": fecha_limite}

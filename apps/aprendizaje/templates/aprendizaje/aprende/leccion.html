@@ -1,13 +1,13 @@
 {% extends "public_base.html" %}
-{% load i18n static %}
+{% load i18n static assets %}
 {% block title %}{{ leccion.titulo }} · {{ curso.titulo }}{% endblock %}
 {% block brand %}{{ curso.client.name }}{% endblock %}
-{% block head %}<script src="{% static 'vendor/alpine.min.js' %}" defer></script>{% endblock %}
+{% block head %}<script src="{% asset 'js/juegos.js' %}" defer></script><script src="{% static 'vendor/alpine.min.js' %}" defer></script>{% endblock %}
 {% block banner %}{% include "aprendizaje/aprende/_banner.html" %}{% endblock %}
 {% block content %}
   {% include "aprendizaje/aprende/_preview.html" %}
   <p><a href="{{ portada }}">← {{ curso.titulo }}</a></p>
-  <p class="muted small">{% blocktranslate %}Lección {{ numero }} de {{ total }}{% endblocktranslate %}{% if leccion.minutos %} · {{ leccion.minutos }} min{% endif %}{% if not leccion.obligatoria %} · {% translate "opcional" %}{% endif %}</p>
+  <p class="muted small">{% if expedicion %}{{ item.campo }} · {{ item.altura|floatformat:"0g" }} m · {% endif %}{% blocktranslate %}Lección {{ numero }} de {{ total }}{% endblocktranslate %}{% if leccion.minutos %} · {{ leccion.minutos }} min{% endif %}{% if not leccion.obligatoria %} · {% translate "opcional" %}{% endif %}</p>
   <h1>{{ leccion.titulo }}</h1>
   {% if preview and item.faltan %}<p class="msg">{% translate "La persona verá esta lección bloqueada hasta ver" %}: {% for d in item.faltan %}{{ d.titulo }}{% if not forloop.last %}; {% endif %}{% endfor %}.</p>{% endif %}
 
@@ -44,6 +44,10 @@
             <button type="button" class="btn small" @click="i++" :disabled="i === n - 1">{% translate "Siguiente" %} →</button>
           </div>
         </div>
+      {% elif b.tipo == "pregunta" %}
+        {% include "aprendizaje/aprende/_pregunta.html" %}
+      {% elif b.tipo == "ordenar" %}
+        {% include "aprendizaje/aprende/_ordenar.html" %}
       {% elif b.tipo == "acordeon" %}
         {% if b.texto %}{{ b.texto|urlize|linebreaks }}{% endif %}
         {% for s in b.lista %}
@@ -58,6 +62,7 @@
     <p class="muted">{% translate "Esta lección todavía no tiene contenido." %}</p>
   {% endfor %}
 
+  {% if expedicion %}<p class="equipo-msg"><span aria-hidden="true">{{ item.equipo.0 }}</span> {% blocktranslate with e=item.equipo.1 c=item.campo %}Al terminar esta lección llegas a {{ c }} y sumas a tu mochila: {{ e }}.{% endblocktranslate %}</p>{% endif %}
   <div class="row leccion-nav">
     {% if anterior %}<a href="{{ anterior }}">← {% translate "Anterior" %}</a>{% else %}<span></span>{% endif %}
     <button class="btn" type="button"{% if preview %} disabled title="{% translate 'No disponible en la vista previa' %}"{% endif %}>{% translate "Marcar como vista" %}</button>

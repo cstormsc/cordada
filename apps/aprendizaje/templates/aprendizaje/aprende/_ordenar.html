@@ -1,0 +1,24 @@
+{% load i18n %}{{ b.pasos|json_script:b.json_id }}
+<div class="juego armar-ruta" x-data="ordenar('{{ b.json_id }}')">
+  {% if expedicion %}<p class="juego-tag"><span aria-hidden="true">🗺️</span> {% translate "Arma la ruta" %}</p>{% endif %}
+  {% if b.texto %}{{ b.texto|urlize|linebreaks }}{% else %}<p>{% translate "Ordena los pasos con las flechas y luego comprueba." %}</p>{% endif %}
+  <ol class="ordenar">
+    <template x-for="(p, k) in pasos" :key="p.i">
+      <li :class="{ bien: revisado && p.i === k, mal: revisado && p.i !== k }">
+        <span class="n" x-text="k + 1"></span>
+        <span class="texto" x-text="p.titulo"></span>
+        <span class="mover">
+          <button type="button" class="btn secondary small" data-mover="-1" @click="mover(k, -1)" :disabled="k === 0 || listo" aria-label="{% translate 'Subir' %}">↑</button>
+          <button type="button" class="btn secondary small" data-mover="1" @click="mover(k, 1)" :disabled="k === pasos.length - 1 || listo" aria-label="{% translate 'Bajar' %}">↓</button>
+        </span>
+      </li>
+    </template>
+  </ol>
+  <div class="row">
+    <button type="button" class="btn small" @click="comprobar()" :disabled="listo">{% translate "Comprobar" %}</button>
+    <p class="small resultado" aria-live="polite">
+      <span class="bien" x-show="listo" x-cloak><strong>{% if expedicion %}{% translate "¡Ruta lista! Ya sabes por dónde subir." %}{% else %}{% translate "¡Orden correcto!" %}{% endif %}</strong></span>
+      <span x-show="revisado && !listo" x-cloak><strong x-text="enSuLugar"></strong> {% blocktranslate count n=b.lista|length %}de {{ n }} paso en su lugar.{% plural %}de {{ n }} pasos en su lugar. Ajusta los marcados y vuelve a comprobar.{% endblocktranslate %}</span>
+    </p>
+  </div>
+</div>

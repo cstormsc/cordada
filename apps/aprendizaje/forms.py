@@ -9,11 +9,13 @@ from apps.matriz.models import Estado, Impacto
 from . import cursos
 from .models import (
     IMAGE_EXTENSIONS,
+    Ajustes,
     Bloque,
     BloqueItem,
     Curso,
     Encabezado,
     Leccion,
+    Montana,
     TipoBloque,
 )
 
@@ -45,14 +47,18 @@ class CursoForm(forms.ModelForm):
 
     class Meta:
         model = Curso
-        fields = ["titulo", "descripcion", "impactos", "evaluacion", "fecha_limite"]
+        fields = ["titulo", "descripcion", "impactos", "evaluacion", "fecha_limite", "montana"]
         widgets = {
             "descripcion": forms.Textarea(attrs={"rows": 3}),
             "fecha_limite": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, expedicion=True, **kwargs):
         super().__init__(*args, **kwargs)
+        if expedicion:
+            self.fields["montana"].required = False
+        else:
+            del self.fields["montana"]
         self.fields["impactos"].queryset = Impacto.objects.exclude(
             estado=Estado.DESCARTADO
         ).order_by("-requiere_formacion", "numero")
@@ -63,6 +69,9 @@ class CursoForm(forms.ModelForm):
             # Once published, people may be taking it: only the texts and the date change.
             for name in ("impactos", "evaluacion"):
                 self.fields[name].disabled = True
+
+    def clean_montana(self):
+        return self.cleaned_data.get("montana") or self.instance.montana or Montana.BARU
 
 
 class LeccionForm(forms.ModelForm):
@@ -129,6 +138,8 @@ BLOCK_FIELDS = {
     },
     T.PASOS: {"titulo": None, "texto": _("Introducción (opcional)")},
     T.ACORDEON: {"titulo": None, "texto": _("Introducción (opcional)")},
+    T.PREGUNTA: {"titulo": None, "texto": _("Pregunta")},
+    T.ORDENAR: {"titulo": None, "texto": _("Instrucción (opcional)")},
 }
 BLOCK_HELP = {
     T.NOTA: _("Un texto resaltado: una advertencia, un dato clave, un recordatorio."),
@@ -136,6 +147,16 @@ BLOCK_HELP = {
     T.VIDEO: _("YouTube y Vimeo se ven dentro de la lección; otros enlaces, como botón."),
     T.PASOS: _("Un carrusel: la persona avanza paso a paso con Anterior y Siguiente."),
     T.ACORDEON: _("Secciones que la persona abre y cierra."),
+    T.PREGUNTA: _(
+        "Una pregunta para repasar en medio de la lección. Si se equivoca, la persona ve la "
+        "explicación y reintenta; no cuenta para la nota. Con la expedición activada se "
+        "juega como «Cruzar la grieta»."
+    ),
+    T.ORDENAR: _(
+        "Escribe los pasos en el orden correcto: la persona los verá desordenados y debe "
+        "ordenarlos. No cuenta para la nota. Con la expedición activada se juega como "
+        "«Arma la ruta»."
+    ),
 }
 
 
@@ -155,7 +176,7 @@ class BloqueForm(forms.ModelForm):
                 del self.fields[name]
             elif shown[name]:
                 self.fields[name].label = shown[name]
-        if self.instance.tipo in (T.TEXTO, T.NOTA):
+        if self.instance.tipo in (T.TEXTO, T.NOTA, T.PREGUNTA):
             self.fields["texto"].required = True
         if self.instance.tipo == T.VIDEO:
             self.fields["url"].required = True
@@ -171,14 +192,34 @@ class BloqueForm(forms.ModelForm):
         return f
 
 
+# Fields each item shows by block type, and how they are labelled there.
+ITEM_FIELDS = {
+    T.PREGUNTA: {
+        "titulo": _("Opción"),
+        "texto": _("Explicación (se muestra al elegirla)"),
+        "correcta": None,
+    },
+    T.ORDENAR: {"titulo": _("Paso")},
+}
+
+
 class BloqueItemForm(forms.ModelForm):
     class Meta:
         model = BloqueItem
-        fields = ["titulo", "texto", "imagen"]
+        fields = ["titulo", "texto", "imagen", "correcta"]
         widgets = {
             "texto": forms.Textarea(attrs={"rows": 3}),
             "imagen": forms.ClearableFileInput(attrs={"accept": "image/*"}),
         }
+
+    def __init__(self, *args, tipo, **kwargs):
+        super().__init__(*args, **kwargs)
+        shown = ITEM_FIELDS.get(tipo, {"titulo": None, "texto": None, "imagen": None})
+        for name in ("titulo", "texto", "imagen", "correcta"):
+            if name not in shown:
+                del self.fields[name]
+            elif shown[name]:
+                self.fields[name].label = shown[name]
 
     def clean_imagen(self):
         return _check_size(self.cleaned_data.get("imagen"))
@@ -204,13 +245,15 @@ def item_formset(bloque, data=None, files=None):
         instance=bloque,
         prefix="it",
         queryset=bloque.items.all() if bloque.pk else BloqueItem.unscoped.none(),
+        form_kwargs={"tipo": bloque.tipo},
     )
     formset.extra = min(MAX_ITEMS - existing, max(2, 4 - existing))
     return formset
 
 
 def kept_items(formset):
-    """The (form, titulo, texto) the formset keeps: not deleted and not left empty."""
+    """The (form, titulo, texto, correcta) the formset keeps: not deleted and not left
+    empty."""
     kept = []
     for form in formset.forms:
         data = getattr(form, "cleaned_data", None) or {}
@@ -218,7 +261,7 @@ def kept_items(formset):
             continue
         titulo, texto = data.get("titulo", ""), data.get("texto", "")
         if titulo or texto or data.get("imagen"):
-            kept.append((form, titulo, texto))
+            kept.append((form, titulo, texto, bool(data.get("correcta"))))
     return kept
 
 
@@ -247,3 +290,9 @@ class EncabezadoForm(forms.ModelForm):
                 raise forms.ValidationError(_("No se pudo leer la imagen.")) from None
             f.seek(0)
         return f
+
+
+class AjustesForm(forms.ModelForm):
+    class Meta:
+        model = Ajustes
+        fields = ["expedicion"]

@@ -15,6 +15,17 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
 from django.utils import timezone
 
+from apps.aprendizaje.cursos import publish_errors
+from apps.aprendizaje.models import (
+    Ajustes,
+    Bloque,
+    BloqueItem,
+    Curso,
+    Encabezado,
+    EstadoCurso,
+    Leccion,
+    Montana,
+)
 from apps.bitacora import workflow as ticket_flow
 from apps.bitacora.models import Ticket, TicketAfectado, TicketComentario, TicketTransicion
 from apps.catalogs.models import (
@@ -109,7 +120,7 @@ def purge():
         order = [
             "bitacora.TicketAfectado", "bitacora.TicketComentario", "bitacora.TicketTransicion",
             "bitacora.Ticket", "aprendizaje.LeccionVista", "aprendizaje.Inscripcion",
-            "aprendizaje.Encabezado", "aprendizaje.BloqueItem", "aprendizaje.Bloque",
+            "aprendizaje.Ajustes", "aprendizaje.Encabezado", "aprendizaje.BloqueItem", "aprendizaje.Bloque",
             "aprendizaje.Leccion",
             "aprendizaje.Curso", "formularios.Evaluacion", "formularios.Acta", "formularios.Criterio",
             "formularios.ListaObservacion", "formularios.Respuesta", "formularios.Enlace",
@@ -210,6 +221,7 @@ class Builder:
             self.ruta()
             self.bitacora()
             self.formularios()
+            self.aprendizaje()
             self.dashboard()
             self.guia()
         return self.client
@@ -760,6 +772,7 @@ class Builder:
             ],
             estado=EstadoCuestionario.PUBLICADO, by="valentina", days=10,
         )  # fmt: skip
+        self.caja = caja
         cajeros = gente["Cajeros de sucursal"] + gente["Jefes de sucursal"]
         # 14 cashiers: 11 pass, 2 fail, 1 pending; 6 branch heads: 5 pass, 1 pending.
         self.responder(
@@ -830,6 +843,160 @@ class Builder:
             string="<h1>Resumen firmado (demo)</h1><p>Observación práctica: cuadre de caja.</p>"
             "<p>Firma: Lorena Castillo</p>"
         ).write_pdf()
+
+    # Ascenso y Aprendizaje ----------------------------------------------------------------
+
+    @staticmethod
+    def banner():
+        """The bank's 1920 × 320 banner over the course pages, drawn here."""
+        from io import BytesIO
+
+        from PIL import Image, ImageDraw, ImageFont
+
+        def font(size):
+            try:  # in the Docker image (fonts-dejavu-core); the built-in one lacks accents
+                return ImageFont.truetype("DejaVuSans.ttf", size)
+            except OSError:
+                return ImageFont.load_default(size=size)
+
+        w, h = Encabezado.ANCHO, Encabezado.ALTO
+        img = Image.new("RGB", (w, h))
+        draw = ImageDraw.Draw(img)
+        for y in range(h):  # dawn sky
+            t = y / h
+            draw.line([(0, y), (w, y)], fill=(int(28 + 40 * t), int(56 + 60 * t), int(92 + 70 * t)))
+        draw.polygon(
+            [(980, h), (1380, 70), (1560, 190), (1700, 110), (1920, 260), (1920, h)],
+            fill=(64, 98, 132),
+        )
+        draw.polygon([(1180, h), (1500, 120), (1920, h)], fill=(42, 70, 100))
+        draw.polygon(
+            [(1500, 120), (1452, 170), (1478, 162), (1500, 178), (1524, 160), (1548, 170)],
+            fill=(255, 255, 255),
+        )
+        draw.ellipse([(140, 96), (268, 224)], outline=(232, 176, 74), width=10)  # the bank's sun
+        draw.text((320, 92), "Banco Altiplano", font=font(84), fill=(255, 255, 255))
+        draw.text(
+            (326, 202),
+            "Escuela Núcleo · aprender para el cambio",
+            font=font(38),
+            fill=(189, 221, 252),
+        )
+        out = BytesIO()
+        img.save(out, "PNG")
+        return SimpleUploadedFile("banner-altiplano.png", out.getvalue(), "image/png")
+
+    def curso(self, titulo, descripcion, lecciones, *, impactos_, **fields):
+        """lecciones: (titulo, minutos, obligatoria, depende_de indexes, blocks), and each
+        block is (tipo, titulo, texto, items) with items as (titulo, texto, correcta)."""
+        c = Curso.objects.create(titulo=titulo, descripcion=descripcion, **fields)
+        c.impactos.set(impactos_)
+        creadas = []
+        for orden, (lt, minutos, obligatoria, deps, bloques) in enumerate(lecciones, start=1):
+            leccion = Leccion.objects.create(
+                curso=c, orden=orden, titulo=lt, minutos=minutos, obligatoria=obligatoria
+            )
+            leccion.depende_de.set([creadas[d] for d in deps])
+            creadas.append(leccion)
+            for bo, (tipo, bt, texto, items) in enumerate(bloques, start=1):
+                b = Bloque.objects.create(
+                    leccion=leccion, orden=bo, tipo=tipo, titulo=bt, texto=texto
+                )
+                for io, (it, ix, ok) in enumerate(items, start=1):
+                    BloqueItem.objects.create(bloque=b, orden=io, titulo=it, texto=ix, correcta=ok)
+        return c
+
+    def aprendizaje(self):
+        Ajustes.objects.create(expedicion=True)
+        Encabezado.objects.create(
+            imagen=self.banner(), texto_alternativo="Banco Altiplano · Escuela Núcleo"
+        )
+        caja = self.curso(
+            "Operación de caja en Núcleo",
+            "Todo lo que necesitas para abrir, operar y cuadrar tu caja en Núcleo desde el "
+            "primer día. Al final, la evaluación de Formularios certifica que estás listo.",
+            [
+                ("Bienvenida a Núcleo", 5, True, [], [
+                    ("texto", "Por qué cambiamos", "Núcleo reemplaza al sistema de caja que usamos hace 18 años. Desde el go-live, toda la operación de caja se hace en Núcleo: no hay vuelta atrás al sistema antiguo.\n\nLo bueno: las diferencias se ven en el momento, no al día siguiente.", []),
+                    ("nota", "Ojo", "Tu usuario de Núcleo tiene doble factor. Si no lo activaste, hazlo antes de tu primer turno con el nuevo sistema.", []),
+                    ("pregunta", "", "Si mañana Núcleo está lento, ¿puedes volver al sistema antiguo para atender?", [
+                        ("Sí, mientras se resuelve", "El sistema antiguo quedó solo de consulta: ya no registra movimientos.", False),
+                        ("No, registro un ticket en la Bitácora y aviso a mi jefe", "Así es. La mesa de ayuda prioriza los tickets de caja durante el go-live.", True),
+                        ("Depende de la sucursal", "La regla es igual para todas las sucursales.", False),
+                    ]),
+                ]),
+                ("Abrir la caja del día", 10, True, [0], [
+                    ("pasos", "Apertura en cuatro pasos", "Lo haces una vez por turno, antes de atender al primer cliente.", [
+                        ("Ingresa a Núcleo", "Entra con tu usuario y confirma el doble factor en tu celular.", False),
+                        ("Elige tu caja", "En Caja → Apertura, selecciona tu número de caja y tu turno.", False),
+                        ("Declara el fondo inicial", "Cuenta el efectivo por denominación y regístralo. Núcleo calcula el total.", False),
+                        ("Confirma con tu jefe", "Tu jefe de sucursal aprueba la apertura en su pantalla. Recién ahí puedes atender.", False),
+                    ]),
+                    ("ordenar", "", "Ordena los pasos de la apertura, del primero al último.", [
+                        ("Ingresar a Núcleo con doble factor", "", False),
+                        ("Elegir la caja y el turno", "", False),
+                        ("Contar y declarar el fondo inicial", "", False),
+                        ("Esperar la aprobación del jefe de sucursal", "", False),
+                        ("Atender al primer cliente", "", False),
+                    ]),
+                ]),
+                ("Cuadre y diferencias", 12, True, [1], [
+                    ("texto", "", "Al cierre, Núcleo compara lo que declaras con lo que registró durante el día. Si hay diferencia, la ves de inmediato y tienes que explicarla antes de cerrar.", []),
+                    ("acordeon", "Preguntas frecuentes", "", [
+                        ("¿Qué pasa si la diferencia es menor a $5.000?", "La registras con una nota y cierras. Tu jefe la ve en su reporte diario.", False),
+                        ("¿Y si es mayor a $50.000?", "Necesita la aprobación del jefe de sucursal antes de cerrar. Adjunta el detalle de movimientos.", False),
+                        ("¿Puedo cuadrar sin conexión?", "No. El cuadre se hace siempre en línea: si no hay conexión, avisa a tu jefe y registra un ticket.", False),
+                    ]),
+                    ("pregunta", "", "Al cierre tienes una diferencia de $62.000. ¿Quién la aprueba?", [
+                        ("Yo mismo, con una nota", "Solo las diferencias menores a $5.000 se cierran con una nota.", False),
+                        ("El jefe de sucursal", "Correcto: sobre $50.000 aprueba el jefe, con el detalle de movimientos adjunto.", True),
+                        ("Back office, al día siguiente", "Con Núcleo ya no se espera al día siguiente: se resuelve antes de cerrar.", False),
+                    ]),
+                    ("ordenar", "", "Ordena el cierre de una caja con diferencia.", [
+                        ("Contar el efectivo por denominación", "", False),
+                        ("Declarar el total en Núcleo", "", False),
+                        ("Revisar la diferencia que muestra Núcleo", "", False),
+                        ("Adjuntar el detalle de movimientos", "", False),
+                        ("Pedir la aprobación del jefe de sucursal", "", False),
+                    ]),
+                ]),
+                ("Arqueo sorpresa", 6, False, [1], [
+                    ("texto", "", "El jefe de sucursal puede hacer un arqueo sorpresa en cualquier momento del turno. No detiene la atención por más de diez minutos.", []),
+                    ("pregunta", "", "¿Dónde se registra un arqueo sorpresa?", [
+                        ("Caja → Arqueos", "Ahí queda con fecha, hora y quién lo hizo.", True),
+                        ("Reportes → Cierre", "Ese reporte es del cierre del día, no de los arqueos.", False),
+                        ("No se registra", "Todo arqueo queda registrado en Núcleo.", False),
+                    ]),
+                ]),
+            ],
+            impactos_=[self.imp["caja"]], evaluacion=self.caja, fecha_limite=day(12),
+            montana=Montana.BARU, creado_por=self.u["valentina"],
+        )  # fmt: skip
+        assert not publish_errors(caja), publish_errors(caja)
+        caja.estado, caja.publicado_at = EstadoCurso.PUBLICADO, ago(5)
+        caja.save()
+        self.curso(
+            "Atención con la ficha única",
+            "Cómo usar la ficha única del cliente para resolver en una sola llamada.",
+            [
+                ("La ficha en un vistazo", 8, True, [], [
+                    ("acordeon", "", "La ficha reúne todo lo del cliente en una pantalla.", [
+                        ("Productos", "Cuentas, tarjetas y créditos, incluidos los de otras empresas del grupo.", False),
+                        ("Reclamos", "Los abiertos y los cerrados de los últimos 12 meses.", False),
+                    ]),
+                ]),
+                ("Verificar la identidad", 6, True, [0], [
+                    ("ordenar", "", "Ordena la verificación antes de dar un saldo por teléfono.", [
+                        ("Pedir el número de cédula", "", False),
+                        ("Abrir la ficha del cliente", "", False),
+                        ("Validar la clave dinámica", "", False),
+                        ("Informar el saldo", "", False),
+                    ]),
+                ]),
+            ],
+            impactos_=[self.imp["ficha"]], montana=Montana.CHIRRIPO, creado_por=self.u["joaquin"],
+        )  # fmt: skip
+        self.out("Ascenso y Aprendizaje: 2 cursos (1 publicado) con juegos y encabezado del banco")
 
     # Dashboard and guide ------------------------------------------------------------------
 

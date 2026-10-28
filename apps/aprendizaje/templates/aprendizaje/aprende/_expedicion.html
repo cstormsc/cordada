@@ -1,0 +1,44 @@
+{% load i18n %}{% with e=expedicion %}
+<section class="panel expedicion{% if e.completado %} en-cumbre{% endif %}">
+  <div class="row">
+    <div>
+      <p class="muted small exp-titulo">{% blocktranslate with m=e.montana %}Tu expedición al {{ m }}{% endblocktranslate %}</p>
+      <p class="exp-altura"><strong>{{ e.altura|floatformat:"0g" }} m</strong> <span class="muted">{% blocktranslate with c=e.cumbre|floatformat:"0g" %}de {{ c }} m{% endblocktranslate %}</span></p>
+    </div>
+    {% if e.ventana %}{% with v=e.ventana %}
+      <p class="ventana ventana-{{ v.estado }}">
+        {% if v.estado == "cerrada" %}<span aria-hidden="true">🌧️</span> {% blocktranslate with f=v.fecha|date:"j \d\e F" %}La ventana de buen tiempo se cerró el {{ f }}. Puedes seguir subiendo.{% endblocktranslate %}
+        {% elif v.dias == 0 %}<span aria-hidden="true">⛅</span> {% translate "Último día de buen tiempo: hoy se cierra la ventana." %}
+        {% elif v.estado == "cerrando" %}<span aria-hidden="true">⛅</span> {% blocktranslate count d=v.dias %}La ventana se cierra pronto: queda {{ d }} día.{% plural %}La ventana se cierra pronto: quedan {{ d }} días.{% endblocktranslate %}
+        {% else %}<span aria-hidden="true">☀️</span> {% blocktranslate count d=v.dias %}Ventana de buen tiempo: queda {{ d }} día.{% plural %}Ventana de buen tiempo: quedan {{ d }} días.{% endblocktranslate %}{% endif %}
+      </p>
+    {% endwith %}{% endif %}
+  </div>
+
+  <svg class="ruta ventana-{{ e.ventana.estado|default:'abierta' }}" viewBox="0 0 600 300" role="img" aria-label="{% blocktranslate with a=e.altura|floatformat:'0g' c=e.cumbre|floatformat:'0g' %}Mapa de la ruta: vas en {{ a }} m de {{ c }} m.{% endblocktranslate %}">
+    <rect class="cielo" x="0" y="0" width="600" height="300"/>
+    <g class="nubes" aria-hidden="true"><ellipse cx="110" cy="60" rx="46" ry="12"/><ellipse cx="140" cy="52" rx="30" ry="12"/><ellipse cx="480" cy="80" rx="52" ry="12"/><ellipse cx="510" cy="72" rx="28" ry="11"/></g>
+    <polygon class="monte-atras" points="330,280 470,110 600,280"/>
+    <polygon class="monte-atras" points="0,280 110,150 230,280"/>
+    <polygon class="monte" points="40,280 300,30 560,280"/>
+    <polygon class="nieve" points="300,30 238,90 256,83 273,96 291,85 309,97 327,84 345,94 362,90"/>
+    <polyline class="sendero" points="{{ e.ruta }}"/>
+    {% for p in e.puntos %}
+      {% if p.clase == "inicio" %}<circle class="campo inicio" cx="{{ p.x }}" cy="{{ p.y }}" r="6"/>
+      {% elif p.clase == "cima" %}<g class="cima"><line x1="{{ p.x }}" y1="{{ p.y }}" x2="{{ p.x }}" y2="{{ p.y|add:'-26' }}"/><path d="M{{ p.x }} {{ p.y|add:'-26' }}h20l-6 6 6 6h-20z"/></g>
+      {% else %}<g class="campo {{ p.clase }}"><circle cx="{{ p.x }}" cy="{{ p.y }}" r="11"/>{% if p.n %}<text x="{{ p.x }}" y="{{ p.y }}" dy="4">{% if p.clase == "vista" %}✓{% else %}{{ p.n }}{% endif %}</text>{% endif %}</g>{% endif %}
+    {% endfor %}
+    {% if e.completado %}<g class="cima lograda"><line x1="300" y1="40" x2="300" y2="14"/><path d="M300 14h20l-6 6 6 6h-20z"/></g>{% endif %}
+    <text class="escalador" x="{{ e.escalador.x }}" y="{{ e.escalador.y }}" dx="-40" dy="2" aria-hidden="true">🧗</text>
+  </svg>
+
+  <div class="mochila" aria-label="{% translate 'Tu mochila' %}">
+    <span class="muted small">{% translate "Tu mochila" %}</span>
+    <ul>
+      {% for equipo, ganado in e.mochila %}<li class="{% if ganado %}ganado{% endif %}" title="{{ equipo.1 }}{% if not ganado %} · {% translate 'se gana al ver la lección' %} {{ forloop.counter }}{% endif %}"><span aria-hidden="true">{{ equipo.0 }}</span><span class="visually-hidden">{{ equipo.1 }}{% if not ganado %} ({% translate "pendiente" %}){% endif %}</span></li>{% endfor %}
+      <li class="{% if e.completado %}ganado{% endif %} mosqueton-item" title="{% translate 'Mosquetón de cumbre' %}">{% include "aprendizaje/aprende/_mosqueton.html" %}<span class="visually-hidden">{% translate "Mosquetón de cumbre" %}</span></li>
+    </ul>
+  </div>
+  {% if e.completado %}<p class="cumbre-msg"><strong>{% translate "¡Hiciste cumbre!" %}</strong> {% translate "Completaste el curso y ganaste el mosquetón de cumbre." %}</p>{% endif %}
+</section>
+{% endwith %}

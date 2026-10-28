@@ -5,6 +5,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 
 from apps.aprendizaje import cursos
 from apps.aprendizaje.models import (
+    Ajustes,
     Bloque,
     BloqueItem,
     Curso,
@@ -145,9 +146,11 @@ def items(*pairs, prefix="it", initial=0):
         f"{prefix}-MIN_NUM_FORMS": "0",
         f"{prefix}-MAX_NUM_FORMS": "12",
     }
-    for n, (titulo, texto) in enumerate(pairs):
+    for n, (titulo, texto, *correcta) in enumerate(pairs):
         data[f"{prefix}-{n}-titulo"] = titulo
         data[f"{prefix}-{n}-texto"] = texto
+        if correcta and correcta[0]:
+            data[f"{prefix}-{n}-correcta"] = "on"
     return data
 
 
@@ -363,6 +366,145 @@ class TestInscripcion:
         assert Inscripcion.from_token("basura") is None
 
 
+class TestJuegos:
+    url = TestBloques.url
+
+    def test_quick_question_needs_one_right_option(self, client, equipo, acme, make_curso):
+        c = make_curso(1)
+        (leccion,) = lecciones(acme, c)
+        client.force_login(equipo)
+        url = self.url(c, leccion, "pregunta")
+        r = client.post(url, items(("Sí", ""), ("No", "")))
+        assert "obligatorio" in r.content.decode()  # the question itself
+        r = client.post(url, {"texto": "¿Se cobra?", **items(("Sí", ""), ("No", ""))})
+        assert "Marca una sola opción como correcta" in r.content.decode()
+        r = client.post(url, {"texto": "¿Se cobra?", **items(("Sí", "", True), ("No", "", True))})
+        assert "Marca una sola opción como correcta" in r.content.decode()
+        client.post(url, {"texto": "¿Se cobra?", **items(("Sí", "Siempre."), ("No", "Ojo", True))})
+        with tenant_context(acme):
+            b = Bloque.objects.get(leccion=leccion, tipo="pregunta")
+            assert [(i.titulo, i.correcta) for i in b.items.all()] == [
+                ("Sí", False),
+                ("No", True),
+            ]
+
+        body = client.get(f"{base(c)}vista-previa/{leccion.pk}/").content.decode()
+        assert (
+            "Cruzar la grieta" in body and "¿Se cobra?" in body and "¡Cruzaste la grieta!" in body
+        )
+
+    def test_order_steps_needs_three(self, client, equipo, acme, make_curso):
+        c = make_curso(1)
+        (leccion,) = lecciones(acme, c)
+        client.force_login(equipo)
+        url = self.url(c, leccion, "ordenar")
+        r = client.post(url, items(("Abrir", ""), ("Cobrar", "")))
+        assert "Agrega al menos tres pasos" in r.content.decode()
+        client.post(url, items(("Abrir", ""), ("Cobrar", ""), ("Cerrar", "")))
+        with tenant_context(acme):
+            b = Bloque.objects.get(leccion=leccion, tipo="ordenar")
+        body = client.get(f"{base(c)}vista-previa/{leccion.pk}/").content.decode()
+        assert f'id="ordenar-{b.pk}"' in body and '["Abrir", "Cobrar", "Cerrar"]' in body
+        assert "Arma la ruta" in body
+
+    def test_plain_look_names_the_games_plainly(self, client, equipo, acme, make_curso):
+        c = make_curso(1)
+        (leccion,) = lecciones(acme, c)
+        with tenant_context(acme):
+            Ajustes.objects.create(expedicion=False)
+        client.force_login(equipo)
+        client.post(
+            self.url(c, leccion, "pregunta"),
+            {"texto": "¿Se cobra?", **items(("Sí", "", True), ("No", ""))},
+        )
+        body = client.get(f"{base(c)}vista-previa/{leccion.pk}/").content.decode()
+        assert "¡Correcto!" in body and "Cruzar la grieta" not in body
+
+
+def page(client, url):
+    """The page with thousands separators (non-breaking spaces in Spanish) as spaces."""
+    return client.get(url).content.decode().replace("\xa0", " ").replace("\u202f", " ")
+
+
+class TestExpedicion:
+    def test_route_altitude_and_backpack(self, client, equipo, acme, make_curso, make_evaluacion):
+        c = make_curso(3, evaluacion=make_evaluacion())
+        client.force_login(equipo)
+        body = page(client, f"{base(c)}vista-previa/")
+        assert "Tu expedición al Volcán Barú" in body
+        assert "1 900 m" in body and "de 3 474 m" in body  # at base camp
+        assert "Campo 1 · 2 294 m" in body and "Ataque a cumbre" in body
+        assert "Ataque en estilo alpino" in body
+
+        body = page(client, f"{base(c)}vista-previa/?simular=2")
+        assert "2 687 m" in body and "¡Hiciste cumbre!" not in body
+        body = page(client, f"{base(c)}vista-previa/?simular=4")
+        assert "3 474 m" in body and "¡Hiciste cumbre!" in body
+
+    def test_summit_without_evaluation_is_the_last_lesson(self, acme, make_curso):
+        c = make_curso(2)
+        with tenant_context(acme):
+            items_ = cursos.recorrido(c, cursos.simular(c, 1))
+            exp = cursos.expedicion(c, items_)
+            assert [i["campo"] for i in items_] == ["Campo 1", "Cumbre"]
+            assert exp["altura"] == 2687 and exp["porcentaje"] == 50
+            items_ = cursos.recorrido(c, cursos.simular(c, 2))
+            # Seeing every lesson is the summit only once the course counts as complete.
+            assert cursos.expedicion(c, items_)["altura"] == 2687
+            assert cursos.expedicion(c, items_, completado=True)["altura"] == 3474
+
+    def test_empty_course_and_closed_window(self, client, equipo, acme, make_curso):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        c = make_curso(0)
+        with tenant_context(acme):
+            Curso.objects.filter(pk=c.pk).update(
+                fecha_limite=timezone.localdate() - timedelta(days=3)
+            )
+        client.force_login(equipo)
+        body = page(client, f"{base(c)}vista-previa/?simular=x")
+        assert "1 900 m" in body and "La ventana de buen tiempo se cerró" in body
+
+    def test_simulation_follows_dependencies(self, acme, make_curso):
+        c = make_curso(3)
+        l1, l2, l3 = lecciones(acme, c)
+        with tenant_context(acme):
+            l1.depende_de.add(l3)
+            assert cursos.simular(c, 1) == {l2.pk}
+            assert cursos.simular(c, 2) == {l2.pk, l3.pk}
+            assert cursos.simular(c, 9) == {l1.pk, l2.pk, l3.pk}
+
+    @pytest.mark.parametrize(
+        "dias,estado",
+        [(None, None), (20, "abierta"), (7, "cerrando"), (0, "cerrando"), (-1, "cerrada")],
+    )
+    def test_weather_window(self, dias, estado):
+        from datetime import date, timedelta
+
+        hoy = date(2026, 10, 28)
+        v = cursos.ventana(hoy + timedelta(days=dias) if dias is not None else None, hoy)
+        assert (v and v["estado"]) == estado
+
+    def test_mountain_choice_and_turning_it_off(self, client, equipo, acme, make_curso):
+        c = make_curso(1)
+        client.force_login(equipo)
+        client.post(f"{base(c)}editar/", {"titulo": c.titulo, "montana": "everest"})
+        with tenant_context(acme):
+            c.refresh_from_db()
+            assert c.montana == "everest"
+        assert "de 8 849 m" in page(client, f"{base(c)}vista-previa/")
+
+        r = client.post(f"{BASE}encabezado/", {"ajustes": "1"})  # unchecked box
+        assert r.status_code == 302
+        with tenant_context(acme):
+            assert Ajustes.objects.get().expedicion is False
+        body = page(client, f"{base(c)}vista-previa/")
+        assert "Tu expedición" not in body
+        assert 'name="montana"' not in client.get(f"{base(c)}editar/").content.decode()
+
+
 class TestVistaPrevia:
     def test_course_as_the_person_sees_it(self, client, equipo, acme, make_curso, make_evaluacion):
         c = make_curso(2, evaluacion=make_evaluacion())
@@ -374,10 +516,12 @@ class TestVistaPrevia:
             pasos = Bloque.objects.create(leccion=demo, orden=2, tipo="pasos", titulo="Cobrar")
             BloqueItem.objects.create(bloque=pasos, orden=1, titulo="Abrir", texto="Entra")
             BloqueItem.objects.create(bloque=pasos, orden=2, titulo="Cobrar", texto="Marca")
+            Ajustes.objects.create(expedicion=False)  # the plain look
         client.force_login(equipo)
         assert "Vista previa" in client.get(base(c)).content.decode()
 
         body = client.get(f"{base(c)}vista-previa/").content.decode()
+        assert "Tu expedición" not in body
         assert "Así verá la persona este curso" in body
         assert "0 de 3 lecciones vistas" in body
         assert "Se abre al ver: L1" in body
