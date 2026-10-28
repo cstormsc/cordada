@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.core import signing
-from django.core.validators import FileExtensionValidator
+from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
 from django.db import models, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -167,10 +167,21 @@ class TipoBloque(models.TextChoices):
     ACORDEON = "acordeon", _("Acordeón")
     PREGUNTA = "pregunta", _("Pregunta rápida")
     ORDENAR = "ordenar", _("Ordenar pasos")
+    CLASIFICAR = "clasificar", _("Clasificar tarjetas")
+    ESCENARIO = "escenario", _("Escenario con decisiones")
+    TARJETAS = "tarjetas", _("Tarjetas para repasar")
 
 
-# Blocks whose content is a list of items (steps, sections, options).
-CON_ITEMS = (TipoBloque.PASOS, TipoBloque.ACORDEON, TipoBloque.PREGUNTA, TipoBloque.ORDENAR)
+# Blocks whose content is a list of items (steps, sections, options, cards).
+CON_ITEMS = (
+    TipoBloque.PASOS,
+    TipoBloque.ACORDEON,
+    TipoBloque.PREGUNTA,
+    TipoBloque.ORDENAR,
+    TipoBloque.CLASIFICAR,
+    TipoBloque.ESCENARIO,
+    TipoBloque.TARJETAS,
+)
 IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp"]
 
 
@@ -194,6 +205,9 @@ class Bloque(TenantScopedModel):
         upload_to=attachment_path,
         blank=True,
         validators=[FileExtensionValidator(sorted({*ALLOWED_EXTENSIONS, *IMAGE_EXTENSIONS}))],
+    )
+    grupos = models.JSONField(
+        default=list, blank=True, help_text=_("Clasificar tarjetas: los nombres de los grupos.")
     )
 
     class Meta(TenantScopedModel.Meta):
@@ -222,6 +236,9 @@ class BloqueItem(TenantScopedModel):
         validators=[FileExtensionValidator(IMAGE_EXTENSIONS)],
     )
     correcta = models.BooleanField(_("es la correcta"), default=False)
+    grupo = models.PositiveSmallIntegerField(
+        _("grupo"), null=True, blank=True, help_text=_("Clasificar tarjetas: 1, 2 o 3.")
+    )
 
     class Meta(TenantScopedModel.Meta):
         ordering = ["orden", "pk"]
@@ -329,6 +346,15 @@ class Ajustes(TenantScopedModel):
         help_text=_(
             "Mapa de ruta, avance en metros, mochila, ventana de buen tiempo y juegos con "
             "motivo de montaña. Desactívalo para una presentación más sobria."
+        ),
+    )
+    meta_cordada = models.PositiveSmallIntegerField(
+        _("meta de la cordada (%)"),
+        default=100,
+        validators=[MinValueValidator(50), MaxValueValidator(100)],
+        help_text=_(
+            "Qué parte del equipo debe completar el curso dentro del plazo para que la "
+            "cordada haga cumbre."
         ),
     )
 

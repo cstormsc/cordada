@@ -1,6 +1,7 @@
 """Course design rules: lesson dependencies and what must be fixed before publishing."""
 
 import re
+from typing import NamedTuple
 
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
@@ -35,9 +36,19 @@ def creates_cycle(graph, leccion_id, depende_de_ids):
     return False
 
 
+class ItemData(NamedTuple):
+    """What a block's validation needs from each of its items."""
+
+    titulo: str = ""
+    texto: str = ""
+    correcta: bool = False
+    grupo: int | None = None
+
+
 def block_errors(bloque, items=()):
-    """What a block still needs for its type. `items`: (titulo, texto, correcta) of its
-    steps, sections or options."""
+    """What a block still needs for its type. `items`: the ItemData of its steps,
+    sections, options or cards."""
+    con_titulo = all(i.titulo for i in items)
     if bloque.tipo in (T.TEXTO, T.NOTA) and not bloque.texto.strip():
         return [_("escribe el texto")]
     if bloque.tipo == T.IMAGEN and not bloque.archivo:
@@ -50,22 +61,40 @@ def block_errors(bloque, items=()):
         return [_("agrega al menos dos pasos")]
     if bloque.tipo == T.ACORDEON and not items:
         return [_("agrega al menos una sección")]
-    if bloque.tipo == T.ACORDEON and not all(titulo for titulo, *_rest in items):
+    if bloque.tipo == T.ACORDEON and not con_titulo:
         return [_("cada sección necesita un título")]
-    if bloque.tipo == T.PREGUNTA:
+    if bloque.tipo in (T.PREGUNTA, T.ESCENARIO):
         if not bloque.texto.strip():
-            return [_("escribe la pregunta")]
-        if len(items) < 2 or not all(titulo for titulo, *_rest in items):
+            return [
+                _("escribe la pregunta")
+                if bloque.tipo == T.PREGUNTA
+                else _("describe la situación")
+            ]
+        if len(items) < 2 or not con_titulo:
             return [_("agrega al menos dos opciones, cada una con su texto")]
-        if sum(1 for *_rest, correcta in items if correcta) != 1:
+        if sum(1 for i in items if i.correcta) != 1:
             return [_("marca una sola opción como correcta")]
-    if bloque.tipo == T.ORDENAR and (len(items) < 3 or not all(titulo for titulo, *_rest in items)):
+    if bloque.tipo == T.ESCENARIO and not all(i.texto.strip() for i in items):
+        return [_("escribe qué pasa con cada decisión")]
+    if bloque.tipo == T.ORDENAR and (len(items) < 3 or not con_titulo):
         return [_("agrega al menos tres pasos, cada uno con su texto")]
+    if bloque.tipo == T.CLASIFICAR:
+        grupos = [g for g in bloque.grupos if g]
+        if len(grupos) < 2:
+            return [_("nombra al menos dos grupos")]
+        if len(items) < 3 or not con_titulo:
+            return [_("agrega al menos tres tarjetas, cada una con su texto")]
+        if not all(i.grupo and i.grupo <= len(grupos) for i in items):
+            return [_("elige el grupo de cada tarjeta")]
+    if bloque.tipo == T.TARJETAS and (
+        len(items) < 2 or not all(i.titulo and i.texto.strip() for i in items)
+    ):
+        return [_("agrega al menos dos tarjetas, cada una con su frente y su reverso")]
     return []
 
 
 def _items(bloque):
-    return [(i.titulo, i.texto, i.correcta) for i in bloque.items.all()]
+    return [ItemData(i.titulo, i.texto, i.correcta, i.grupo) for i in bloque.items.all()]
 
 
 def publish_errors(curso):
@@ -145,6 +174,14 @@ def para_mostrar(leccion, archivo_url, imagen_url):
         b.lista = list(b.items.all())
         if b.tipo == T.ORDENAR:
             b.pasos, b.json_id = [i.titulo for i in b.lista], f"ordenar-{b.pk}"
+        if b.tipo == T.CLASIFICAR:
+            b.json_id = f"clasificar-{b.pk}"
+            b.tarjetas = {
+                "grupos": [g for g in b.grupos if g],
+                "tarjetas": [
+                    {"titulo": i.titulo, "grupo": i.grupo, "texto": i.texto} for i in b.lista
+                ],
+            }
         for item in b.lista:
             item.imagen_url = imagen_url(item) if item.imagen else None
     return bloques

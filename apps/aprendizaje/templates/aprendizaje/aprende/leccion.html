@@ -48,6 +48,12 @@
         {% include "aprendizaje/aprende/_pregunta.html" %}
       {% elif b.tipo == "ordenar" %}
         {% include "aprendizaje/aprende/_ordenar.html" %}
+      {% elif b.tipo == "clasificar" %}
+        {% include "aprendizaje/aprende/_clasificar.html" %}
+      {% elif b.tipo == "escenario" %}
+        {% include "aprendizaje/aprende/_escenario.html" %}
+      {% elif b.tipo == "tarjetas" %}
+        {% include "aprendizaje/aprende/_tarjetas.html" %}
       {% elif b.tipo == "acordeon" %}
         {% if b.texto %}{{ b.texto|urlize|linebreaks }}{% endif %}
         {% for s in b.lista %}
@@ -65,7 +71,9 @@
   {% if expedicion %}<p class="equipo-msg"><span aria-hidden="true">{{ item.equipo.0 }}</span> {% blocktranslate with e=item.equipo.1 c=item.campo %}Al terminar esta lección llegas a {{ c }} y sumas a tu mochila: {{ e }}.{% endblocktranslate %}</p>{% endif %}
   <div class="row leccion-nav">
     {% if anterior %}<a href="{{ anterior }}">← {% translate "Anterior" %}</a>{% else %}<span></span>{% endif %}
-    <button class="btn" type="button"{% if preview %} disabled title="{% translate 'No disponible en la vista previa' %}"{% endif %}>{% translate "Marcar como vista" %}</button>
+    {% if preview %}<button class="btn" type="button" disabled title="{% translate 'No disponible en la vista previa' %}">{% translate "Marcar como vista" %}</button>
+    {% elif item.vista %}<span class="muted">✓ {% translate "Ya la viste" %}</span>
+    {% else %}<form method="post" action="{{ marcar_url }}">{% csrf_token %}<button class="btn">{% if expedicion %}{% blocktranslate with c=item.campo %}Llegar a {{ c }}{% endblocktranslate %}{% else %}{% translate "Marcar como vista" %}{% endif %}</button></form>{% endif %}
     {% if siguiente %}<a href="{{ siguiente }}">{% translate "Siguiente" %} →</a>{% else %}<a href="{{ portada }}">{% translate "Volver al curso" %}</a>{% endif %}
   </div>
 {% endblock %}

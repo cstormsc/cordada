@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Personas y avance" %} · {{ curso.codigo }} · {{ request.client.name }}{% endblock %}
+{% block content %}
+  <p><a href="{% url 'aprendizaje:curso' request.client.slug curso.numero %}">← {{ curso.codigo }} {{ curso.titulo }}</a></p>
+  <h1>{% translate "Personas y avance" %}</h1>
+  <p class="muted">{% translate "Un enlace personal por persona, sin cuenta. Exporta el archivo y envíalo desde el correo del cliente: la invitación debe decir que el avance es confidencial, no anónimo." %}
+    {% blocktranslate count dias=enlace_dias %}Cada enlace vale {{ dias }} día desde que se exporta; si vence, expórtalo de nuevo.{% plural %}Cada enlace vale {{ dias }} días desde que se exporta; si vence, expórtalo de nuevo.{% endblocktranslate %}</p>
+  <div class="grid-2">
+    <section class="panel">
+      <h2>{% translate "Inscribir personas" %}</h2>
+      <form method="post" class="form">{% csrf_token %}{{ form }}<button class="btn">{% translate "Generar enlaces" %}</button></form>
+      <p class="muted small">{% translate "Solo se crean enlaces para quien no tenga uno. Las personas vienen de Formularios → Personas." %}</p>
+    </section>
+    <section class="panel">
+      <h2>{% blocktranslate count n=n_inscritos %}{{ n }} persona inscrita{% plural %}{{ n }} personas inscritas{% endblocktranslate %}</h2>
+      {% if n_inscritos %}<p class="row">
+        <a class="btn" href="{% url 'aprendizaje:exportar_inscripciones' request.client.slug curso.numero %}">{% translate "Exportar Excel" %}</a>
+        <a href="{% url 'aprendizaje:exportar_inscripciones' request.client.slug curso.numero %}?formato=csv">CSV</a></p>{% endif %}
+      <p class="muted small">{% translate "La cordada de cada persona es su sucursal; si no tiene, su departamento, su oficina o su grupo." %}</p>
+    </section>
+  </div>
+
+  {% if equipos %}
+  <section class="panel">
+    <h2>{% translate "Avance por cordada" %}</h2>
+    <p class="muted small">{% blocktranslate %}Una cordada hace cumbre cuando el {{ meta }} % completa el curso dentro del plazo. Se cambia en Apariencia.{% endblocktranslate %}</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>{% translate "Cordada" %}</th><th>{% translate "Inscritas" %}</th><th>{% translate "Empezaron" %}</th><th>{% translate "Completaron" %}</th><th>{% translate "En plazo" %}</th><th></th></tr></thead>
+      <tbody>{% for e in equipos %}
+        <tr><td>{{ e.nombre }}</td><td>{{ e.total }}</td><td>{{ e.iniciaron }}</td><td>{{ e.arriba }}</td>
+          <td><div class="avance avance-tabla" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ e.porcentaje }}"><span style="width: {{ e.porcentaje }}%"></span></div> {{ e.porcentaje }} %</td>
+          <td>{% if e.lograda %}<span class="tag">🚩 {% translate "En cumbre" %}</span>{% endif %}</td></tr>
+      {% endfor %}</tbody>
+    </table></div>
+  </section>
+  {% endif %}
+
+  {% if filas %}
+  <section class="panel">
+    <h2>{% translate "Detalle por persona" %}</h2>
+    <p class="muted small">{% translate "Solo lo ve el equipo de cambio." %}</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>{% translate "Persona" %}</th><th>{% translate "Cordada" %}</th><th>{% translate "Lecciones vistas" %}</th><th>{% translate "Fue directo" %}</th><th>{% translate "Completó" %}</th></tr></thead>
+      <tbody>{% for f in filas %}
+        <tr><td>{{ f.ins.persona.nombre }} {{ f.ins.persona.apellido }}<br><span class="muted small">{{ f.ins.persona.email }}</span></td>
+          <td>{{ f.cordada }}</td>
+          <td>{{ f.ins.n_vistas }} / {{ total_lecciones }}</td>
+          <td>{% if f.ins.directo_at %}{{ f.ins.directo_at|date:"SHORT_DATE_FORMAT" }}{% else %}—{% endif %}</td>
+          <td>{% if f.ins.completada_at %}{{ f.ins.completada_at|date:"SHORT_DATE_FORMAT" }}{% if not f.en_plazo %} <span class="muted small">({% translate "fuera de plazo" %})</span>{% endif %}{% else %}—{% endif %}</td></tr>
+      {% endfor %}</tbody>
+    </table></div>
+  </section>
+  {% endif %}
+{% endblock %}

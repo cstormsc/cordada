@@ -41,4 +41,10 @@ urlpatterns = [
     path("<int:numero>/ordenar/", views.ordenar, name="ordenar"),
     path("<int:numero>/publicar/", views.publicar, name="publicar"),
     path("<int:numero>/cerrar/", views.cerrar, name="cerrar"),
+    path("<int:numero>/personas/", views.inscripciones, name="inscripciones"),
+    path(
+        "<int:numero>/personas/exportar/",
+        views.exportar_inscripciones,
+        name="exportar_inscripciones",
+    ),
 ]

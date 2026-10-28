@@ -1,0 +1,13 @@
+{% load i18n %}<div class="juego tarjetas" x-data="{ vistas: [] }">
+  {% if expedicion %}<p class="juego-tag"><span aria-hidden="true">🪢</span> {% translate "Tarjetas de nudos" %}</p>{% endif %}
+  {% if b.texto %}{{ b.texto|urlize|linebreaks }}{% else %}<p>{% translate "Da vuelta cada tarjeta para ver su significado." %}</p>{% endif %}
+  <ul class="tarjetas-grid">
+    {% for t in b.lista %}<li x-data="{ vuelta: false }">
+      <button type="button" class="tarjeta" :class="{ vuelta }" :aria-pressed="vuelta" @click="vuelta = !vuelta; if (!vistas.includes({{ forloop.counter0 }})) vistas.push({{ forloop.counter0 }})">
+        <span class="cara frente"><strong>{{ t.titulo }}</strong><span class="small muted" aria-hidden="true">{% translate "Toca para dar vuelta" %}</span></span>
+        <span class="cara reverso" :aria-hidden="!vuelta">{{ t.texto|linebreaksbr }}</span>
+      </button>
+    </li>{% endfor %}
+  </ul>
+  <p class="small muted" aria-live="polite"><strong x-text="vistas.length"></strong> {% blocktranslate count n=b.lista|length %}de {{ n }} tarjeta vista{% plural %}de {{ n }} tarjetas vistas{% endblocktranslate %}<span x-show="vistas.length === {{ b.lista|length }}" x-cloak>{% if expedicion %} · {% translate "¡Dominas los nudos!" %}{% endif %}</span></p>
+</div>

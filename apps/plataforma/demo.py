@@ -15,6 +15,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
 from django.utils import timezone
 
+from apps.aprendizaje.avance import sincronizar
 from apps.aprendizaje.cursos import publish_errors
 from apps.aprendizaje.models import (
     Ajustes,
@@ -23,7 +24,9 @@ from apps.aprendizaje.models import (
     Curso,
     Encabezado,
     EstadoCurso,
+    Inscripcion,
     Leccion,
+    LeccionVista,
     Montana,
 )
 from apps.bitacora import workflow as ticket_flow
@@ -888,7 +891,8 @@ class Builder:
 
     def curso(self, titulo, descripcion, lecciones, *, impactos_, **fields):
         """lecciones: (titulo, minutos, obligatoria, depende_de indexes, blocks), and each
-        block is (tipo, titulo, texto, items) with items as (titulo, texto, correcta)."""
+        block is (tipo, titulo, texto, items[, grupos]) with items as (titulo, texto,
+        correcta[, grupo])."""
         c = Curso.objects.create(titulo=titulo, descripcion=descripcion, **fields)
         c.impactos.set(impactos_)
         creadas = []
@@ -898,16 +902,49 @@ class Builder:
             )
             leccion.depende_de.set([creadas[d] for d in deps])
             creadas.append(leccion)
-            for bo, (tipo, bt, texto, items) in enumerate(bloques, start=1):
+            for bo, (tipo, bt, texto, items, *grupos) in enumerate(bloques, start=1):
                 b = Bloque.objects.create(
-                    leccion=leccion, orden=bo, tipo=tipo, titulo=bt, texto=texto
-                )
-                for io, (it, ix, ok) in enumerate(items, start=1):
-                    BloqueItem.objects.create(bloque=b, orden=io, titulo=it, texto=ix, correcta=ok)
+                    leccion=leccion, orden=bo, tipo=tipo, titulo=bt, texto=texto,
+                    grupos=grupos[0] if grupos else [],
+                )  # fmt: skip
+                for io, (it, ix, ok, *grupo) in enumerate(items, start=1):
+                    BloqueItem.objects.create(
+                        bloque=b, orden=io, titulo=it, texto=ix, correcta=ok,
+                        grupo=grupo[0] if grupo else None,
+                    )  # fmt: skip
         return c
 
+    def climb(self, curso):
+        """Enrolls cashiers and branch heads at different points of the climb. Their
+        questionnaire answers (Formularios) decide who already reached the summit."""
+        lecciones = list(curso.lecciones.all())
+        personas = list(
+            Persona.objects.filter(grupo__name__in=["Cajeros de sucursal", "Jefes de sucursal"])
+        )
+        aprobados = set(
+            Respuesta.objects.filter(
+                enlace__cuestionario=curso.evaluacion, aprobado=True
+            ).values_list("enlace__persona_id", flat=True)
+        )
+        for n, persona in enumerate(personas):
+            ins = Inscripcion.objects.create(curso=curso, persona=persona)
+            if persona.pk in aprobados and n % 5 == 0:  # straight to the evaluation
+                Inscripcion.objects.filter(pk=ins.pk).update(
+                    iniciada_at=ago(10), directo_at=ago(10)
+                )
+                continue
+            vistas = len(lecciones) if persona.pk in aprobados else n % len(lecciones)
+            for leccion in lecciones[:vistas]:
+                LeccionVista.objects.create(
+                    inscripcion=ins, leccion=leccion, vista_at=ago(12 - vistas)
+                )
+            if vistas:
+                Inscripcion.objects.filter(pk=ins.pk).update(iniciada_at=ago(12))
+        for ins in Inscripcion.objects.filter(curso=curso):
+            sincronizar(ins)
+
     def aprendizaje(self):
-        Ajustes.objects.create(expedicion=True)
+        Ajustes.objects.create(expedicion=True, meta_cordada=80)
         Encabezado.objects.create(
             imagen=self.banner(), texto_alternativo="Banco Altiplano · Escuela Núcleo"
         )
@@ -919,6 +956,12 @@ class Builder:
                 ("Bienvenida a Núcleo", 5, True, [], [
                     ("texto", "Por qué cambiamos", "Núcleo reemplaza al sistema de caja que usamos hace 18 años. Desde el go-live, toda la operación de caja se hace en Núcleo: no hay vuelta atrás al sistema antiguo.\n\nLo bueno: las diferencias se ven en el momento, no al día siguiente.", []),
                     ("nota", "Ojo", "Tu usuario de Núcleo tiene doble factor. Si no lo activaste, hazlo antes de tu primer turno con el nuevo sistema.", []),
+                    ("tarjetas", "Palabras nuevas", "Las vas a escuchar desde el primer día.", [
+                        ("Arqueo", "Conteo del efectivo de una caja para comparar con lo registrado.", False),
+                        ("Cuadre", "Cierre de la caja: lo contado contra lo que Núcleo registró.", False),
+                        ("Doble factor", "Clave más un código en tu celular para entrar a Núcleo.", False),
+                        ("Go-live", "El día en que Núcleo reemplaza al sistema antiguo.", False),
+                    ]),
                     ("pregunta", "", "Si mañana Núcleo está lento, ¿puedes volver al sistema antiguo para atender?", [
                         ("Sí, mientras se resuelve", "El sistema antiguo quedó solo de consulta: ya no registra movimientos.", False),
                         ("No, registro un ticket en la Bitácora y aviso a mi jefe", "Así es. La mesa de ayuda prioriza los tickets de caja durante el go-live.", True),
@@ -952,6 +995,13 @@ class Builder:
                         ("El jefe de sucursal", "Correcto: sobre $50.000 aprueba el jefe, con el detalle de movimientos adjunto.", True),
                         ("Back office, al día siguiente", "Con Núcleo ya no se espera al día siguiente: se resuelve antes de cerrar.", False),
                     ]),
+                    ("clasificar", "¿Qué cambia con Núcleo?", "Reparte cada tarjeta: ¿cambia o se mantiene igual?", [
+                        ("Las diferencias se ven en el momento", "Antes se veían al día siguiente.", False, 1),
+                        ("El jefe aprueba diferencias sobre $50.000", "Esa regla no cambió.", False, 2),
+                        ("El cuadre es siempre en línea", "Antes se podía cuadrar sin conexión.", False, 1),
+                        ("Se cuenta el efectivo por denominación", "Se sigue contando igual.", False, 2),
+                        ("Los arqueos quedan registrados en Caja → Arqueos", "Antes se anotaban en papel.", False, 1),
+                    ], ["Cambia con Núcleo", "Se mantiene igual"]),
                     ("ordenar", "", "Ordena el cierre de una caja con diferencia.", [
                         ("Contar el efectivo por denominación", "", False),
                         ("Declarar el total en Núcleo", "", False),
@@ -962,6 +1012,11 @@ class Builder:
                 ]),
                 ("Arqueo sorpresa", 6, False, [1], [
                     ("texto", "", "El jefe de sucursal puede hacer un arqueo sorpresa en cualquier momento del turno. No detiene la atención por más de diez minutos.", []),
+                    ("escenario", "Arqueo con fila", "Son las 12:30, tienes ocho clientes en la fila y tu jefa llega a hacer un arqueo sorpresa.", [
+                        ("Le pido que vuelva más tarde", "El arqueo es sorpresa justamente para que no se pueda postergar. Tu jefa lo registra como no realizado.", False),
+                        ("Pauso la atención, cuento con ella y retomo", "Bien: el arqueo no detiene la atención más de diez minutos y queda registrado en Núcleo.", True),
+                        ("Sigo atendiendo mientras ella cuenta sola", "El arqueo se hace con el cajero presente: si no, el conteo no vale.", False),
+                    ]),
                     ("pregunta", "", "¿Dónde se registra un arqueo sorpresa?", [
                         ("Caja → Arqueos", "Ahí queda con fecha, hora y quién lo hizo.", True),
                         ("Reportes → Cierre", "Ese reporte es del cierre del día, no de los arqueos.", False),
@@ -975,6 +1030,7 @@ class Builder:
         assert not publish_errors(caja), publish_errors(caja)
         caja.estado, caja.publicado_at = EstadoCurso.PUBLICADO, ago(5)
         caja.save()
+        self.climb(caja)
         self.curso(
             "Atención con la ficha única",
             "Cómo usar la ficha única del cliente para resolver en una sola llamada.",
@@ -996,7 +1052,10 @@ class Builder:
             ],
             impactos_=[self.imp["ficha"]], montana=Montana.CHIRRIPO, creado_por=self.u["joaquin"],
         )  # fmt: skip
-        self.out("Ascenso y Aprendizaje: 2 cursos (1 publicado) con juegos y encabezado del banco")
+        self.out(
+            f"Ascenso y Aprendizaje: 2 cursos (1 publicado, {Inscripcion.objects.count()} "
+            "personas en camino) con juegos, cordadas y encabezado del banco"
+        )
 
     # Dashboard and guide ------------------------------------------------------------------
 

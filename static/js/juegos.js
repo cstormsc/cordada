@@ -1,5 +1,14 @@
 // Learning games inside lessons. "Ordenar pasos": the steps arrive shuffled and the
-// person moves them with the arrows until they are in order.
+// person moves them with the arrows until they are in order. "Clasificar tarjetas":
+// each card goes into one of two or three groups.
+function barajar(lista) {
+  for (let k = lista.length - 1; k > 0; k--) {
+    const j = Math.floor(Math.random() * (k + 1));
+    [lista[k], lista[j]] = [lista[j], lista[k]];
+  }
+  return lista;
+}
+
 document.addEventListener("alpine:init", () => {
   Alpine.data("ordenar", (id) => ({
     pasos: [],
@@ -8,12 +17,8 @@ document.addEventListener("alpine:init", () => {
     init() {
       const titulos = JSON.parse(document.getElementById(id).textContent);
       const pasos = titulos.map((titulo, i) => ({ titulo, i }));
-      do {
-        for (let k = pasos.length - 1; k > 0; k--) {
-          const j = Math.floor(Math.random() * (k + 1));
-          [pasos[k], pasos[j]] = [pasos[j], pasos[k]];
-        }
-      } while (pasos.length > 1 && pasos.every((p, k) => p.i === k));
+      do barajar(pasos);
+      while (pasos.length > 1 && pasos.every((p, k) => p.i === k));
       this.pasos = pasos;
     },
     get listo() {
@@ -35,6 +40,35 @@ document.addEventListener("alpine:init", () => {
     comprobar() {
       this.revisado = true;
       this.enSuLugar = this.pasos.filter((p, k) => p.i === k).length;
+    },
+  }));
+
+  Alpine.data("clasificar", (id) => ({
+    grupos: [],
+    tarjetas: [],
+    revisado: false,
+    bien: 0,
+    init() {
+      const datos = JSON.parse(document.getElementById(id).textContent);
+      this.grupos = datos.grupos;
+      this.tarjetas = barajar(datos.tarjetas.map((t, i) => ({ ...t, i, elegido: null })));
+    },
+    get pendientes() {
+      return this.tarjetas.filter((t) => t.elegido === null).length;
+    },
+    get listo() {
+      return this.revisado && this.bien === this.tarjetas.length;
+    },
+    cuantas(n) {
+      return this.tarjetas.filter((t) => t.elegido === n).length;
+    },
+    elegir(k, n) {
+      this.tarjetas[k].elegido = n;
+      this.revisado = false;
+    },
+    comprobar() {
+      this.revisado = true;
+      this.bien = this.tarjetas.filter((t) => t.elegido === t.grupo).length;
     },
   }));
 });

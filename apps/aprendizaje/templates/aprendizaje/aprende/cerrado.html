@@ -1,0 +1,4 @@
+{% extends "public_base.html" %}
+{% block title %}{{ curso.titulo }}{% endblock %}
+{% block brand %}{{ curso.client.name }}{% endblock %}
+{% block content %}<h1>{{ curso.titulo }}</h1><p>{{ message }}</p>{% endblock %}

@@ -1,3 +1,4 @@
+import csv
 import json
 import os
 
@@ -15,8 +16,11 @@ from django.views.decorators.http import require_POST
 from apps.core.decorators import client_member_required
 from apps.core.models import Module
 from apps.core.permissions import Action, role_actions
+from apps.formularios.forms import EnlacesForm
+from apps.formularios.models import Persona
+from apps.matriz.export import safe_cell
 
-from . import cursos
+from . import avance, cursos
 from .forms import (
     BLOCK_HELP,
     AjustesForm,
@@ -35,6 +39,7 @@ from .models import (
     Curso,
     Encabezado,
     EstadoCurso,
+    Inscripcion,
     Leccion,
     TipoBloque,
 )
@@ -125,6 +130,7 @@ def curso(request, client_slug, numero):
             "impactos": c.impactos.order_by("numero"),
             "errors": cursos.publish_errors(c) if c.is_draft else [],
             "can_design": A.DESIGN in _actions(request),
+            "can_edit": A.EDIT in _actions(request),
             "minutos": sum(leccion.minutos or 0 for leccion in lecciones),
         },
     )
@@ -237,14 +243,14 @@ def bloque(request, client_slug, numero, pk, bloque_pk=None, tipo=None):
     if request.method == "POST" and form.is_valid() and (formset is None or formset.is_valid()):
         kept = kept_items(formset) if formset else []
         probe = form.save(commit=False)
-        if errors := cursos.block_errors(probe, [(t, x, ok) for _f, t, x, ok in kept]):
+        if errors := cursos.block_errors(probe, [item for _f, item in kept]):
             form.add_error(None, errors[0][:1].upper() + errors[0][1:] + ".")
         else:
             with transaction.atomic():
                 obj = form.save()
                 if formset:
                     keep = set()
-                    for n, (item_form, *_data) in enumerate(kept, start=1):
+                    for n, (item_form, _item) in enumerate(kept, start=1):
                         item = item_form.save(commit=False)
                         item.bloque, item.orden = obj, n
                         item.save()
@@ -410,6 +416,31 @@ def _expedicion(c, items, completado):
     return exp
 
 
+def _preview_logros(c, completado):
+    """Badges as the simulated progress earns them, and a sample rope team: the preview
+    has no real people to count."""
+    if not Ajustes.actuales().expedicion:
+        return {}
+    ganadas = {"cumbre": completado, "ventana": completado and c.fecha_limite is not None}
+    arriba = 5 if completado else 3
+    return {
+        "insignias": [
+            {"clave": k, "icono": i, "nombre": n, "como": como, "ganada": ganadas.get(k, False)}
+            for k, i, n, como in avance.INSIGNIAS
+        ],
+        "equipo": {
+            "nombre": _("Sucursal Centro"),
+            "total": 8,
+            "arriba": arriba,
+            "meta": Ajustes.actuales().meta_cordada,
+            "lograda": False,
+            "cuerda": [k < arriba for k in range(8)],
+            "yo": 0,
+            "ejemplo": True,
+        },
+    }
+
+
 @client_member_required
 def vista_previa(request, client_slug, numero):
     _require(request, A.EDIT, A.DESIGN)
@@ -428,6 +459,7 @@ def vista_previa(request, client_slug, numero):
             "vistas": len(vistas),
             "continuar": abiertas[0]["url"] if abiertas else None,
             "expedicion": _expedicion(c, items, completado),
+            **_preview_logros(c, completado),
             "simular": n,
             "simulaciones": [
                 {"n": k, "url": f"{url}?simular={k}" if k else url} for k in range(pasos + 1)
@@ -515,3 +547,114 @@ def cerrar(request, client_slug, numero):
         c.save(update_fields=["estado"])
         messages.success(request, _("Curso cerrado: ya no se puede avanzar en él."))
     return redirect("aprendizaje:curso", client_slug=client_slug, numero=numero)
+
+
+# --- People: personal links and how far each team got ---
+
+
+@client_member_required
+def inscripciones(request, client_slug, numero):
+    _require(request, A.EDIT)
+    c = _curso(numero)
+    if c.is_draft:
+        messages.error(request, _("Publica el curso antes de generar enlaces."))
+        return redirect("aprendizaje:curso", client_slug=client_slug, numero=numero)
+    form = EnlacesForm(request.POST if request.method == "POST" else None)
+    if request.method == "POST" and form.is_valid():
+        personas = Persona.objects.filter(is_active=True)
+        if grupos := form.cleaned_data["grupos"]:
+            personas = personas.filter(grupo__in=grupos)
+        have = set(c.inscripciones.values_list("persona_id", flat=True))
+        nuevas = [p for p in personas if p.pk not in have]
+        with transaction.atomic():
+            for p in nuevas:
+                Inscripcion.objects.create(curso=c, persona=p)
+        messages.success(
+            request, _("%(n)s enlaces nuevos (cada persona tiene uno solo).") % {"n": len(nuevas)}
+        )
+        return redirect("aprendizaje:inscripciones", client_slug=client_slug, numero=numero)
+
+    total = c.lecciones.count()
+    filas, equipos = [], {}
+    lista = c.inscripciones.select_related("persona__grupo", "curso").annotate(
+        n_vistas=Count("vistas")
+    )
+    for ins in lista.order_by("persona__apellido", "persona__nombre", "persona__email"):
+        avance.sincronizar(ins)
+        nombre = avance.cordada_de(ins.persona) or _("Sin equipo")
+        en_plazo = avance.en_plazo(ins)
+        e = equipos.setdefault(
+            nombre, {"nombre": nombre, "total": 0, "iniciaron": 0, "arriba": 0, "plazo": 0}
+        )
+        e["total"] += 1
+        e["iniciaron"] += bool(ins.iniciada_at)
+        e["arriba"] += bool(ins.completada_at)
+        e["plazo"] += en_plazo
+        filas.append({"ins": ins, "cordada": nombre, "en_plazo": en_plazo})
+    meta = Ajustes.actuales().meta_cordada
+    for e in equipos.values():
+        e["porcentaje"] = round(100 * e["plazo"] / e["total"])
+        e["lograda"] = e["total"] > 1 and e["plazo"] * 100 >= meta * e["total"]
+    return render(
+        request,
+        "aprendizaje/inscripciones.html",
+        {
+            "curso": c,
+            "form": form,
+            "total_lecciones": total,
+            "filas": filas if A.VIEW_INDIVIDUAL in _actions(request) else None,
+            "n_inscritos": len(filas),
+            "equipos": sorted(equipos.values(), key=lambda e: (-e["porcentaje"], e["nombre"])),
+            "meta": meta,
+            "enlace_dias": Inscripcion.validez().days,
+        },
+    )
+
+
+@client_member_required
+def exportar_inscripciones(request, client_slug, numero):
+    """Exports the personal links so the client sends them from its own email, like
+    Formularios does."""
+    _require(request, A.EDIT)
+    c = _curso(numero)
+    vence = timezone.localdate() + Inscripcion.validez()  # signed now, by i.token
+    rows = [
+        [
+            i.persona.email,
+            i.persona.nombre,
+            i.persona.apellido,
+            str(i.persona.grupo or ""),
+            avance.cordada_de(i.persona) or "",
+            request.build_absolute_uri(reverse("aprende:portada", kwargs={"token": i.token})),
+            vence.isoformat(),
+        ]
+        for i in c.inscripciones.select_related("persona__grupo").order_by("persona__email")
+    ]
+    headers = ["correo", "nombre", "apellido", "grupo", "cordada", "enlace", "vence"]
+    filename = f"enlaces-{c.codigo.lower()}-{request.client.slug}"
+    if request.GET.get("formato") == "csv":
+        response = HttpResponse(content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = f'attachment; filename="{filename}.csv"'
+        response.write("\ufeff")  # Excel opens UTF-8 CSV correctly with a BOM
+        writer = csv.writer(response)
+        writer.writerow(headers)
+        writer.writerows([[safe_cell(v) for v in row] for row in rows])
+        return response
+    from openpyxl import Workbook
+    from openpyxl.styles import Font
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Enlaces"
+    ws.append(headers)
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+    for row in rows:
+        ws.append([safe_cell(v) for v in row])
+    ws.column_dimensions["F"].width = 80
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = f'attachment; filename="{filename}.xlsx"'
+    wb.save(response)
+    return response
