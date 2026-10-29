@@ -914,6 +914,257 @@ class Builder:
                     )  # fmt: skip
         return c
 
+    @staticmethod
+    def pantalla(titulo, filas, marcada=None, nombre="pantalla.png"):
+        """A simple drawing of a Núcleo screen, for the image blocks of the demo lesson."""
+        from io import BytesIO
+
+        from PIL import Image, ImageDraw, ImageFont
+
+        def font(size):
+            try:
+                return ImageFont.truetype("DejaVuSans.ttf", size)
+            except OSError:
+                return ImageFont.load_default(size=size)
+
+        img = Image.new("RGB", (1200, 675), (240, 240, 240))
+        d = ImageDraw.Draw(img)
+        d.rectangle([(0, 0), (1200, 70)], fill=(56, 73, 89))
+        d.text((32, 18), "Núcleo · " + titulo, font=font(30), fill=(255, 255, 255))
+        d.rectangle([(0, 70), (240, 675)], fill=(228, 239, 251))
+        for n, menu in enumerate(["Cliente", "Productos", "Reclamos", "Caja", "Reportes"]):
+            d.text((28, 110 + n * 56), menu, font=font(24), fill=(56, 73, 89))
+        for n, (etiqueta, valor) in enumerate(filas):
+            y = 110 + n * 92
+            borde = (200, 118, 58) if n == marcada else (213, 219, 225)
+            d.rounded_rectangle(
+                [(280, y), (1160, y + 72)],
+                radius=12,
+                fill=(255, 255, 255),
+                outline=borde,
+                width=5 if n == marcada else 2,
+            )
+            d.text((308, y + 10), etiqueta, font=font(20), fill=(86, 97, 109))
+            d.text((308, y + 36), valor, font=font(26), fill=(31, 41, 51))
+        out = BytesIO()
+        img.save(out, "PNG")
+        return SimpleUploadedFile(nombre, out.getvalue(), "image/png")
+
+    def muestrario(self, leccion):
+        """One lesson that uses every block type, so the team sees what each one does."""
+        fila = [
+            ("Cliente", "María José Herrera · cédula 8-765-4321"),
+            ("Productos", "Cuenta corriente · Tarjeta Oro · Crédito hipotecario"),
+            ("Reclamos abiertos", "1 · Cobro duplicado (hace 3 días)"),
+            ("Clave dinámica", "Validada hoy 10:42"),
+        ]
+        bloques = [
+            (
+                "texto",
+                "Una sola pantalla",
+                "Antes, para atender una llamada abríamos tres sistemas: cuentas, tarjetas y reclamos. Con Núcleo, la ficha única del cliente reúne todo en una pantalla.\n\nEn esta lección vas a ver qué tiene la ficha, cómo buscarla y qué revisar antes de dar información por teléfono.",
+                {},
+            ),
+            (
+                "nota",
+                "Recuerda",
+                "Nunca des un saldo sin validar la clave dinámica, aunque reconozcas la voz del cliente.",
+                {},
+            ),
+            (
+                "imagen",
+                "Así se ve la ficha",
+                "La ficha de una clienta de prueba: datos, productos, reclamos y validación.",
+                {"archivo": self.pantalla("Ficha del cliente", fila, nombre="ficha-unica.png")},
+            ),
+            (
+                "video",
+                "Recorrido en video",
+                "El equipo de formación grabó un recorrido de 4 minutos. Mientras se sube a YouTube, el enlace lleva a la intranet.",
+                {"url": "https://example.com/nucleo/videos/ficha-unica"},
+            ),
+            (
+                "documento",
+                "Guía rápida para imprimir",
+                "Una página con los atajos de la ficha, para tener junto al teclado.",
+                {
+                    "archivo": SimpleUploadedFile(
+                        "guia-rapida-ficha.pdf", self.pdf(), "application/pdf"
+                    )
+                },
+            ),
+        ]
+        orden = 0
+        for tipo, titulo, texto, extra in bloques:
+            orden += 1
+            Bloque.objects.create(
+                leccion=leccion, orden=orden, tipo=tipo, titulo=titulo, texto=texto, **extra
+            )
+        pasos = Bloque.objects.create(
+            leccion=leccion,
+            orden=orden + 1,
+            tipo="pasos",
+            titulo="Buscar una ficha en tres pasos",
+            texto="Desde cualquier pantalla de Núcleo.",
+        )
+        for n, (t, x, marcada) in enumerate(
+            [
+                ("Abre el buscador", "Presiona Ctrl + K o haz clic en la lupa de arriba.", None),
+                ("Escribe la cédula", "Con guiones o sin ellos: Núcleo la reconoce igual.", 0),
+                (
+                    "Revisa los reclamos",
+                    "Antes de hablar, mira si el cliente tiene un reclamo abierto: probablemente llama por eso.",
+                    2,
+                ),
+            ],
+            start=1,
+        ):
+            BloqueItem.objects.create(
+                bloque=pasos,
+                orden=n,
+                titulo=t,
+                texto=x,
+                imagen=self.pantalla(t, fila, marcada, nombre=f"paso-{n}.png"),
+            )
+        juegos = [
+            (
+                "acordeon",
+                "Lo que trae la ficha",
+                "Abre cada sección.",
+                [
+                    (
+                        "Productos",
+                        "Cuentas, tarjetas y créditos, incluidos los de otras empresas del grupo.",
+                        False,
+                        None,
+                    ),
+                    (
+                        "Reclamos",
+                        "Los abiertos y los cerrados de los últimos 12 meses.",
+                        False,
+                        None,
+                    ),
+                    (
+                        "Historial de contactos",
+                        "Cada llamada, visita y correo, con quién atendió.",
+                        False,
+                        None,
+                    ),
+                ],
+                [],
+            ),
+            (
+                "tarjetas",
+                "Palabras de la ficha",
+                "",
+                [
+                    ("Ficha única", "La pantalla con todo lo del cliente en Núcleo.", False, None),
+                    (
+                        "Clave dinámica",
+                        "Código de seis dígitos que el cliente ve en su app.",
+                        False,
+                        None,
+                    ),
+                    (
+                        "Contacto",
+                        "Cada vez que el cliente habla con el banco, por cualquier canal.",
+                        False,
+                        None,
+                    ),
+                ],
+                [],
+            ),
+            (
+                "pregunta",
+                "",
+                "Un cliente llama y la ficha muestra un reclamo abierto por cobro duplicado. ¿Qué haces primero?",
+                [
+                    (
+                        "Le pregunto en qué lo puedo ayudar",
+                        "Está bien preguntar, pero ya tienes una pista: adelántate.",
+                        False,
+                        None,
+                    ),
+                    (
+                        "Le confirmo que vi su reclamo y le cuento en qué va",
+                        "Así es: el cliente siente que el banco lo conoce y la llamada se acorta.",
+                        True,
+                        None,
+                    ),
+                    (
+                        "Lo derivo a reclamos",
+                        "Con la ficha ya no hace falta derivar: tú puedes ver el estado.",
+                        False,
+                        None,
+                    ),
+                ],
+                [],
+            ),
+            (
+                "ordenar",
+                "",
+                "Ordena lo que haces al recibir una llamada.",
+                [
+                    ("Saludar y pedir la cédula", "", False, None),
+                    ("Abrir la ficha", "", False, None),
+                    ("Validar la clave dinámica", "", False, None),
+                    ("Revisar reclamos abiertos", "", False, None),
+                    ("Resolver la consulta", "", False, None),
+                ],
+                [],
+            ),
+            (
+                "clasificar",
+                "¿Se puede decir por teléfono?",
+                "Reparte cada dato según si se puede informar después de validar la clave dinámica.",
+                [
+                    ("Saldo de la cuenta", "Sí, una vez validada la clave.", False, 1),
+                    ("Estado de un reclamo", "Sí: es información del propio cliente.", False, 1),
+                    ("Número completo de la tarjeta", "Nunca, ni con la clave validada.", False, 2),
+                    ("Clave de internet", "Nunca: el banco jamás la pide ni la dice.", False, 2),
+                ],
+                ["Se puede informar", "Nunca por teléfono"],
+            ),
+            (
+                "escenario",
+                "Llamada difícil",
+                "Un cliente molesto dice que es la tercera vez que llama por el mismo cobro y no quiere validar la clave dinámica porque «ya lo hizo ayer».",
+                [
+                    (
+                        "Le doy la información igual, porque ya validó ayer",
+                        "La validación vale solo para esa llamada: sin clave no hay información, aunque el cliente esté molesto.",
+                        False,
+                        None,
+                    ),
+                    (
+                        "Le explico que es por su seguridad y lo ayudo a validarla",
+                        "Bien: reconoces su molestia, explicas el porqué y en un minuto sigues con su reclamo.",
+                        True,
+                        None,
+                    ),
+                    (
+                        "Le digo que llame más tarde",
+                        "El cliente ya llamó tres veces: posponer empeora la experiencia.",
+                        False,
+                        None,
+                    ),
+                ],
+                [],
+            ),
+        ]
+        for n, (tipo, titulo, texto, items, grupos) in enumerate(juegos, start=orden + 2):
+            b = Bloque.objects.create(
+                leccion=leccion, orden=n, tipo=tipo, titulo=titulo, texto=texto, grupos=grupos
+            )
+            for k, (it, ix, ok, grupo) in enumerate(items, start=1):
+                BloqueItem.objects.create(
+                    bloque=b, orden=k, titulo=it, texto=ix, correcta=ok, grupo=grupo
+                )
+        from apps.aprendizaje.cursos import _items, block_errors
+
+        for b in leccion.bloques.all():
+            assert not block_errors(b, _items(b)), (b.tipo, block_errors(b, _items(b)))
+
     def climb(self, curso):
         """Enrolls cashiers and branch heads at different points of the climb. Their
         questionnaire answers (Formularios) decide who already reached the summit."""
@@ -1031,16 +1282,11 @@ class Builder:
         caja.estado, caja.publicado_at = EstadoCurso.PUBLICADO, ago(5)
         caja.save()
         self.climb(caja)
-        self.curso(
+        ficha = self.curso(
             "Atención con la ficha única",
             "Cómo usar la ficha única del cliente para resolver en una sola llamada.",
             [
-                ("La ficha en un vistazo", 8, True, [], [
-                    ("acordeon", "", "La ficha reúne todo lo del cliente en una pantalla.", [
-                        ("Productos", "Cuentas, tarjetas y créditos, incluidos los de otras empresas del grupo.", False),
-                        ("Reclamos", "Los abiertos y los cerrados de los últimos 12 meses.", False),
-                    ]),
-                ]),
+                ("La ficha en un vistazo", 15, True, [], []),  # every block type: see muestrario()
                 ("Verificar la identidad", 6, True, [0], [
                     ("ordenar", "", "Ordena la verificación antes de dar un saldo por teléfono.", [
                         ("Pedir el número de cédula", "", False),
@@ -1052,6 +1298,7 @@ class Builder:
             ],
             impactos_=[self.imp["ficha"]], montana=Montana.CHIRRIPO, creado_por=self.u["joaquin"],
         )  # fmt: skip
+        self.muestrario(ficha.lecciones.get(orden=1))
         self.out(
             f"Ascenso y Aprendizaje: 2 cursos (1 publicado, {Inscripcion.objects.count()} "
             "personas en camino) con juegos, cordadas y encabezado del banco"
