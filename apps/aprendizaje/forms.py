@@ -143,6 +143,7 @@ BLOCK_FIELDS = {
     T.CLASIFICAR: {"titulo": None, "texto": _("Instrucción (opcional)")},
     T.ESCENARIO: {"titulo": None, "texto": _("La situación")},
     T.TARJETAS: {"titulo": None, "texto": _("Introducción (opcional)")},
+    T.CORTE: {"titulo": _("Título de la pantalla siguiente (opcional)"), "exigir_juego": None},
 }
 BLOCK_HELP = {
     T.NOTA: _("Un texto resaltado: una advertencia, un dato clave, un recordatorio."),
@@ -174,6 +175,10 @@ BLOCK_HELP = {
         "Tarjetas que se dan vuelta: un término al frente y su significado atrás. Útil para "
         "siglas y nombres nuevos. Con la expedición activada se llaman «Tarjetas de nudos»."
     ),
+    T.CORTE: _(
+        "Divide la lección en pantallas: la persona avanza con «Continuar» y ve en qué tramo "
+        "va. Los juegos ya van solos en su pantalla, sin necesidad de cortes."
+    ),
 }
 
 
@@ -182,7 +187,7 @@ class BloqueForm(forms.ModelForm):
 
     class Meta:
         model = Bloque
-        fields = ["titulo", "texto", "url", "archivo"]
+        fields = ["titulo", "texto", "url", "archivo", "exigir_juego"]
         widgets = {"texto": forms.Textarea(attrs={"rows": 8})}
 
     def __init__(self, *args, **kwargs):

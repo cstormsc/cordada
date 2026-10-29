@@ -1,5 +1,5 @@
 {% load i18n %}{{ b.tarjetas|json_script:b.json_id }}
-<div class="juego clasificar" x-data="clasificar('{{ b.json_id }}')">
+<div class="juego clasificar" x-data="clasificar('{{ b.json_id }}')" x-effect="listo && $dispatch('juego-resuelto', {{ b.pk }})">
   {% if expedicion %}<p class="juego-tag"><span aria-hidden="true">🎒</span> {% translate "Arma la mochila" %}</p>{% endif %}
   {% if b.texto %}{{ b.texto|urlize|linebreaks }}{% else %}<p>{% translate "Elige a qué grupo va cada tarjeta y luego comprueba." %}</p>{% endif %}
   <div class="grupos-resumen" aria-hidden="true">

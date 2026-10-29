@@ -148,10 +148,12 @@ def leccion(request, token, ins, pk):
             **_comun(token, ins),
             "item": items[pos],
             "leccion": lec,
-            "bloques": cursos.para_mostrar(
-                lec,
-                lambda b: _url("archivo", token, bloque_pk=b.pk),
-                lambda item: _url("imagen", token, item_pk=item.pk),
+            "pantallas": cursos.pantallas(
+                cursos.para_mostrar(
+                    lec,
+                    lambda b: _url("archivo", token, bloque_pk=b.pk),
+                    lambda item: _url("imagen", token, item_pk=item.pk),
+                )
             ),
             "numero": pos + 1,
             "total": len(items),

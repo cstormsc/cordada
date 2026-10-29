@@ -11,69 +11,33 @@
   <h1>{{ leccion.titulo }}</h1>
   {% if preview and item.faltan %}<p class="msg">{% translate "La persona verá esta lección bloqueada hasta ver" %}: {% for d in item.faltan %}{{ d.titulo }}{% if not forloop.last %}; {% endif %}{% endfor %}.</p>{% endif %}
 
-  {% for b in bloques %}
-    <section class="bloque bloque-{{ b.tipo }}{% if b.tipo == 'nota' %} msg{% else %} panel{% endif %}">
-      {% if b.titulo and b.tipo != "imagen" %}<h2>{{ b.titulo }}</h2>{% endif %}
-      {% if b.tipo == "texto" or b.tipo == "nota" %}
-        {{ b.texto|urlize|linebreaks }}
-      {% elif b.tipo == "imagen" %}
-        <figure><img src="{{ b.archivo_url }}" alt="{{ b.titulo|default:b.texto }}" loading="lazy">
-          {% if b.titulo or b.texto %}<figcaption>{% if b.titulo %}<strong>{{ b.titulo }}</strong> {% endif %}{{ b.texto }}</figcaption>{% endif %}</figure>
-      {% elif b.tipo == "video" %}
-        {% if b.embed %}<div class="video"><iframe src="{{ b.embed }}" title="{{ b.titulo|default:leccion.titulo }}" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
-        {% else %}<p><a class="btn" href="{{ b.url }}" target="_blank" rel="noopener noreferrer">{% translate "Ver el video" %}</a></p>{% endif %}
-        {% if b.texto %}{{ b.texto|urlize|linebreaks }}{% endif %}
-      {% elif b.tipo == "documento" %}
-        {% if b.texto %}{{ b.texto|urlize|linebreaks }}{% endif %}
-        {% if b.archivo_url %}<p><a class="btn" href="{{ b.archivo_url }}">{% translate "Descargar el documento" %}</a></p>{% endif %}
-        {% if b.url %}<p><a class="btn secondary" href="{{ b.url }}" target="_blank" rel="noopener noreferrer">{% translate "Abrir el documento" %}</a></p>{% endif %}
-      {% elif b.tipo == "pasos" %}
-        {% if b.texto %}{{ b.texto|urlize|linebreaks }}{% endif %}
-        <div class="pasos" x-data="{ i: 0, n: {{ b.lista|length }} }">
-          {% for p in b.lista %}
-            <div class="paso" x-show="i === {{ forloop.counter0 }}"{% if not forloop.first %} x-cloak{% endif %}>
-              <p class="muted small">{% blocktranslate with n=forloop.counter total=b.lista|length %}Paso {{ n }} de {{ total }}{% endblocktranslate %}</p>
-              {% if p.titulo %}<h3>{{ p.titulo }}</h3>{% endif %}
-              {% if p.imagen_url %}<img src="{{ p.imagen_url }}" alt="{{ p.titulo }}" loading="lazy">{% endif %}
-              {% if p.texto %}{{ p.texto|urlize|linebreaks }}{% endif %}
+  {% if pantallas|length > 1 %}
+    <div class="tramos" x-data="tramos({{ pantallas|length }})" @juego-resuelto="resolver($event.detail)">
+      <div class="tramo-avance">
+        <span class="small muted" aria-live="polite">{% if expedicion %}{% translate "Tramo" %}{% else %}{% translate "Pantalla" %}{% endif %} <strong x-text="p + 1">1</strong> {% translate "de" %} {{ pantallas|length }}</span>
+        <div class="avance" aria-hidden="true"><span :style="`width: ${(p + 1) * 100 / n}%`" style="width: {% widthratio 1 pantallas|length 100 %}%"></span></div>
+      </div>
+      {% for pantalla in pantallas %}
+        <div class="tramo" data-exigir="{{ pantalla.exigir|yesno:'1,0' }}" data-juegos="{{ pantalla.juegos|join:',' }}" x-show="p === {{ forloop.counter0 }}"{% if not forloop.first %} x-cloak{% endif %} tabindex="-1">
+          {% if pantalla.titulo %}<h2 class="tramo-titulo">{{ pantalla.titulo }}</h2>{% endif %}
+          {% for b in pantalla.bloques %}{% include "aprendizaje/aprende/_bloque.html" %}{% endfor %}
+          {% if forloop.last %}
+            <p><button type="button" class="btn secondary small" @click="ir(-1)">← {% translate "Pantalla anterior" %}</button></p>
+            {% include "aprendizaje/aprende/_fin_leccion.html" %}
+          {% else %}
+            <div class="row tramo-nav">
+              {% if forloop.first %}<span></span>{% else %}<button type="button" class="btn secondary" @click="ir(-1)">← {% translate "Anterior" %}</button>{% endif %}
+              {% if pantalla.exigir and pantalla.juegos %}<span class="small muted" x-show="bloqueado({{ forloop.counter0 }})" x-cloak>{% if expedicion %}{% translate "Resuelve el juego para seguir subiendo." %}{% else %}{% translate "Resuelve el juego para continuar." %}{% endif %}</span>{% endif %}
+              <button type="button" class="btn" @click="ir(1)" :disabled="bloqueado({{ forloop.counter0 }})">{% translate "Continuar" %} →</button>
             </div>
-          {% endfor %}
-          <div class="row pasos-nav">
-            <button type="button" class="btn secondary small" @click="i--" :disabled="i === 0">← {% translate "Anterior" %}</button>
-            <span class="puntos" aria-hidden="true">{% for p in b.lista %}<span :class="{ on: i === {{ forloop.counter0 }} }" @click="i = {{ forloop.counter0 }}"></span>{% endfor %}</span>
-            <button type="button" class="btn small" @click="i++" :disabled="i === n - 1">{% translate "Siguiente" %} →</button>
-          </div>
+          {% endif %}
         </div>
-      {% elif b.tipo == "pregunta" %}
-        {% include "aprendizaje/aprende/_pregunta.html" %}
-      {% elif b.tipo == "ordenar" %}
-        {% include "aprendizaje/aprende/_ordenar.html" %}
-      {% elif b.tipo == "clasificar" %}
-        {% include "aprendizaje/aprende/_clasificar.html" %}
-      {% elif b.tipo == "escenario" %}
-        {% include "aprendizaje/aprende/_escenario.html" %}
-      {% elif b.tipo == "tarjetas" %}
-        {% include "aprendizaje/aprende/_tarjetas.html" %}
-      {% elif b.tipo == "acordeon" %}
-        {% if b.texto %}{{ b.texto|urlize|linebreaks }}{% endif %}
-        {% for s in b.lista %}
-          <details class="acordeon"><summary>{{ s.titulo }}</summary>
-            {% if s.imagen_url %}<img src="{{ s.imagen_url }}" alt="{{ s.titulo }}" loading="lazy">{% endif %}
-            {{ s.texto|urlize|linebreaks }}
-          </details>
-        {% endfor %}
-      {% endif %}
-    </section>
-  {% empty %}
-    <p class="muted">{% translate "Esta lección todavía no tiene contenido." %}</p>
-  {% endfor %}
-
-  {% if expedicion %}<p class="equipo-msg"><span aria-hidden="true">{{ item.equipo.0 }}</span> {% blocktranslate with e=item.equipo.1 c=item.campo %}Al terminar esta lección llegas a {{ c }} y sumas a tu mochila: {{ e }}.{% endblocktranslate %}</p>{% endif %}
-  <div class="row leccion-nav">
-    {% if anterior %}<a href="{{ anterior }}">← {% translate "Anterior" %}</a>{% else %}<span></span>{% endif %}
-    {% if preview %}<button class="btn" type="button" disabled title="{% translate 'No disponible en la vista previa' %}">{% translate "Marcar como vista" %}</button>
-    {% elif item.vista %}<span class="muted">✓ {% translate "Ya la viste" %}</span>
-    {% else %}<form method="post" action="{{ marcar_url }}">{% csrf_token %}<button class="btn">{% if expedicion %}{% blocktranslate with c=item.campo %}Llegar a {{ c }}{% endblocktranslate %}{% else %}{% translate "Marcar como vista" %}{% endif %}</button></form>{% endif %}
-    {% if siguiente %}<a href="{{ siguiente }}">{% translate "Siguiente" %} →</a>{% else %}<a href="{{ portada }}">{% translate "Volver al curso" %}</a>{% endif %}
-  </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    {% for pantalla in pantallas %}{% for b in pantalla.bloques %}{% include "aprendizaje/aprende/_bloque.html" %}{% endfor %}{% empty %}
+      <p class="muted">{% translate "Esta lección todavía no tiene contenido." %}</p>
+    {% endfor %}
+    {% include "aprendizaje/aprende/_fin_leccion.html" %}
+  {% endif %}
 {% endblock %}

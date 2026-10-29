@@ -501,7 +501,7 @@ def vista_previa_leccion(request, client_slug, numero, pk):
             "curso": c,
             "item": items[pos],
             "leccion": leccion,
-            "bloques": cursos.para_mostrar(leccion, archivo_url, imagen_url),
+            "pantallas": cursos.pantallas(cursos.para_mostrar(leccion, archivo_url, imagen_url)),
             "numero": pos + 1,
             "total": len(items),
             "expedicion": expedicion,

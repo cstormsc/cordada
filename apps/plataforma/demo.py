@@ -1160,6 +1160,20 @@ class Builder:
                 BloqueItem.objects.create(
                     bloque=b, orden=k, titulo=it, texto=ix, correcta=ok, grupo=grupo
                 )
+        # Page breaks: a titled screen for the screenshot, another for the steps, and
+        # one after "Cruzar la grieta" that asks to solve it before going on.
+        cortes = {"nota": ("La ficha por dentro", False), "documento": ("Buscar la ficha", False)}
+        cortes["pregunta"] = ("", True)
+        n = 0
+        for b in list(leccion.bloques.order_by("orden")):
+            n += 1
+            Bloque.objects.filter(pk=b.pk).update(orden=n)
+            if b.tipo in cortes:
+                titulo, exigir = cortes.pop(b.tipo)
+                n += 1
+                Bloque.objects.create(
+                    leccion=leccion, orden=n, tipo="corte", titulo=titulo, exigir_juego=exigir
+                )
         from apps.aprendizaje.cursos import _items, block_errors
 
         for b in leccion.bloques.all():

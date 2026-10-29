@@ -1,4 +1,4 @@
-{% load i18n %}<div class="juego grieta" x-data="{ elegida: null, ok: false }">
+{% load i18n %}<div class="juego grieta" x-data="{ elegida: null, ok: false }" x-effect="ok && $dispatch('juego-resuelto', {{ b.pk }})">
   {% if expedicion %}<p class="juego-tag"><span aria-hidden="true">⛏️</span> {% translate "Cruzar la grieta" %}</p>{% endif %}
   <p class="pregunta-juego"><strong>{{ b.texto|linebreaksbr }}</strong></p>
   {% if expedicion %}<div class="grieta-escena" aria-hidden="true" :class="{ cruzada: ok, fallo: elegida !== null && !ok }"><span class="borde izq"></span><span class="borde der"></span><span class="puente"></span><span class="escalador">🧗</span></div>{% endif %}

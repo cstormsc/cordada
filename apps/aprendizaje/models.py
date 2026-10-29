@@ -170,8 +170,17 @@ class TipoBloque(models.TextChoices):
     CLASIFICAR = "clasificar", _("Clasificar tarjetas")
     ESCENARIO = "escenario", _("Escenario con decisiones")
     TARJETAS = "tarjetas", _("Tarjetas para repasar")
+    CORTE = "corte", _("Corte de página")
 
 
+# The learning games: each one gets its own screen in the lesson.
+JUEGOS = (
+    TipoBloque.PREGUNTA,
+    TipoBloque.ORDENAR,
+    TipoBloque.CLASIFICAR,
+    TipoBloque.ESCENARIO,
+    TipoBloque.TARJETAS,
+)
 # Blocks whose content is a list of items (steps, sections, options, cards).
 CON_ITEMS = (
     TipoBloque.PASOS,
@@ -208,6 +217,14 @@ class Bloque(TenantScopedModel):
     )
     grupos = models.JSONField(
         default=list, blank=True, help_text=_("Clasificar tarjetas: los nombres de los grupos.")
+    )
+    exigir_juego = models.BooleanField(
+        _("exigir el juego para continuar"),
+        default=False,
+        help_text=_(
+            "Corte de página: «Continuar» se habilita solo cuando la persona resuelve los "
+            "juegos de la pantalla anterior."
+        ),
     )
 
     class Meta(TenantScopedModel.Meta):

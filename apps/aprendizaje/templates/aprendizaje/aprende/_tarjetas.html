@@ -1,4 +1,4 @@
-{% load i18n %}<div class="juego tarjetas" x-data="{ vistas: [] }">
+{% load i18n %}<div class="juego tarjetas" x-data="{ vistas: [] }" x-effect="vistas.length === {{ b.lista|length }} && $dispatch('juego-resuelto', {{ b.pk }})">
   {% if expedicion %}<p class="juego-tag"><span aria-hidden="true">🪢</span> {% translate "Tarjetas de nudos" %}</p>{% endif %}
   {% if b.texto %}{{ b.texto|urlize|linebreaks }}{% else %}<p>{% translate "Da vuelta cada tarjeta para ver su significado." %}</p>{% endif %}
   <ul class="tarjetas-grid">

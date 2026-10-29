@@ -1,4 +1,4 @@
-{% load i18n %}<div class="juego escenario" x-data="{ elegida: null, ok: false }">
+{% load i18n %}<div class="juego escenario" x-data="{ elegida: null, ok: false }" x-effect="ok && $dispatch('juego-resuelto', {{ b.pk }})">
   {% if expedicion %}<p class="juego-tag"><span aria-hidden="true">🏔️</span> {% translate "Decisión en la arista" %}</p>{% endif %}
   <div class="situacion"><p class="muted small">{% translate "La situación" %}</p>{{ b.texto|urlize|linebreaks }}</div>
   <p><strong>{% translate "¿Qué haces?" %}</strong></p>

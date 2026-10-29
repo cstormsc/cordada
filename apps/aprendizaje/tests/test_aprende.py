@@ -5,7 +5,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.aprendizaje import avance
+from apps.aprendizaje import avance, cursos
 from apps.aprendizaje.models import (
     Ajustes,
     Bloque,
@@ -268,6 +268,75 @@ class TestJuegosNuevos:
         client.post(u, items(("KYC", "Conoce a tu cliente"), ("SLA", "Nivel de servicio")))
         body = page(client, f"{base(c)}vista-previa/{leccion.pk}/")
         assert "Tarjetas de nudos" in body and "Conoce a tu cliente" in body
+
+
+class TestPantallas:
+    url = TestBloques.url
+
+    def test_breaks_and_games_split_the_lesson(self):
+        def b(pk, tipo, titulo="", exigir=False):
+            return Bloque(pk=pk, tipo=tipo, titulo=titulo, exigir_juego=exigir)
+
+        lista = [
+            b(1, "corte", "Ignorado: no hay nada antes"),
+            b(2, "texto"),
+            b(3, "nota"),
+            b(4, "corte", "Segunda"),
+            b(5, "corte"),  # two breaks in a row make one
+            b(6, "imagen"),
+            b(7, "pregunta"),
+            b(8, "corte", exigir=True),
+            b(9, "ordenar"),
+            b(10, "texto"),
+            b(11, "corte"),  # a break at the end leaves no empty screen
+        ]
+        out = cursos.pantallas(lista)
+        assert [[x.pk for x in p["bloques"]] for p in out] == [[2, 3], [6], [7], [9], [10]]
+        assert [p["titulo"] for p in out] == ["Ignorado: no hay nada antes", "Segunda", "", "", ""]
+        assert [p["exigir"] for p in out] == [False, False, True, False, False]
+        assert [p["juegos"] for p in out] == [[], [], [7], [9], []]
+        assert len(cursos.pantallas([b(1, "texto"), b(2, "nota")])) == 1
+        assert cursos.pantallas([]) == []
+
+    def test_a_break_in_the_editor_and_the_lesson(self, client, equipo, acme, make_curso):
+        c = make_curso(1)
+        (leccion,) = lecciones(acme, c)
+        client.force_login(equipo)
+        client.post(self.url(c, leccion, "texto"), {"titulo": "Uno", "texto": "Primera parte."})
+        body = page(client, f"{base(c)}vista-previa/{leccion.pk}/")
+        assert "Primera parte." in body and "tramos(" not in body
+        client.post(self.url(c, leccion, "corte"), {"titulo": "La segunda", "exigir_juego": "on"})
+        client.post(self.url(c, leccion, "texto"), {"titulo": "Dos", "texto": "Segunda parte."})
+        with tenant_context(acme):
+            corte = Bloque.objects.get(leccion=leccion, tipo="corte")
+            assert corte.exigir_juego and corte.titulo == "La segunda"
+        editor = page(client, f"{base(c)}lecciones/{leccion.pk}/")
+        assert 'class="corte"' in editor and "Exige el juego" in editor
+        body = page(client, f"{base(c)}vista-previa/{leccion.pk}/")
+        assert 'x-data="tramos(2)"' in body and "Tramo" in body
+        assert body.index("Primera parte.") < body.index("Continuar") < body.index("La segunda")
+        assert body.index("La segunda") < body.index("Segunda parte.")
+        assert body.count("leccion-nav") == 1 and body.index("Segunda parte.") < body.index(
+            "leccion-nav"
+        )
+
+    def test_public_lesson_with_a_required_game(self, client, acme, make_curso):
+        c = make_curso(1)
+        (leccion,) = lecciones(acme, c)
+        with tenant_context(acme):
+            Bloque.objects.create(leccion=leccion, orden=1, tipo="texto", texto="Intro.")
+            q = Bloque.objects.create(leccion=leccion, orden=2, tipo="pregunta", texto="¿Cuál?")
+            q.items.create(orden=1, titulo="Esta", correcta=True)
+            q.items.create(orden=2, titulo="Otra")
+            Bloque.objects.create(leccion=leccion, orden=3, tipo="corte", exigir_juego=True)
+            Bloque.objects.create(leccion=leccion, orden=4, tipo="texto", texto="Fin.")
+        publicar(acme, c)
+        ins = inscribir(acme, c)
+        body = page(client, url(ins, "leccion", pk=leccion.pk))
+        assert 'x-data="tramos(3)"' in body
+        assert f'data-exigir="1" data-juegos="{q.pk}"' in body
+        assert f"$dispatch('juego-resuelto', {q.pk})" in body
+        assert "Resuelve el juego para seguir subiendo." in body
 
 
 def test_preview_shows_badges_and_a_sample_team(client, equipo, acme, make_curso):

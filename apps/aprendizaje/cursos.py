@@ -8,7 +8,7 @@ from django.utils.translation import gettext_lazy
 
 from apps.formularios.models import EstadoCuestionario
 
-from .models import ALTURAS, TipoBloque
+from .models import ALTURAS, JUEGOS, TipoBloque
 
 T = TipoBloque
 
@@ -162,6 +162,36 @@ def video_embed(url):
     if m := _VIMEO.match(url or ""):
         return f"https://player.vimeo.com/video/{m[1]}" + (f"?h={m[2]}" if m[2] else "")
     return None
+
+
+def pantallas(bloques):
+    """Splits a lesson into screens: at each page break, and around each game, which gets
+    a screen of its own. A break's title heads the next screen; when it asks for the game,
+    "Continuar" waits until the games of the screen before it are solved."""
+    out = [{"titulo": "", "bloques": [], "exigir": False}]
+
+    def nueva(titulo=""):
+        if out[-1]["bloques"]:
+            out.append({"titulo": titulo, "bloques": [], "exigir": False})
+        elif titulo:
+            out[-1]["titulo"] = titulo
+
+    for b in bloques:
+        if b.tipo == T.CORTE:
+            llenas = [p for p in out if p["bloques"]]
+            if llenas and b.exigir_juego:
+                llenas[-1]["exigir"] = True
+            nueva(b.titulo)
+            continue
+        if b.tipo in JUEGOS:
+            nueva()
+        out[-1]["bloques"].append(b)
+        if b.tipo in JUEGOS:
+            nueva()
+    out = [p for p in out if p["bloques"]]
+    for p in out:
+        p["juegos"] = [b.pk for b in p["bloques"] if b.tipo in JUEGOS]
+    return out
 
 
 def para_mostrar(leccion, archivo_url, imagen_url):

@@ -1,6 +1,7 @@
 // Learning games inside lessons. "Ordenar pasos": the steps arrive shuffled and the
 // person moves them with the arrows until they are in order. "Clasificar tarjetas":
-// each card goes into one of two or three groups.
+// each card goes into one of two or three groups. "Tramos": a lesson split into
+// screens, where a break can hold «Continuar» until the games before it are solved.
 function barajar(lista) {
   for (let k = lista.length - 1; k > 0; k--) {
     const j = Math.floor(Math.random() * (k + 1));
@@ -69,6 +70,36 @@ document.addEventListener("alpine:init", () => {
     comprobar() {
       this.revisado = true;
       this.bien = this.tarjetas.filter((t) => t.elegido === t.grupo).length;
+    },
+  }));
+
+  Alpine.data("tramos", (n) => ({
+    n,
+    p: 0,
+    reglas: [],
+    resueltos: [],
+    init() {
+      this.reglas = [...this.$root.querySelectorAll(".tramo")].map((t) => ({
+        exigir: t.dataset.exigir === "1",
+        juegos: t.dataset.juegos ? t.dataset.juegos.split(",").map(Number) : [],
+      }));
+    },
+    bloqueado(k) {
+      const r = this.reglas[k];
+      return !!r && r.exigir && r.juegos.some((id) => !this.resueltos.includes(id));
+    },
+    resolver(id) {
+      if (!this.resueltos.includes(id)) this.resueltos.push(id);
+    },
+    ir(d) {
+      if (d > 0 && this.bloqueado(this.p)) return;
+      this.p = Math.min(Math.max(this.p + d, 0), this.n - 1);
+      // Start the new screen from its top, with the focus there for keyboard users.
+      this.$nextTick(() => {
+        const tramo = this.$root.querySelectorAll(".tramo")[this.p];
+        this.$root.scrollIntoView({ behavior: "smooth", block: "start" });
+        tramo?.focus({ preventScroll: true });
+      });
     },
   }));
 });

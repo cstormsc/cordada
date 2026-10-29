@@ -549,3 +549,15 @@ button.btn:disabled { opacity: 0.55; cursor: not-allowed; }
 form.directo { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; }
 form.directo label { display: flex; gap: 0.5rem; align-items: flex-start; }
 .avance-tabla { display: inline-block; width: 6rem; margin: 0 0.4rem 0 0; vertical-align: middle; }
+
+/* Lesson screens ("tramos") */
+.tramos { scroll-margin-top: 1rem; }
+.tramo-avance { margin: 0.25rem 0 1rem; }
+.tramo-avance .avance { margin-bottom: 0; }
+.tramo-avance .avance span { transition: width 0.25s ease; }
+.tramo:focus { outline: none; }
+.tramo-titulo { margin: 0 0 0.75rem; }
+.tramo-nav { justify-content: space-between; align-items: center; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap; }
+.tramo-nav .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+@media (prefers-reduced-motion: reduce) { .tramo-avance .avance span { transition: none; } }
+.lecciones.bloques > li.corte { border-bottom: 2px dashed var(--accent-mid); background: var(--tint); padding-left: 0.5rem; padding-right: 0.5rem; }
