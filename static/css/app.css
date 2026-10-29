@@ -459,7 +459,7 @@ button.btn:disabled { opacity: 0.55; cursor: not-allowed; }
 .ruta .cima line { stroke: var(--accent); stroke-width: 2.5; }
 .ruta .cima path { fill: #fff; stroke: var(--accent); stroke-width: 1.5; }
 .ruta .cima.lograda path { fill: var(--rope); stroke: var(--rope); }
-.ruta .escalador { font-size: 30px; }
+.ruta .escalador .escalador-svg { overflow: visible; filter: drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 1px #fff); }
 .mochila { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
 .mochila ul { list-style: none; display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0; padding: 0; }
 .mochila li { width: 2.25rem; height: 2.25rem; display: grid; place-items: center; border-radius: 8px; border: 1px dashed #b6c0ca; font-size: 1.15rem; filter: grayscale(1); opacity: 0.45; }
@@ -483,12 +483,12 @@ button.btn:disabled { opacity: 0.55; cursor: not-allowed; }
 .feedback p { margin: 0.25rem 0; }
 .feedback.bien { background: #e3f4ea; }
 .feedback.mal { background: #fbeaea; }
-.grieta-escena { position: relative; height: 84px; margin: 0.5rem 0; border-radius: 8px; overflow: hidden; background: linear-gradient(180deg, #e4effb 0 55%, #2c3a48 55% 100%); }
+.grieta-escena { position: relative; height: 100px; margin: 0.5rem 0; border-radius: 8px; overflow: hidden; background: linear-gradient(180deg, #e4effb 0 62%, #2c3a48 62% 100%); }
 .grieta-escena .borde { position: absolute; bottom: 0; height: 38px; width: 40%; background: linear-gradient(180deg, #fff, #dce9f5); border-top: 3px solid #bdddfc; }
 .grieta-escena .izq { left: 0; border-radius: 0 6px 0 0; }
 .grieta-escena .der { right: 0; border-radius: 6px 0 0 0; }
 .grieta-escena .puente { position: absolute; bottom: 35px; left: 40%; width: 20%; height: 4px; background: var(--rope); transform: scaleX(0); transition: transform 0.4s ease; }
-.grieta-escena .escalador { position: absolute; bottom: 38px; left: 18%; font-size: 28px; line-height: 1; transition: left 1s ease 0.3s; }
+.grieta-escena .escalador { position: absolute; bottom: 38px; left: 18%; width: 40px; height: 50px; line-height: 0; transition: left 1s ease 0.3s; }
 .grieta-escena.cruzada .puente { transform: scaleX(1); }
 .grieta-escena.cruzada .escalador { left: 74%; }
 .grieta-escena.fallo .escalador { animation: tambaleo 0.4s ease; }
@@ -561,3 +561,9 @@ form.directo label { display: flex; gap: 0.5rem; align-items: flex-start; }
 .tramo-nav .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 @media (prefers-reduced-motion: reduce) { .tramo-avance .avance span { transition: none; } }
 .lecciones.bloques > li.corte { border-bottom: 2px dashed var(--accent-mid); background: var(--tint); padding-left: 0.5rem; padding-right: 0.5rem; }
+
+/* The climber: one simple figure, drawn in the brand color with the rope-colored pack */
+.grieta-escena .escalador-svg { display: block; width: 100%; height: 100%; }
+.escalador-svg .cuerpo { fill: var(--accent); stroke: var(--accent); stroke-width: 3.6; stroke-linecap: round; stroke-linejoin: round; }
+.escalador-svg .piolet { stroke-width: 2.2; }
+.escalador-svg .mochila-dibujo { fill: var(--rope); }
