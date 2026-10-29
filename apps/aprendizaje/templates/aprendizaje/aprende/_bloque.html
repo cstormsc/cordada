@@ -1,0 +1,52 @@
+{% load i18n %}<section class="bloque bloque-{{ b.tipo }}{% if b.tipo == 'nota' %} msg{% else %} panel{% endif %}">
+      {% if b.titulo and b.tipo != "imagen" %}<h2>{{ b.titulo }}</h2>{% endif %}
+      {% if b.tipo == "texto" or b.tipo == "nota" %}
+        {{ b.texto|urlize|linebreaks }}
+      {% elif b.tipo == "imagen" %}
+        <figure><img src="{{ b.archivo_url }}" alt="{{ b.titulo|default:b.texto }}" loading="lazy">
+          {% if b.titulo or b.texto %}<figcaption>{% if b.titulo %}<strong>{{ b.titulo }}</strong> {% endif %}{{ b.texto }}</figcaption>{% endif %}</figure>
+      {% elif b.tipo == "video" %}
+        {% if b.embed %}<div class="video"><iframe src="{{ b.embed }}" title="{{ b.titulo|default:leccion.titulo }}" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
+        {% else %}<p><a class="btn" href="{{ b.url }}" target="_blank" rel="noopener noreferrer">{% translate "Ver el video" %}</a></p>{% endif %}
+        {% if b.texto %}{{ b.texto|urlize|linebreaks }}{% endif %}
+      {% elif b.tipo == "documento" %}
+        {% if b.texto %}{{ b.texto|urlize|linebreaks }}{% endif %}
+        {% if b.archivo_url %}<p><a class="btn" href="{{ b.archivo_url }}">{% translate "Descargar el documento" %}</a></p>{% endif %}
+        {% if b.url %}<p><a class="btn secondary" href="{{ b.url }}" target="_blank" rel="noopener noreferrer">{% translate "Abrir el documento" %}</a></p>{% endif %}
+      {% elif b.tipo == "pasos" %}
+        {% if b.texto %}{{ b.texto|urlize|linebreaks }}{% endif %}
+        <div class="pasos" x-data="{ i: 0, n: {{ b.lista|length }} }">
+          {% for p in b.lista %}
+            <div class="paso" x-show="i === {{ forloop.counter0 }}"{% if not forloop.first %} x-cloak{% endif %}>
+              <p class="muted small">{% blocktranslate with n=forloop.counter total=b.lista|length %}Paso {{ n }} de {{ total }}{% endblocktranslate %}</p>
+              {% if p.titulo %}<h3>{{ p.titulo }}</h3>{% endif %}
+              {% if p.imagen_url %}<img src="{{ p.imagen_url }}" alt="{{ p.titulo }}" loading="lazy">{% endif %}
+              {% if p.texto %}{{ p.texto|urlize|linebreaks }}{% endif %}
+            </div>
+          {% endfor %}
+          <div class="row pasos-nav">
+            <button type="button" class="btn secondary small" @click="i--" :disabled="i === 0">← {% translate "Anterior" %}</button>
+            <span class="puntos" aria-hidden="true">{% for p in b.lista %}<span :class="{ on: i === {{ forloop.counter0 }} }" @click="i = {{ forloop.counter0 }}"></span>{% endfor %}</span>
+            <button type="button" class="btn small" @click="i++" :disabled="i === n - 1">{% translate "Siguiente" %} →</button>
+          </div>
+        </div>
+      {% elif b.tipo == "pregunta" %}
+        {% include "aprendizaje/aprende/_pregunta.html" %}
+      {% elif b.tipo == "ordenar" %}
+        {% include "aprendizaje/aprende/_ordenar.html" %}
+      {% elif b.tipo == "clasificar" %}
+        {% include "aprendizaje/aprende/_clasificar.html" %}
+      {% elif b.tipo == "escenario" %}
+        {% include "aprendizaje/aprende/_escenario.html" %}
+      {% elif b.tipo == "tarjetas" %}
+        {% include "aprendizaje/aprende/_tarjetas.html" %}
+      {% elif b.tipo == "acordeon" %}
+        {% if b.texto %}{{ b.texto|urlize|linebreaks }}{% endif %}
+        {% for s in b.lista %}
+          <details class="acordeon"><summary>{{ s.titulo }}</summary>
+            {% if s.imagen_url %}<img src="{{ s.imagen_url }}" alt="{{ s.titulo }}" loading="lazy">{% endif %}
+            {{ s.texto|urlize|linebreaks }}
+          </details>
+        {% endfor %}
+      {% endif %}
+    </section>

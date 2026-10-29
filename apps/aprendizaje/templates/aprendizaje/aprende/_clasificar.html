@@ -1,0 +1,29 @@
+{% load i18n %}{{ b.tarjetas|json_script:b.json_id }}
+<div class="juego clasificar" x-data="clasificar('{{ b.json_id }}')" x-effect="listo && $dispatch('juego-resuelto', {{ b.pk }})">
+  {% if expedicion %}<p class="juego-tag"><span aria-hidden="true">🎒</span> {% translate "Arma la mochila" %}</p>{% endif %}
+  {% if b.texto %}{{ b.texto|urlize|linebreaks }}{% else %}<p>{% translate "Elige a qué grupo va cada tarjeta y luego comprueba." %}</p>{% endif %}
+  <div class="grupos-resumen" aria-hidden="true">
+    <template x-for="(g, n) in grupos" :key="n"><span class="grupo-chip" :class="'g' + (n + 1)"><span x-text="g"></span> · <strong x-text="cuantas(n + 1)"></strong></span></template>
+  </div>
+  <ul class="tarjetas-clasificar">
+    <template x-for="(t, k) in tarjetas" :key="t.i">
+      <li :class="{ bien: revisado && t.elegido === t.grupo, mal: revisado && t.elegido !== t.grupo }">
+        <span class="texto" x-text="t.titulo"></span>
+        <span class="botones" role="group" :aria-label="t.titulo">
+          <template x-for="(g, n) in grupos" :key="n">
+            <button type="button" class="btn secondary small" :class="{ elegido: t.elegido === n + 1 }" :aria-pressed="t.elegido === n + 1" :disabled="listo" @click="elegir(k, n + 1)" x-text="g"></button>
+          </template>
+        </span>
+        <p class="small explicacion" x-show="revisado && t.elegido !== t.grupo && t.texto" x-cloak x-text="t.texto"></p>
+      </li>
+    </template>
+  </ul>
+  <div class="row">
+    <button type="button" class="btn small" @click="comprobar()" :disabled="listo || pendientes > 0">{% translate "Comprobar" %}</button>
+    <p class="small resultado" aria-live="polite">
+      <span class="muted" x-show="pendientes > 0" x-cloak>{% translate "Faltan" %} <strong x-text="pendientes"></strong></span>
+      <span class="bien" x-show="listo" x-cloak><strong>{% if expedicion %}{% translate "¡Mochila lista! Llevas justo lo que necesitas." %}{% else %}{% translate "¡Todo en su lugar!" %}{% endif %}</strong></span>
+      <span x-show="revisado && !listo" x-cloak><strong x-text="bien"></strong> {% blocktranslate count n=b.lista|length %}de {{ n }} tarjeta bien ubicada.{% plural %}de {{ n }} tarjetas bien ubicadas. Cambia las marcadas y vuelve a comprobar.{% endblocktranslate %}</span>
+    </p>
+  </div>
+</div>

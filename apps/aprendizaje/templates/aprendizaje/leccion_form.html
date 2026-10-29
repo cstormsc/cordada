@@ -16,9 +16,10 @@
       {% if bloques|length > 1 %}<p class="muted small">{% translate "Arrastra los bloques para cambiar su orden." %}</p>{% endif %}
       <ol class="lecciones bloques" data-sortable="{% url 'aprendizaje:ordenar_bloques' request.client.slug curso.numero leccion.pk %}">
       {% for b in bloques %}
-        <li id="b{{ b.pk }}" data-id="{{ b.pk }}">
+        <li id="b{{ b.pk }}" data-id="{{ b.pk }}"{% if b.tipo == "corte" %} class="corte"{% endif %}>
           <div class="row">
-            <strong>{{ b.get_tipo_display }}{% if b.titulo %}: {{ b.titulo }}{% endif %}</strong>
+            <strong>{% if b.tipo == "corte" %}✂ {% endif %}{{ b.get_tipo_display }}{% if b.titulo %}: {{ b.titulo }}{% endif %}</strong>
+            {% if b.tipo == "corte" and b.exigir_juego %}<span class="tag">{% translate "Exige el juego" %}</span>{% endif %}
             {% if b.items.all %}<span class="muted small">{% blocktranslate count n=b.items.all|length %}{{ n }} elemento{% plural %}{{ n }} elementos{% endblocktranslate %}</span>{% endif %}
           </div>
           {% if b.texto %}<p class="small">{{ b.texto|truncatewords:25 }}</p>{% elif b.url %}<p class="small">{{ b.url }}</p>{% endif %}

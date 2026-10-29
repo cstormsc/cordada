@@ -140,6 +140,10 @@ BLOCK_FIELDS = {
     T.ACORDEON: {"titulo": None, "texto": _("Introducción (opcional)")},
     T.PREGUNTA: {"titulo": None, "texto": _("Pregunta")},
     T.ORDENAR: {"titulo": None, "texto": _("Instrucción (opcional)")},
+    T.CLASIFICAR: {"titulo": None, "texto": _("Instrucción (opcional)")},
+    T.ESCENARIO: {"titulo": None, "texto": _("La situación")},
+    T.TARJETAS: {"titulo": None, "texto": _("Introducción (opcional)")},
+    T.CORTE: {"titulo": _("Título de la pantalla siguiente (opcional)"), "exigir_juego": None},
 }
 BLOCK_HELP = {
     T.NOTA: _("Un texto resaltado: una advertencia, un dato clave, un recordatorio."),
@@ -157,6 +161,24 @@ BLOCK_HELP = {
         "ordenarlos. No cuenta para la nota. Con la expedición activada se juega como "
         "«Arma la ruta»."
     ),
+    T.CLASIFICAR: _(
+        "Tarjetas que la persona reparte en dos o tres grupos, por ejemplo «qué cambia» y "
+        "«qué se mantiene». No cuenta para la nota. Con la expedición activada se juega como "
+        "«Arma la mochila»."
+    ),
+    T.ESCENARIO: _(
+        "Una situación real del trabajo y dos o tres decisiones posibles. Cada decisión "
+        "muestra su consecuencia; con la correcta la persona sigue. No cuenta para la nota. "
+        "Con la expedición activada se juega como «Decisión en la arista»."
+    ),
+    T.TARJETAS: _(
+        "Tarjetas que se dan vuelta: un término al frente y su significado atrás. Útil para "
+        "siglas y nombres nuevos. Con la expedición activada se llaman «Tarjetas de nudos»."
+    ),
+    T.CORTE: _(
+        "Divide la lección en pantallas: la persona avanza con «Continuar» y ve en qué tramo "
+        "va. Los juegos ya van solos en su pantalla, sin necesidad de cortes."
+    ),
 }
 
 
@@ -165,7 +187,7 @@ class BloqueForm(forms.ModelForm):
 
     class Meta:
         model = Bloque
-        fields = ["titulo", "texto", "url", "archivo"]
+        fields = ["titulo", "texto", "url", "archivo", "exigir_juego"]
         widgets = {"texto": forms.Textarea(attrs={"rows": 8})}
 
     def __init__(self, *args, **kwargs):
@@ -176,12 +198,30 @@ class BloqueForm(forms.ModelForm):
                 del self.fields[name]
             elif shown[name]:
                 self.fields[name].label = shown[name]
-        if self.instance.tipo in (T.TEXTO, T.NOTA, T.PREGUNTA):
+        if self.instance.tipo == T.CLASIFICAR:
+            nombres = list(self.instance.grupos) + ["", "", ""]
+            for n, ayuda in ((1, None), (2, None), (3, _("Opcional."))):
+                self.fields[f"grupo_{n}"] = forms.CharField(
+                    label=_("Grupo %(n)s") % {"n": n},
+                    max_length=60,
+                    required=n < 3,
+                    initial=nombres[n - 1],
+                    help_text=ayuda,
+                )
+        if self.instance.tipo in (T.TEXTO, T.NOTA, T.PREGUNTA, T.ESCENARIO):
             self.fields["texto"].required = True
         if self.instance.tipo == T.VIDEO:
             self.fields["url"].required = True
         if self.instance.tipo == T.IMAGEN:
             self.fields["archivo"].widget.attrs["accept"] = "image/*"
+
+    def clean(self):
+        data = super().clean()
+        if self.instance.tipo == T.CLASIFICAR:
+            self.instance.grupos = [
+                data[f"grupo_{n}"].strip() for n in (1, 2, 3) if data.get(f"grupo_{n}", "").strip()
+            ]
+        return data
 
     def clean_archivo(self):
         f = _check_size(self.cleaned_data.get("archivo"))
@@ -200,22 +240,43 @@ ITEM_FIELDS = {
         "correcta": None,
     },
     T.ORDENAR: {"titulo": _("Paso")},
+    T.CLASIFICAR: {
+        "titulo": _("Tarjeta"),
+        "grupo": None,
+        "texto": _("Por qué va ahí (opcional, se muestra si se equivoca)"),
+    },
+    T.ESCENARIO: {
+        "titulo": _("Decisión"),
+        "texto": _("Qué pasa si la toma"),
+        "correcta": _("Es la mejor decisión"),
+    },
+    T.TARJETAS: {"titulo": _("Frente (término)"), "texto": _("Reverso (significado)")},
 }
 
 
 class BloqueItemForm(forms.ModelForm):
     class Meta:
         model = BloqueItem
-        fields = ["titulo", "texto", "imagen", "correcta"]
+        fields = ["titulo", "texto", "imagen", "correcta", "grupo"]
         widgets = {
             "texto": forms.Textarea(attrs={"rows": 3}),
             "imagen": forms.ClearableFileInput(attrs={"accept": "image/*"}),
         }
 
-    def __init__(self, *args, tipo, **kwargs):
+    def __init__(self, *args, tipo, grupos=(), **kwargs):
         super().__init__(*args, **kwargs)
         shown = ITEM_FIELDS.get(tipo, {"titulo": None, "texto": None, "imagen": None})
-        for name in ("titulo", "texto", "imagen", "correcta"):
+        if "grupo" in shown:
+            nombres = list(grupos) + ["", "", ""]
+            self.fields["grupo"] = forms.TypedChoiceField(
+                label=_("Va en"),
+                choices=[("", "—")]
+                + [(n, nombres[n - 1] or _("Grupo %(n)s") % {"n": n}) for n in (1, 2, 3)],
+                coerce=int,
+                empty_value=None,
+                required=False,
+            )
+        for name in ("titulo", "texto", "imagen", "correcta", "grupo"):
             if name not in shown:
                 del self.fields[name]
             elif shown[name]:
@@ -245,15 +306,14 @@ def item_formset(bloque, data=None, files=None):
         instance=bloque,
         prefix="it",
         queryset=bloque.items.all() if bloque.pk else BloqueItem.unscoped.none(),
-        form_kwargs={"tipo": bloque.tipo},
+        form_kwargs={"tipo": bloque.tipo, "grupos": bloque.grupos},
     )
     formset.extra = min(MAX_ITEMS - existing, max(2, 4 - existing))
     return formset
 
 
 def kept_items(formset):
-    """The (form, titulo, texto, correcta) the formset keeps: not deleted and not left
-    empty."""
+    """The (form, ItemData) the formset keeps: not deleted and not left empty."""
     kept = []
     for form in formset.forms:
         data = getattr(form, "cleaned_data", None) or {}
@@ -261,7 +321,8 @@ def kept_items(formset):
             continue
         titulo, texto = data.get("titulo", ""), data.get("texto", "")
         if titulo or texto or data.get("imagen"):
-            kept.append((form, titulo, texto, bool(data.get("correcta"))))
+            item = cursos.ItemData(titulo, texto, bool(data.get("correcta")), data.get("grupo"))
+            kept.append((form, item))
     return kept
 
 
