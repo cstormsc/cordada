@@ -34,7 +34,11 @@ def inscribir(acme, c, email="ana@example.com", **persona):
 
 
 def url(ins, name="portada", **kwargs):
-    return reverse(f"aprende:{name}", kwargs={"token": ins.token, **kwargs})
+    # One token per person in a test: a new one is signed each second, and the views
+    # redirect with the one they were called with.
+    if not hasattr(ins, "_token"):
+        ins._token = ins.token
+    return reverse(f"aprende:{name}", kwargs={"token": ins._token, **kwargs})
 
 
 def refresh(acme, obj):

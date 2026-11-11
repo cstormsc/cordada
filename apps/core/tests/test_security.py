@@ -51,6 +51,48 @@ class TestLoginThrottling:
             login(client, "ana@example.com", "clave-segura-123", ip="10.0.0.9").status_code == 302
         )
 
+    def test_behind_a_proxy_each_visitor_is_counted_apart(self, client, make_user, settings):
+        """Through a tunnel every request comes from the proxy's address: the visitor is
+        the last address the proxy reports, whatever the visitor claims before it."""
+        settings.BEHIND_HTTPS_PROXY = True
+        make_user("ana@example.com")
+        for i in range(MAX_PER_ADDRESS):
+            client.post(
+                "/entrar/",
+                {"username": f"nadie{i}@example.com", "password": "mala"},
+                REMOTE_ADDR="172.18.0.1",
+                HTTP_X_FORWARDED_FOR=f"10.9.9.{i}, 203.0.113.5",
+            )
+
+        def entrar(forwarded):
+            return client.post(
+                "/entrar/",
+                {"username": "ana@example.com", "password": "clave-segura-123"},
+                REMOTE_ADDR="172.18.0.1",
+                HTTP_X_FORWARDED_FOR=forwarded,
+            )
+
+        assert "Demasiados intentos" in entrar("203.0.113.5").content.decode()
+        assert entrar("198.51.100.7").status_code == 302
+
+    def test_forwarded_address_is_ignored_without_a_proxy(self, client, make_user, settings):
+        settings.BEHIND_HTTPS_PROXY = False
+        make_user("ana@example.com")
+        for i in range(MAX_PER_ADDRESS):
+            client.post(
+                "/entrar/",
+                {"username": f"nadie{i}@example.com", "password": "mala"},
+                REMOTE_ADDR="10.0.0.1",
+                HTTP_X_FORWARDED_FOR=f"10.9.9.{i}",
+            )
+        blocked = client.post(
+            "/entrar/",
+            {"username": "ana@example.com", "password": "clave-segura-123"},
+            REMOTE_ADDR="10.0.0.1",
+            HTTP_X_FORWARDED_FOR="198.51.100.7",
+        )
+        assert "Demasiados intentos" in blocked.content.decode()
+
 
 def test_help_text_is_escaped(client, platform_admin):
     client.force_login(platform_admin)
