@@ -10,3 +10,6 @@ import tempfile  # noqa: E402
 MEDIA_ROOT = tempfile.mkdtemp(prefix="cordada-test-media-")
 
 CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+
+WHITENOISE_USE_FINDERS = True
+WHITENOISE_AUTOREFRESH = True

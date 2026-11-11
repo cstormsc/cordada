@@ -36,8 +36,19 @@ cloudflared tunnel --url http://localhost:8000         # muestra una dirección 
 
 `.env` debe aceptar esa dirección (ver `.env.example`: `DJANGO_ALLOWED_HOSTS`,
 `DJANGO_CSRF_TRUSTED_ORIGINS`, `DJANGO_BEHIND_HTTPS_PROXY`). La dirección cambia cada vez y el
-acceso termina al cerrar `cloudflared` (Ctrl+C). Comparte solo clientes de demostración: con
-`DJANGO_DEBUG=true` un error muestra detalles técnicos.
+acceso termina al cerrar `cloudflared` (Ctrl+C).
+
+Antes de abrir el túnel, en `.env`:
+
+- `DJANGO_DEBUG=false`: con `true`, cualquier error muestra código y configuración a quien visite.
+- `DJANGO_SECRET_KEY` con un valor propio (`openssl rand -hex 32`; `make` lo genera al crear
+  `.env`). La clave de ejemplo es pública y firma los enlaces personales de cuestionarios y
+  cursos; la app no arranca con ella si `DJANGO_DEBUG=false` o `DJANGO_BEHIND_HTTPS_PROXY=true`.
+  Cambiarla cierra todas las sesiones e invalida los enlaces personales ya exportados.
+
+Con `DJANGO_BEHIND_HTTPS_PROXY=true` el límite de intentos de ingreso cuenta por visitante (la
+dirección que informa el túnel) y no por el túnel completo. Reinicia con `make up` tras cambiar
+`.env`.
 
 ## Respaldos
 

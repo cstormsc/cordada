@@ -3,8 +3,8 @@ RUN = $(COMPOSE) run --rm -e RUN_MIGRATIONS=0 web
 
 .PHONY: up down build logs shell dbshell manage platform-admin demo makemigrations migrate test lint lock backup
 
-.env:
-	cp .env.example .env
+.env:  ## first run: the example settings with a random secret key
+	sed "s/^DJANGO_SECRET_KEY=.*/DJANGO_SECRET_KEY=$$(openssl rand -hex 32)/" .env.example > .env
 
 up: .env
 	$(COMPOSE) up --build -d

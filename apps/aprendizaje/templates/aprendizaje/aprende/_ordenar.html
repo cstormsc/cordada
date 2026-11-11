@@ -1,5 +1,5 @@
 {% load i18n %}{{ b.pasos|json_script:b.json_id }}
-<div class="juego armar-ruta" x-data="ordenar('{{ b.json_id }}')">
+<div class="juego armar-ruta" x-data="ordenar('{{ b.json_id }}')" x-effect="listo && $dispatch('juego-resuelto', {{ b.pk }})">
   {% if expedicion %}<p class="juego-tag"><span aria-hidden="true">🗺️</span> {% translate "Arma la ruta" %}</p>{% endif %}
   {% if b.texto %}{{ b.texto|urlize|linebreaks }}{% else %}<p>{% translate "Ordena los pasos con las flechas y luego comprueba." %}</p>{% endif %}
   <ol class="ordenar">

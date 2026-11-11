@@ -29,7 +29,7 @@
       {% else %}<g class="campo {{ p.clase }}"><circle cx="{{ p.x }}" cy="{{ p.y }}" r="11"/>{% if p.n %}<text x="{{ p.x }}" y="{{ p.y }}" dy="4">{% if p.clase == "vista" %}✓{% else %}{{ p.n }}{% endif %}</text>{% endif %}</g>{% endif %}
     {% endfor %}
     {% if e.completado %}<g class="cima lograda"><line x1="300" y1="40" x2="300" y2="14"/><path d="M300 14h20l-6 6 6 6h-20z"/></g>{% endif %}
-    <text class="escalador" x="{{ e.escalador.x }}" y="{{ e.escalador.y }}" dx="-40" dy="2" aria-hidden="true">🧗</text>
+    <g class="escalador" transform="translate({{ e.escalador.x }} {{ e.escalador.y }})">{% include "aprendizaje/aprende/_escalador.html" with en_mapa=True %}</g>
   </svg>
 
   <div class="mochila" aria-label="{% translate 'Tu mochila' %}">

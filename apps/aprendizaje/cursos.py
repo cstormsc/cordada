@@ -1,13 +1,14 @@
 """Course design rules: lesson dependencies and what must be fixed before publishing."""
 
 import re
+from typing import NamedTuple
 
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
 from apps.formularios.models import EstadoCuestionario
 
-from .models import ALTURAS, TipoBloque
+from .models import ALTURAS, JUEGOS, TipoBloque
 
 T = TipoBloque
 
@@ -35,9 +36,19 @@ def creates_cycle(graph, leccion_id, depende_de_ids):
     return False
 
 
+class ItemData(NamedTuple):
+    """What a block's validation needs from each of its items."""
+
+    titulo: str = ""
+    texto: str = ""
+    correcta: bool = False
+    grupo: int | None = None
+
+
 def block_errors(bloque, items=()):
-    """What a block still needs for its type. `items`: (titulo, texto, correcta) of its
-    steps, sections or options."""
+    """What a block still needs for its type. `items`: the ItemData of its steps,
+    sections, options or cards."""
+    con_titulo = all(i.titulo for i in items)
     if bloque.tipo in (T.TEXTO, T.NOTA) and not bloque.texto.strip():
         return [_("escribe el texto")]
     if bloque.tipo == T.IMAGEN and not bloque.archivo:
@@ -50,22 +61,40 @@ def block_errors(bloque, items=()):
         return [_("agrega al menos dos pasos")]
     if bloque.tipo == T.ACORDEON and not items:
         return [_("agrega al menos una sección")]
-    if bloque.tipo == T.ACORDEON and not all(titulo for titulo, *_rest in items):
+    if bloque.tipo == T.ACORDEON and not con_titulo:
         return [_("cada sección necesita un título")]
-    if bloque.tipo == T.PREGUNTA:
+    if bloque.tipo in (T.PREGUNTA, T.ESCENARIO):
         if not bloque.texto.strip():
-            return [_("escribe la pregunta")]
-        if len(items) < 2 or not all(titulo for titulo, *_rest in items):
+            return [
+                _("escribe la pregunta")
+                if bloque.tipo == T.PREGUNTA
+                else _("describe la situación")
+            ]
+        if len(items) < 2 or not con_titulo:
             return [_("agrega al menos dos opciones, cada una con su texto")]
-        if sum(1 for *_rest, correcta in items if correcta) != 1:
+        if sum(1 for i in items if i.correcta) != 1:
             return [_("marca una sola opción como correcta")]
-    if bloque.tipo == T.ORDENAR and (len(items) < 3 or not all(titulo for titulo, *_rest in items)):
+    if bloque.tipo == T.ESCENARIO and not all(i.texto.strip() for i in items):
+        return [_("escribe qué pasa con cada decisión")]
+    if bloque.tipo == T.ORDENAR and (len(items) < 3 or not con_titulo):
         return [_("agrega al menos tres pasos, cada uno con su texto")]
+    if bloque.tipo == T.CLASIFICAR:
+        grupos = [g for g in bloque.grupos if g]
+        if len(grupos) < 2:
+            return [_("nombra al menos dos grupos")]
+        if len(items) < 3 or not con_titulo:
+            return [_("agrega al menos tres tarjetas, cada una con su texto")]
+        if not all(i.grupo and i.grupo <= len(grupos) for i in items):
+            return [_("elige el grupo de cada tarjeta")]
+    if bloque.tipo == T.TARJETAS and (
+        len(items) < 2 or not all(i.titulo and i.texto.strip() for i in items)
+    ):
+        return [_("agrega al menos dos tarjetas, cada una con su frente y su reverso")]
     return []
 
 
 def _items(bloque):
-    return [(i.titulo, i.texto, i.correcta) for i in bloque.items.all()]
+    return [ItemData(i.titulo, i.texto, i.correcta, i.grupo) for i in bloque.items.all()]
 
 
 def publish_errors(curso):
@@ -135,6 +164,36 @@ def video_embed(url):
     return None
 
 
+def pantallas(bloques):
+    """Splits a lesson into screens: at each page break, and around each game, which gets
+    a screen of its own. A break's title heads the next screen; when it asks for the game,
+    "Continuar" waits until the games of the screen before it are solved."""
+    out = [{"titulo": "", "bloques": [], "exigir": False}]
+
+    def nueva(titulo=""):
+        if out[-1]["bloques"]:
+            out.append({"titulo": titulo, "bloques": [], "exigir": False})
+        elif titulo:
+            out[-1]["titulo"] = titulo
+
+    for b in bloques:
+        if b.tipo == T.CORTE:
+            llenas = [p for p in out if p["bloques"]]
+            if llenas and b.exigir_juego:
+                llenas[-1]["exigir"] = True
+            nueva(b.titulo)
+            continue
+        if b.tipo in JUEGOS:
+            nueva()
+        out[-1]["bloques"].append(b)
+        if b.tipo in JUEGOS:
+            nueva()
+    out = [p for p in out if p["bloques"]]
+    for p in out:
+        p["juegos"] = [b.pk for b in p["bloques"] if b.tipo in JUEGOS]
+    return out
+
+
 def para_mostrar(leccion, archivo_url, imagen_url):
     """The lesson's blocks ready for the page: player URL for videos and the URLs the
     files are served at (they differ between the preview and the person's link)."""
@@ -145,6 +204,14 @@ def para_mostrar(leccion, archivo_url, imagen_url):
         b.lista = list(b.items.all())
         if b.tipo == T.ORDENAR:
             b.pasos, b.json_id = [i.titulo for i in b.lista], f"ordenar-{b.pk}"
+        if b.tipo == T.CLASIFICAR:
+            b.json_id = f"clasificar-{b.pk}"
+            b.tarjetas = {
+                "grupos": [g for g in b.grupos if g],
+                "tarjetas": [
+                    {"titulo": i.titulo, "grupo": i.grupo, "texto": i.texto} for i in b.lista
+                ],
+            }
         for item in b.lista:
             item.imagen_url = imagen_url(item) if item.imagen else None
     return bloques

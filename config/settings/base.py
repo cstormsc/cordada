@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import environ
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 
@@ -13,8 +14,19 @@ ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=[])
 CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS", default=[])
 # Behind a tunnel or proxy that terminates HTTPS, trust its X-Forwarded-Proto header so
 # links built for emails (invitations) start with https://. Only set it behind one.
-if env.bool("DJANGO_BEHIND_HTTPS_PROXY", default=False):
+# The same switch makes the login throttle count failures per visitor, not per proxy.
+BEHIND_HTTPS_PROXY = env.bool("DJANGO_BEHIND_HTTPS_PROXY", default=False)
+if BEHIND_HTTPS_PROXY:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# The example key is public (it is in the repository) and signs the personal links of
+# questionnaires and courses: fine on this machine alone, never where others can reach it.
+EXAMPLE_SECRET_KEY = "change-me-local-only"
+if SECRET_KEY == EXAMPLE_SECRET_KEY and (BEHIND_HTTPS_PROXY or not DEBUG):
+    raise ImproperlyConfigured(
+        "DJANGO_SECRET_KEY is still the example value. Set a random one in .env "
+        "(for example the output of `openssl rand -hex 32`) before sharing the site."
+    )
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -40,6 +52,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # CSS and JS, also with DEBUG off
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",

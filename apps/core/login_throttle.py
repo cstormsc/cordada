@@ -3,6 +3,7 @@ from one address, further attempts are refused for a while without checking the 
 
 import hashlib
 
+from django.conf import settings
 from django.contrib.auth.forms import AuthenticationForm
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
@@ -11,6 +12,19 @@ from django.utils.translation import gettext_lazy as _
 WINDOW_SECONDS = 15 * 60
 MAX_PER_ACCOUNT = 5
 MAX_PER_ADDRESS = 20
+
+
+def client_ip(request):
+    """The visitor's address. Behind the HTTPS proxy or tunnel every request arrives from
+    the proxy, so take the address it reports: the last one in X-Forwarded-For, which the
+    proxy adds itself (earlier ones come from the visitor and can be made up)."""
+    if request is None:
+        return ""
+    if settings.BEHIND_HTTPS_PROXY:
+        forwarded = request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")[-1].strip()
+        if forwarded:
+            return forwarded
+    return request.META.get("REMOTE_ADDR", "")
 
 
 def _keys(username, ip):
@@ -45,7 +59,7 @@ class ThrottledAuthenticationForm(AuthenticationForm):
 
     def clean(self):
         username = self.cleaned_data.get("username") or ""
-        ip = self.request.META.get("REMOTE_ADDR", "") if self.request else ""
+        ip = client_ip(self.request)
         if is_blocked(username, ip):
             self.throttled = True
             raise ValidationError(

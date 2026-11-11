@@ -8,6 +8,7 @@
     <h1><span class="muted">{{ curso.codigo }}</span> {{ curso.titulo }}</h1>
     <div class="row">
       {% if can_design %}<a href="{% url 'aprendizaje:editar' request.client.slug curso.numero %}">{% translate "Configurar" %}</a>{% endif %}
+      {% if can_edit and not curso.is_draft %}<a href="{% url 'aprendizaje:inscripciones' request.client.slug curso.numero %}">{% translate "Personas y avance" %}</a>{% endif %}
       {% if lecciones %}<a class="btn secondary" href="{% url 'aprendizaje:vista_previa' request.client.slug curso.numero %}">{% translate "Vista previa" %}</a>{% endif %}
     </div>
   </div>

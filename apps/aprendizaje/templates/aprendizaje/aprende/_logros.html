@@ -1,0 +1,15 @@
+{% load i18n %}<section class="panel logros">
+  {% if equipo %}
+    <div class="cordada">
+      <h2><span aria-hidden="true">🪢</span> {% blocktranslate with n=equipo.nombre %}Tu cordada: {{ n }}{% endblocktranslate %}</h2>
+      <p>{% if equipo.lograda %}<strong>{% translate "¡Tu cordada hizo cumbre!" %}</strong> {% endif %}{% blocktranslate with arriba=equipo.arriba count total=equipo.total %}{{ arriba }} de {{ total }} persona en cumbre dentro del plazo.{% plural %}{{ arriba }} de {{ total }} personas en cumbre dentro del plazo.{% endblocktranslate %}{% if not equipo.lograda and equipo.total > 1 %} {% blocktranslate with m=equipo.meta %}La cordada hace cumbre cuando llega el {{ m }} %.{% endblocktranslate %}{% endif %}</p>
+      <ol class="cuerda" aria-hidden="true">{% for arriba in equipo.cuerda %}<li class="{% if arriba %}arriba{% endif %}{% if forloop.counter0 == equipo.yo %} yo{% endif %}" title="{% if forloop.counter0 == equipo.yo %}{% translate 'Tú' %}{% endif %}">🧗</li>{% endfor %}</ol>
+      {% if equipo.ejemplo %}<p class="muted small">{% translate "Ejemplo: con personas inscritas, aquí se ve el avance real de su equipo (sucursal o área). Nunca se muestran nombres." %}</p>
+      {% else %}<p class="muted small">{% translate "Sin nombres: solo cuántos de tu equipo ya llegaron." %}</p>{% endif %}
+    </div>
+  {% endif %}
+  <h2>{% translate "Insignias" %}</h2>
+  <ul class="insignias">
+    {% for i in insignias %}<li class="{% if i.ganada %}ganada{% endif %}"><span class="icono" aria-hidden="true">{{ i.icono }}</span><span><strong>{{ i.nombre }}</strong>{% if i.ganada %}<span class="small"> · {% translate "ganada" %}</span>{% else %}<span class="small muted"> · {{ i.como }}</span>{% endif %}</span></li>{% endfor %}
+  </ul>
+</section>

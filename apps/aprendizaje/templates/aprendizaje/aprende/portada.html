@@ -15,7 +15,9 @@
   <p class="muted">{% if preview %}{% translate "Hola, (nombre de la persona)." %}{% else %}{% blocktranslate with name=persona %}Hola, {{ name }}.{% endblocktranslate %}{% endif %}
     {% if curso.fecha_limite %}{% blocktranslate with fecha=curso.fecha_limite|date:"j \d\e F" %}Complétalo antes del {{ fecha }}.{% endblocktranslate %}{% endif %}</p>
   {% if curso.descripcion %}<p>{{ curso.descripcion|urlize|linebreaksbr }}</p>{% endif %}
+  {% if bloqueada %}<p class="msg msg-warning">{% if expedicion %}{% translate "Esa lección todavía está tapada por la niebla: primero ve las que la abren." %}{% else %}{% translate "Esa lección todavía está bloqueada: primero ve las que la abren." %}{% endif %}</p>{% endif %}
   {% if expedicion %}{% include "aprendizaje/aprende/_expedicion.html" %}{% endif %}
+  {% if expedicion and insignias %}{% include "aprendizaje/aprende/_logros.html" %}{% endif %}
 
   <section class="panel">
     <div class="row">
@@ -41,18 +43,26 @@
 
   {% if curso.evaluacion %}
     <section class="panel">
-      {% if expedicion %}
-        <h2><span aria-hidden="true">🚩</span> {% translate "Ataque a cumbre" %}</h2>
-        <p>{% translate "La cumbre se alcanza al aprobar la evaluación." %}</p>
-        <p class="muted small">{% translate "¿Ya dominas el tema? Puedes hacer un ataque en estilo alpino: ir directo a la evaluación sin ver las lecciones. Te pediremos confirmarlo y quedará registrado." %}</p>
-        <button class="btn secondary" type="button"{% if preview %} disabled title="{% translate 'No disponible en la vista previa' %}"{% endif %}>{% translate "Ataque en estilo alpino" %}</button>
+      <h2>{% if expedicion %}<span aria-hidden="true">🚩</span> {% translate "Ataque a cumbre" %}{% else %}{% translate "Evaluación" %}{% endif %}</h2>
+      {% if inscripcion.completada_at %}
+        <p><strong>✓ {% translate "Aprobaste la evaluación: completaste el curso." %}</strong></p>
       {% else %}
-        <h2>{% translate "Evaluación" %}</h2>
-        <p>{% translate "El curso se completa al aprobar la evaluación." %}</p>
-        <p class="muted small">{% translate "¿Ya dominas el tema? Puedes ir directo a la evaluación sin ver las lecciones. Te pediremos confirmarlo y quedará registrado." %}</p>
-        <button class="btn secondary" type="button"{% if preview %} disabled title="{% translate 'No disponible en la vista previa' %}"{% endif %}>{% translate "Ir directo a la evaluación" %}</button>
+        <p>{% if expedicion %}{% translate "La cumbre se alcanza al aprobar la evaluación." %}{% else %}{% translate "El curso se completa al aprobar la evaluación." %}{% endif %}</p>
+        {% if puede_evaluar %}
+          <a class="btn" href="{{ evaluacion_url }}">{% translate "Ir a la evaluación" %}</a>
+          {% if inscripcion.directo_at %}<p class="muted small">{% blocktranslate with f=inscripcion.directo_at|date:"j \d\e F" %}Elegiste ir directo el {{ f }}. Igual puedes ver las lecciones cuando quieras.{% endblocktranslate %}</p>{% endif %}
+        {% else %}
+          <p class="muted small">{% translate "Se abre al ver las lecciones obligatorias." %}
+            {% if expedicion %}{% translate "¿Ya dominas el tema? Puedes hacer un ataque en estilo alpino: ir directo a la evaluación sin ver las lecciones. Te pediremos confirmarlo y quedará registrado." %}{% else %}{% translate "¿Ya dominas el tema? Puedes ir directo a la evaluación sin ver las lecciones. Te pediremos confirmarlo y quedará registrado." %}{% endif %}</p>
+          <form method="post" action="{{ directo_url }}" class="directo">{% csrf_token %}
+            <label class="small"><input type="checkbox" name="confirmo" value="1" required{% if preview %} disabled{% endif %}> {% translate "Confirmo que voy directo a la evaluación sin ver las lecciones, y entiendo que queda registrado." %}</label>
+            <button class="btn secondary"{% if preview %} type="button" disabled title="{% translate 'No disponible en la vista previa' %}"{% endif %}>{% if expedicion %}{% translate "Ataque en estilo alpino" %}{% else %}{% translate "Ir directo a la evaluación" %}{% endif %}</button>
+          </form>
+        {% endif %}
       {% endif %}
     </section>
+  {% elif inscripcion.completada_at and not expedicion %}
+    <p class="msg msg-success">{% translate "Completaste el curso: viste todas las lecciones obligatorias." %}</p>
   {% else %}
     <p class="muted small">{% translate "El curso se completa al ver todas las lecciones obligatorias." %}</p>
   {% endif %}

@@ -15,6 +15,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
 from django.utils import timezone
 
+from apps.aprendizaje.avance import sincronizar
 from apps.aprendizaje.cursos import publish_errors
 from apps.aprendizaje.models import (
     Ajustes,
@@ -23,7 +24,9 @@ from apps.aprendizaje.models import (
     Curso,
     Encabezado,
     EstadoCurso,
+    Inscripcion,
     Leccion,
+    LeccionVista,
     Montana,
 )
 from apps.bitacora import workflow as ticket_flow
@@ -888,7 +891,8 @@ class Builder:
 
     def curso(self, titulo, descripcion, lecciones, *, impactos_, **fields):
         """lecciones: (titulo, minutos, obligatoria, depende_de indexes, blocks), and each
-        block is (tipo, titulo, texto, items) with items as (titulo, texto, correcta)."""
+        block is (tipo, titulo, texto, items[, grupos]) with items as (titulo, texto,
+        correcta[, grupo])."""
         c = Curso.objects.create(titulo=titulo, descripcion=descripcion, **fields)
         c.impactos.set(impactos_)
         creadas = []
@@ -898,16 +902,314 @@ class Builder:
             )
             leccion.depende_de.set([creadas[d] for d in deps])
             creadas.append(leccion)
-            for bo, (tipo, bt, texto, items) in enumerate(bloques, start=1):
+            for bo, (tipo, bt, texto, items, *grupos) in enumerate(bloques, start=1):
                 b = Bloque.objects.create(
-                    leccion=leccion, orden=bo, tipo=tipo, titulo=bt, texto=texto
-                )
-                for io, (it, ix, ok) in enumerate(items, start=1):
-                    BloqueItem.objects.create(bloque=b, orden=io, titulo=it, texto=ix, correcta=ok)
+                    leccion=leccion, orden=bo, tipo=tipo, titulo=bt, texto=texto,
+                    grupos=grupos[0] if grupos else [],
+                )  # fmt: skip
+                for io, (it, ix, ok, *grupo) in enumerate(items, start=1):
+                    BloqueItem.objects.create(
+                        bloque=b, orden=io, titulo=it, texto=ix, correcta=ok,
+                        grupo=grupo[0] if grupo else None,
+                    )  # fmt: skip
         return c
 
+    @staticmethod
+    def pantalla(titulo, filas, marcada=None, nombre="pantalla.png"):
+        """A simple drawing of a Núcleo screen, for the image blocks of the demo lesson."""
+        from io import BytesIO
+
+        from PIL import Image, ImageDraw, ImageFont
+
+        def font(size):
+            try:
+                return ImageFont.truetype("DejaVuSans.ttf", size)
+            except OSError:
+                return ImageFont.load_default(size=size)
+
+        img = Image.new("RGB", (1200, 675), (240, 240, 240))
+        d = ImageDraw.Draw(img)
+        d.rectangle([(0, 0), (1200, 70)], fill=(56, 73, 89))
+        d.text((32, 18), "Núcleo · " + titulo, font=font(30), fill=(255, 255, 255))
+        d.rectangle([(0, 70), (240, 675)], fill=(228, 239, 251))
+        for n, menu in enumerate(["Cliente", "Productos", "Reclamos", "Caja", "Reportes"]):
+            d.text((28, 110 + n * 56), menu, font=font(24), fill=(56, 73, 89))
+        for n, (etiqueta, valor) in enumerate(filas):
+            y = 110 + n * 92
+            borde = (200, 118, 58) if n == marcada else (213, 219, 225)
+            d.rounded_rectangle(
+                [(280, y), (1160, y + 72)],
+                radius=12,
+                fill=(255, 255, 255),
+                outline=borde,
+                width=5 if n == marcada else 2,
+            )
+            d.text((308, y + 10), etiqueta, font=font(20), fill=(86, 97, 109))
+            d.text((308, y + 36), valor, font=font(26), fill=(31, 41, 51))
+        out = BytesIO()
+        img.save(out, "PNG")
+        return SimpleUploadedFile(nombre, out.getvalue(), "image/png")
+
+    def muestrario(self, leccion):
+        """One lesson that uses every block type, so the team sees what each one does."""
+        fila = [
+            ("Cliente", "María José Herrera · cédula 8-765-4321"),
+            ("Productos", "Cuenta corriente · Tarjeta Oro · Crédito hipotecario"),
+            ("Reclamos abiertos", "1 · Cobro duplicado (hace 3 días)"),
+            ("Clave dinámica", "Validada hoy 10:42"),
+        ]
+        bloques = [
+            (
+                "texto",
+                "Una sola pantalla",
+                "Antes, para atender una llamada abríamos tres sistemas: cuentas, tarjetas y reclamos. Con Núcleo, la ficha única del cliente reúne todo en una pantalla.\n\nEn esta lección vas a ver qué tiene la ficha, cómo buscarla y qué revisar antes de dar información por teléfono.",
+                {},
+            ),
+            (
+                "nota",
+                "Recuerda",
+                "Nunca des un saldo sin validar la clave dinámica, aunque reconozcas la voz del cliente.",
+                {},
+            ),
+            (
+                "imagen",
+                "Así se ve la ficha",
+                "La ficha de una clienta de prueba: datos, productos, reclamos y validación.",
+                {"archivo": self.pantalla("Ficha del cliente", fila, nombre="ficha-unica.png")},
+            ),
+            (
+                "video",
+                "Recorrido en video",
+                "El equipo de formación grabó un recorrido de 4 minutos. Mientras se sube a YouTube, el enlace lleva a la intranet.",
+                {"url": "https://example.com/nucleo/videos/ficha-unica"},
+            ),
+            (
+                "documento",
+                "Guía rápida para imprimir",
+                "Una página con los atajos de la ficha, para tener junto al teclado.",
+                {
+                    "archivo": SimpleUploadedFile(
+                        "guia-rapida-ficha.pdf", self.pdf(), "application/pdf"
+                    )
+                },
+            ),
+        ]
+        orden = 0
+        for tipo, titulo, texto, extra in bloques:
+            orden += 1
+            Bloque.objects.create(
+                leccion=leccion, orden=orden, tipo=tipo, titulo=titulo, texto=texto, **extra
+            )
+        pasos = Bloque.objects.create(
+            leccion=leccion,
+            orden=orden + 1,
+            tipo="pasos",
+            titulo="Buscar una ficha en tres pasos",
+            texto="Desde cualquier pantalla de Núcleo.",
+        )
+        for n, (t, x, marcada) in enumerate(
+            [
+                ("Abre el buscador", "Presiona Ctrl + K o haz clic en la lupa de arriba.", None),
+                ("Escribe la cédula", "Con guiones o sin ellos: Núcleo la reconoce igual.", 0),
+                (
+                    "Revisa los reclamos",
+                    "Antes de hablar, mira si el cliente tiene un reclamo abierto: probablemente llama por eso.",
+                    2,
+                ),
+            ],
+            start=1,
+        ):
+            BloqueItem.objects.create(
+                bloque=pasos,
+                orden=n,
+                titulo=t,
+                texto=x,
+                imagen=self.pantalla(t, fila, marcada, nombre=f"paso-{n}.png"),
+            )
+        juegos = [
+            (
+                "acordeon",
+                "Lo que trae la ficha",
+                "Abre cada sección.",
+                [
+                    (
+                        "Productos",
+                        "Cuentas, tarjetas y créditos, incluidos los de otras empresas del grupo.",
+                        False,
+                        None,
+                    ),
+                    (
+                        "Reclamos",
+                        "Los abiertos y los cerrados de los últimos 12 meses.",
+                        False,
+                        None,
+                    ),
+                    (
+                        "Historial de contactos",
+                        "Cada llamada, visita y correo, con quién atendió.",
+                        False,
+                        None,
+                    ),
+                ],
+                [],
+            ),
+            (
+                "tarjetas",
+                "Palabras de la ficha",
+                "",
+                [
+                    ("Ficha única", "La pantalla con todo lo del cliente en Núcleo.", False, None),
+                    (
+                        "Clave dinámica",
+                        "Código de seis dígitos que el cliente ve en su app.",
+                        False,
+                        None,
+                    ),
+                    (
+                        "Contacto",
+                        "Cada vez que el cliente habla con el banco, por cualquier canal.",
+                        False,
+                        None,
+                    ),
+                ],
+                [],
+            ),
+            (
+                "pregunta",
+                "",
+                "Un cliente llama y la ficha muestra un reclamo abierto por cobro duplicado. ¿Qué haces primero?",
+                [
+                    (
+                        "Le pregunto en qué lo puedo ayudar",
+                        "Está bien preguntar, pero ya tienes una pista: adelántate.",
+                        False,
+                        None,
+                    ),
+                    (
+                        "Le confirmo que vi su reclamo y le cuento en qué va",
+                        "Así es: el cliente siente que el banco lo conoce y la llamada se acorta.",
+                        True,
+                        None,
+                    ),
+                    (
+                        "Lo derivo a reclamos",
+                        "Con la ficha ya no hace falta derivar: tú puedes ver el estado.",
+                        False,
+                        None,
+                    ),
+                ],
+                [],
+            ),
+            (
+                "ordenar",
+                "",
+                "Ordena lo que haces al recibir una llamada.",
+                [
+                    ("Saludar y pedir la cédula", "", False, None),
+                    ("Abrir la ficha", "", False, None),
+                    ("Validar la clave dinámica", "", False, None),
+                    ("Revisar reclamos abiertos", "", False, None),
+                    ("Resolver la consulta", "", False, None),
+                ],
+                [],
+            ),
+            (
+                "clasificar",
+                "¿Se puede decir por teléfono?",
+                "Reparte cada dato según si se puede informar después de validar la clave dinámica.",
+                [
+                    ("Saldo de la cuenta", "Sí, una vez validada la clave.", False, 1),
+                    ("Estado de un reclamo", "Sí: es información del propio cliente.", False, 1),
+                    ("Número completo de la tarjeta", "Nunca, ni con la clave validada.", False, 2),
+                    ("Clave de internet", "Nunca: el banco jamás la pide ni la dice.", False, 2),
+                ],
+                ["Se puede informar", "Nunca por teléfono"],
+            ),
+            (
+                "escenario",
+                "Llamada difícil",
+                "Un cliente molesto dice que es la tercera vez que llama por el mismo cobro y no quiere validar la clave dinámica porque «ya lo hizo ayer».",
+                [
+                    (
+                        "Le doy la información igual, porque ya validó ayer",
+                        "La validación vale solo para esa llamada: sin clave no hay información, aunque el cliente esté molesto.",
+                        False,
+                        None,
+                    ),
+                    (
+                        "Le explico que es por su seguridad y lo ayudo a validarla",
+                        "Bien: reconoces su molestia, explicas el porqué y en un minuto sigues con su reclamo.",
+                        True,
+                        None,
+                    ),
+                    (
+                        "Le digo que llame más tarde",
+                        "El cliente ya llamó tres veces: posponer empeora la experiencia.",
+                        False,
+                        None,
+                    ),
+                ],
+                [],
+            ),
+        ]
+        for n, (tipo, titulo, texto, items, grupos) in enumerate(juegos, start=orden + 2):
+            b = Bloque.objects.create(
+                leccion=leccion, orden=n, tipo=tipo, titulo=titulo, texto=texto, grupos=grupos
+            )
+            for k, (it, ix, ok, grupo) in enumerate(items, start=1):
+                BloqueItem.objects.create(
+                    bloque=b, orden=k, titulo=it, texto=ix, correcta=ok, grupo=grupo
+                )
+        # Page breaks: a titled screen for the screenshot, another for the steps, and
+        # one after "Cruzar la grieta" that asks to solve it before going on.
+        cortes = {"nota": ("La ficha por dentro", False), "documento": ("Buscar la ficha", False)}
+        cortes["pregunta"] = ("", True)
+        n = 0
+        for b in list(leccion.bloques.order_by("orden")):
+            n += 1
+            Bloque.objects.filter(pk=b.pk).update(orden=n)
+            if b.tipo in cortes:
+                titulo, exigir = cortes.pop(b.tipo)
+                n += 1
+                Bloque.objects.create(
+                    leccion=leccion, orden=n, tipo="corte", titulo=titulo, exigir_juego=exigir
+                )
+        from apps.aprendizaje.cursos import _items, block_errors
+
+        for b in leccion.bloques.all():
+            assert not block_errors(b, _items(b)), (b.tipo, block_errors(b, _items(b)))
+
+    def climb(self, curso):
+        """Enrolls cashiers and branch heads at different points of the climb. Their
+        questionnaire answers (Formularios) decide who already reached the summit."""
+        lecciones = list(curso.lecciones.all())
+        personas = list(
+            Persona.objects.filter(grupo__name__in=["Cajeros de sucursal", "Jefes de sucursal"])
+        )
+        aprobados = set(
+            Respuesta.objects.filter(
+                enlace__cuestionario=curso.evaluacion, aprobado=True
+            ).values_list("enlace__persona_id", flat=True)
+        )
+        for n, persona in enumerate(personas):
+            ins = Inscripcion.objects.create(curso=curso, persona=persona)
+            if persona.pk in aprobados and n % 5 == 0:  # straight to the evaluation
+                Inscripcion.objects.filter(pk=ins.pk).update(
+                    iniciada_at=ago(10), directo_at=ago(10)
+                )
+                continue
+            vistas = len(lecciones) if persona.pk in aprobados else n % len(lecciones)
+            for leccion in lecciones[:vistas]:
+                LeccionVista.objects.create(
+                    inscripcion=ins, leccion=leccion, vista_at=ago(12 - vistas)
+                )
+            if vistas:
+                Inscripcion.objects.filter(pk=ins.pk).update(iniciada_at=ago(12))
+        for ins in Inscripcion.objects.filter(curso=curso):
+            sincronizar(ins)
+
     def aprendizaje(self):
-        Ajustes.objects.create(expedicion=True)
+        Ajustes.objects.create(expedicion=True, meta_cordada=80)
         Encabezado.objects.create(
             imagen=self.banner(), texto_alternativo="Banco Altiplano · Escuela Núcleo"
         )
@@ -919,6 +1221,12 @@ class Builder:
                 ("Bienvenida a Núcleo", 5, True, [], [
                     ("texto", "Por qué cambiamos", "Núcleo reemplaza al sistema de caja que usamos hace 18 años. Desde el go-live, toda la operación de caja se hace en Núcleo: no hay vuelta atrás al sistema antiguo.\n\nLo bueno: las diferencias se ven en el momento, no al día siguiente.", []),
                     ("nota", "Ojo", "Tu usuario de Núcleo tiene doble factor. Si no lo activaste, hazlo antes de tu primer turno con el nuevo sistema.", []),
+                    ("tarjetas", "Palabras nuevas", "Las vas a escuchar desde el primer día.", [
+                        ("Arqueo", "Conteo del efectivo de una caja para comparar con lo registrado.", False),
+                        ("Cuadre", "Cierre de la caja: lo contado contra lo que Núcleo registró.", False),
+                        ("Doble factor", "Clave más un código en tu celular para entrar a Núcleo.", False),
+                        ("Go-live", "El día en que Núcleo reemplaza al sistema antiguo.", False),
+                    ]),
                     ("pregunta", "", "Si mañana Núcleo está lento, ¿puedes volver al sistema antiguo para atender?", [
                         ("Sí, mientras se resuelve", "El sistema antiguo quedó solo de consulta: ya no registra movimientos.", False),
                         ("No, registro un ticket en la Bitácora y aviso a mi jefe", "Así es. La mesa de ayuda prioriza los tickets de caja durante el go-live.", True),
@@ -952,6 +1260,13 @@ class Builder:
                         ("El jefe de sucursal", "Correcto: sobre $50.000 aprueba el jefe, con el detalle de movimientos adjunto.", True),
                         ("Back office, al día siguiente", "Con Núcleo ya no se espera al día siguiente: se resuelve antes de cerrar.", False),
                     ]),
+                    ("clasificar", "¿Qué cambia con Núcleo?", "Reparte cada tarjeta: ¿cambia o se mantiene igual?", [
+                        ("Las diferencias se ven en el momento", "Antes se veían al día siguiente.", False, 1),
+                        ("El jefe aprueba diferencias sobre $50.000", "Esa regla no cambió.", False, 2),
+                        ("El cuadre es siempre en línea", "Antes se podía cuadrar sin conexión.", False, 1),
+                        ("Se cuenta el efectivo por denominación", "Se sigue contando igual.", False, 2),
+                        ("Los arqueos quedan registrados en Caja → Arqueos", "Antes se anotaban en papel.", False, 1),
+                    ], ["Cambia con Núcleo", "Se mantiene igual"]),
                     ("ordenar", "", "Ordena el cierre de una caja con diferencia.", [
                         ("Contar el efectivo por denominación", "", False),
                         ("Declarar el total en Núcleo", "", False),
@@ -962,6 +1277,11 @@ class Builder:
                 ]),
                 ("Arqueo sorpresa", 6, False, [1], [
                     ("texto", "", "El jefe de sucursal puede hacer un arqueo sorpresa en cualquier momento del turno. No detiene la atención por más de diez minutos.", []),
+                    ("escenario", "Arqueo con fila", "Son las 12:30, tienes ocho clientes en la fila y tu jefa llega a hacer un arqueo sorpresa.", [
+                        ("Le pido que vuelva más tarde", "El arqueo es sorpresa justamente para que no se pueda postergar. Tu jefa lo registra como no realizado.", False),
+                        ("Pauso la atención, cuento con ella y retomo", "Bien: el arqueo no detiene la atención más de diez minutos y queda registrado en Núcleo.", True),
+                        ("Sigo atendiendo mientras ella cuenta sola", "El arqueo se hace con el cajero presente: si no, el conteo no vale.", False),
+                    ]),
                     ("pregunta", "", "¿Dónde se registra un arqueo sorpresa?", [
                         ("Caja → Arqueos", "Ahí queda con fecha, hora y quién lo hizo.", True),
                         ("Reportes → Cierre", "Ese reporte es del cierre del día, no de los arqueos.", False),
@@ -975,16 +1295,12 @@ class Builder:
         assert not publish_errors(caja), publish_errors(caja)
         caja.estado, caja.publicado_at = EstadoCurso.PUBLICADO, ago(5)
         caja.save()
-        self.curso(
+        self.climb(caja)
+        ficha = self.curso(
             "Atención con la ficha única",
             "Cómo usar la ficha única del cliente para resolver en una sola llamada.",
             [
-                ("La ficha en un vistazo", 8, True, [], [
-                    ("acordeon", "", "La ficha reúne todo lo del cliente en una pantalla.", [
-                        ("Productos", "Cuentas, tarjetas y créditos, incluidos los de otras empresas del grupo.", False),
-                        ("Reclamos", "Los abiertos y los cerrados de los últimos 12 meses.", False),
-                    ]),
-                ]),
+                ("La ficha en un vistazo", 15, True, [], []),  # every block type: see muestrario()
                 ("Verificar la identidad", 6, True, [0], [
                     ("ordenar", "", "Ordena la verificación antes de dar un saldo por teléfono.", [
                         ("Pedir el número de cédula", "", False),
@@ -996,7 +1312,11 @@ class Builder:
             ],
             impactos_=[self.imp["ficha"]], montana=Montana.CHIRRIPO, creado_por=self.u["joaquin"],
         )  # fmt: skip
-        self.out("Ascenso y Aprendizaje: 2 cursos (1 publicado) con juegos y encabezado del banco")
+        self.muestrario(ficha.lecciones.get(orden=1))
+        self.out(
+            f"Ascenso y Aprendizaje: 2 cursos (1 publicado, {Inscripcion.objects.count()} "
+            "personas en camino) con juegos, cordadas y encabezado del banco"
+        )
 
     # Dashboard and guide ------------------------------------------------------------------
 
