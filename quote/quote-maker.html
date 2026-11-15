@@ -1,0 +1,227 @@
+<title>Quote Maker</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Great+Vibes&family=Noto+Sans:wght@400;600;700&display=swap">
+<style>
+/* Layout: form panel on the left, live A4 sheet on the right; stacks on phones. */
+:root{
+  --bg:#eef1f5; --panel:#ffffff; --fg:#1b2533; --muted:#5d6b7d; --line:#d4dbe4;
+  --accent:#173d63; --accent-fg:#ffffff; --red:#c0392b; --field:#f7f9fb;
+  --display:'Bebas Neue',Impact,'Arial Narrow',sans-serif;
+  --body:'Noto Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --script:'Great Vibes','Brush Script MT',cursive;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#11161d; --panel:#1a212b; --fg:#e4e9f0; --muted:#97a4b5; --line:#2e3846;
+  --accent:#7fb0e0; --accent-fg:#0d1a28; --red:#e57368; --field:#141a22; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11161d; --panel:#1a212b; --fg:#e4e9f0; --muted:#97a4b5; --line:#2e3846;
+  --accent:#7fb0e0; --accent-fg:#0d1a28; --red:#e57368; --field:#141a22; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body)}
+.wrap{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:24px;
+  padding-block:20px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  max-width:1240px;margin:0 auto;align-items:start}
+@media (max-width:860px){.wrap{grid-template-columns:minmax(0,1fr)}}
+header.app{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+header.app h1{font-family:var(--display);font-size:34px;letter-spacing:1px;margin:0;color:var(--accent);font-weight:400}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+button{font:600 13px var(--body);border-radius:6px;padding:9px 14px;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--fg)}
+button.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button:disabled{opacity:.55;cursor:default}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:18px}
+fieldset{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}
+legend{font-family:var(--display);font-size:18px;letter-spacing:.5px;color:var(--accent);padding:0;margin-bottom:6px}
+label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);min-width:0}
+input,textarea,select{font:14px var(--body);color:var(--fg);background:var(--field);border:1px solid var(--line);border-radius:6px;padding:8px 10px;width:100%;min-width:0}
+textarea{resize:vertical;min-height:54px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.item{display:grid;grid-template-columns:minmax(0,1fr) 92px 34px;gap:6px;align-items:start}
+.item input.amt{text-align:right;font-variant-numeric:tabular-nums}
+.item button{padding:8px 0;color:var(--red)}
+.sum{display:flex;justify-content:space-between;font-weight:700;font-variant-numeric:tabular-nums;border-top:1px solid var(--line);padding-top:10px}
+.note{font-size:12px;color:var(--muted);min-height:16px}
+.stage{min-width:0;overflow-x:auto}
+/* The sheet is paper: fixed print colours in both themes. */
+.sheet{width:794px;height:1123px;background:#fff;color:#222;font-family:var(--body);font-size:12px;
+  padding:64px 60px;position:relative;box-shadow:0 2px 16px rgba(15,30,50,.18);transform-origin:top left}
+.sheet .q{font-family:var(--display);font-size:64px;color:#173d63;line-height:1;letter-spacing:1px}
+.sheet .from{font-weight:700;margin-top:6px}
+.sheet .fromx{color:#555;white-space:pre-line;font-size:11px}
+.sheet .lbl{font-family:var(--display);color:#173d63;font-size:19px;letter-spacing:.3px}
+.sheet .row{display:flex;justify-content:space-between;gap:24px;margin-top:40px}
+.sheet .billto{white-space:pre-line;max-width:55%}
+.sheet .meta{display:grid;grid-template-columns:auto 110px;gap:2px 32px;text-align:right;align-self:start}
+.sheet .meta .lbl{text-align:left}
+.sheet table{width:100%;border-collapse:collapse;margin-top:30px;font-variant-numeric:tabular-nums}
+.sheet th{font-family:var(--display);color:#173d63;font-size:19px;font-weight:400;text-align:left;border-top:1px solid #c0392b;border-bottom:1px solid #c0392b;padding:7px 8px}
+.sheet td{padding:8px}
+.sheet .r{text-align:right}
+.sheet .tot td{font-family:var(--display);color:#173d63;font-size:23px;padding-top:14px}
+.sheet .foot{position:absolute;bottom:80px;left:100px;right:60px;display:flex;align-items:center;gap:12px}
+.sheet .ty{font-family:var(--script);font-size:60px;color:#173d63;line-height:1}
+.sheet .terms{border-left:2px solid #173d63;padding-left:10px;white-space:pre-line}
+.sheet .terms .lbl{color:#c0392b;font-size:16px}
+@media print{
+  body{background:#fff}.panel,header.app{display:none}.wrap{display:block;padding:0}
+  .stage{overflow:visible}.sheet{box-shadow:none;transform:none!important}
+  @page{size:A4;margin:0}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="app">
+    <h1>Quote Maker</h1>
+    <div class="actions">
+      <button id="btnNew" type="button">New quote</button>
+      <button id="btnPdf" type="button" class="primary">Download PDF</button>
+    </div>
+  </header>
+
+  <form class="panel" id="form" autocomplete="off">
+    <fieldset>
+      <legend>From</legend>
+      <label>Your name or business<input id="fromName"></label>
+      <label>Details (phone, email, RUC — optional)<textarea id="fromExtra" rows="2"></textarea></label>
+    </fieldset>
+    <fieldset>
+      <legend>Bill to</legend>
+      <label>Client<textarea id="billTo" rows="2"></textarea></label>
+      <div class="two">
+        <label>Quote #<input id="num" inputmode="numeric"></label>
+        <label>Date<input id="date" type="date"></label>
+      </div>
+      <label>Currency symbol<input id="cur"></label>
+    </fieldset>
+    <fieldset>
+      <legend>Items</legend>
+      <div id="items" style="display:flex;flex-direction:column;gap:6px"></div>
+      <button type="button" id="btnAdd">+ Add item</button>
+      <div class="sum"><span>Total</span><span id="sumOut"></span></div>
+    </fieldset>
+    <fieldset>
+      <legend>Terms</legend>
+      <label>Terms &amp; conditions<textarea id="terms" rows="2"></textarea></label>
+    </fieldset>
+    <div class="note" id="note" role="status"></div>
+  </form>
+
+  <div class="stage" id="stage">
+    <div class="sheet" id="sheet">
+      <div class="q">QUOTE</div>
+      <div class="from" id="pFrom"></div>
+      <div class="fromx" id="pFromX"></div>
+      <div class="row">
+        <div><div class="lbl">Bill To</div><div class="billto" id="pBill"></div></div>
+        <div class="meta">
+          <div class="lbl">Quote #</div><div id="pNum"></div>
+          <div class="lbl">Quote Date</div><div id="pDate"></div>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>Description</th><th class="r">Amount</th></tr></thead>
+        <tbody id="pItems"></tbody>
+        <tfoot><tr class="tot"><td class="r">Total</td><td class="r" id="pTotal"></td></tr></tfoot>
+      </table>
+      <div class="foot"><div class="ty">Thank you</div><div class="terms"><div class="lbl">Terms &amp; Conditions</div><div id="pTerms"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const KEY='quote-maker-v1';
+const today=()=>new Date().toISOString().slice(0,10);
+const sample={fromName:'Carlos Storms',fromExtra:'',billTo:'Premium Insurance Advisor',num:'1267',date:today(),cur:'B/.',
+  terms:'50% de abono',items:[
+   {d:'Vinil impreso 5.17 x 1.20 para pared',a:'100.00'},
+   {d:'Rótulo para vidrio en dos colores, dorado y negro para vidrio',a:'31.50'},
+   {d:'Rótulo para puerta en vinil dorado y negro',a:'22.00'},
+   {d:'Instalación y diseño',a:'200.00'}]};
+let s;
+try{s=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+if(!s||!Array.isArray(s.items))s=structuredClone(sample);
+
+const $=id=>document.getElementById(id);
+const fields=['fromName','fromExtra','billTo','num','date','cur','terms'];
+const money=n=>(isFinite(n)?n:0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const num=v=>parseFloat(String(v).replace(/,/g,''))||0;
+const fmtDate=d=>{if(!d)return'';const[y,m,dd]=d.split('-');return `${dd}/${m}/${y}`};
+
+function save(){try{localStorage.setItem(KEY,JSON.stringify(s))}catch(e){}}
+
+function renderItems(){
+  const box=$('items');box.innerHTML='';
+  s.items.forEach((it,i)=>{
+    const row=document.createElement('div');row.className='item';
+    row.innerHTML=`<input aria-label="Description ${i+1}" id="d${i}" placeholder="Description"><input class="amt" aria-label="Amount ${i+1}" id="a${i}" inputmode="decimal" placeholder="0.00"><button type="button" aria-label="Remove item ${i+1}">✕</button>`;
+    const [d,a,b]=row.children;d.value=it.d;a.value=it.a;
+    d.oninput=()=>{it.d=d.value;update()};
+    a.oninput=()=>{it.a=a.value;update()};
+    a.onblur=()=>{if(a.value!==''){a.value=money(num(a.value));it.a=a.value;update()}};
+    b.onclick=()=>{s.items.splice(i,1);renderItems();update()};
+    box.appendChild(row);
+  });
+}
+function update(){
+  const cur=s.cur?s.cur+' ':'';
+  $('pFrom').textContent=s.fromName;$('pFromX').textContent=s.fromExtra;
+  $('pBill').textContent=s.billTo;$('pNum').textContent=s.num;$('pDate').textContent=fmtDate(s.date);
+  $('pTerms').textContent=s.terms;
+  const tb=$('pItems');tb.innerHTML='';let total=0;
+  s.items.filter(it=>it.d||it.a).forEach(it=>{
+    total+=num(it.a);const tr=document.createElement('tr');
+    const td1=document.createElement('td');td1.textContent=it.d;
+    const td2=document.createElement('td');td2.className='r';td2.textContent=it.a===''?'':money(num(it.a));
+    tr.append(td1,td2);tb.appendChild(tr);
+  });
+  $('pTotal').textContent=cur+money(total);$('sumOut').textContent=cur+money(total);
+  save();
+}
+function fillForm(){fields.forEach(f=>$(f).value=s[f]||'');renderItems();update()}
+fields.forEach(f=>$(f).addEventListener('input',e=>{s[f]=e.target.value;update()}));
+$('btnAdd').onclick=()=>{s.items.push({d:'',a:''});renderItems();update();$('d'+(s.items.length-1)).focus()};
+
+const note=t=>{$('note').textContent=t};
+$('btnNew').onclick=()=>{
+  if($('btnNew').dataset.armed!=='1'){$('btnNew').dataset.armed='1';$('btnNew').textContent='Clear items? Click again';
+    setTimeout(()=>{$('btnNew').dataset.armed='';$('btnNew').textContent='New quote'},3000);return}
+  $('btnNew').dataset.armed='';$('btnNew').textContent='New quote';
+  const n=parseInt(s.num,10);
+  s={...s,billTo:'',num:isFinite(n)?String(n+1):s.num,date:today(),items:[{d:'',a:''}]};
+  fillForm();note('New quote #'+s.num+' started. Your name, currency and terms were kept.');
+};
+
+/* Fit sheet into the stage width */
+function fit(){const st=$('stage'),sh=$('sheet');const w=st.clientWidth;const k=Math.min(1,w/794);
+  sh.style.transform=`scale(${k})`;st.style.height=(1123*k)+'px'}
+addEventListener('resize',fit);
+
+let dl=null;
+if(window.claude?.use){claude.use('downloads').then(x=>{dl=x}).catch(()=>{})}
+
+$('btnPdf').onclick=async()=>{
+  const btn=$('btnPdf');btn.disabled=true;note('Building PDF…');
+  try{
+    await document.fonts.ready;
+    const sh=$('sheet');const prev=sh.style.transform;sh.style.transform='none';
+    const canvas=await html2canvas(sh,{scale:2,backgroundColor:'#ffffff',useCORS:true});
+    sh.style.transform=prev;
+    const pdf=new jspdf.jsPDF({unit:'mm',format:'a4'});
+    pdf.addImage(canvas.toDataURL('image/jpeg',0.95),'JPEG',0,0,210,297);
+    const name=`Quote_${(s.num||'draft').replace(/[^\w-]/g,'')}.pdf`;
+    const blob=pdf.output('blob');
+    if(dl){
+      try{await dl.save({filename:name,data:blob});note('Saved '+name+'.')}
+      catch(e){note(e&&e.code==='declined'?'Download cancelled.':'This view can’t save files. Open the page in a browser tab and try again.')}
+    }else if(window.claude?.use){
+      note('Downloads aren’t available in this view. Open the page in a browser tab and try again.');
+    }else{pdf.save(name);note('Saved '+name+'.')}
+  }catch(e){note('Couldn’t build the PDF: '+(e.message||e))}
+  btn.disabled=false;
+};
+
+fillForm();fit();document.fonts?.ready.then(fit);
+</script>
